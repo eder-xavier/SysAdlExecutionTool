@@ -17,7 +17,7 @@ class PT_Elements_CTempOPT extends SimplePort {
 }
 class PT_Elements_FTempOPT extends SimplePort {
   constructor(name, opts = {}) {
-    super(name, "in", { ...{ expectedType: "Real" }, ...opts });
+    super(name, "out", { ...{ expectedType: "Real" }, ...opts });
   }
 }
 
@@ -83,7 +83,7 @@ class CN_Elements_CelToCelCN extends Connector {
 // Components
 class CP_Elements_SensorCP extends Component {
   constructor(name, opts={}) {
-      super(name, opts);
+      super(name, { ...opts, isBoundary: true });
       // Add ports from component definition
       const portAliases = opts.portAliases || {};
       const portName_current = portAliases["current"] || "current";
@@ -92,7 +92,7 @@ class CP_Elements_SensorCP extends Component {
 }
 class CP_Elements_TempMonitorCP extends Component {
   constructor(name, opts={}) {
-      super(name, { ...opts, isBoundary: true, activityName: "TempMonitorAC" });
+      super(name, { ...opts, activityName: "TempMonitorAC" });
       // Add ports from component definition
       const portAliases = opts.portAliases || {};
       const portName_s1 = portAliases["s1"] || "s1";
@@ -143,7 +143,7 @@ class AN_Elements_FarToCelAN extends Action {
     super(name, {
       ...opts,
       inParameters: [{"name":"far","type":"Real","direction":"in"}],
-      outParameters: [],
+      outParameters: [{"name":"FarToCelAN","type":"Real","direction":"out"}],
       delegates: [{"from":"far","to":"f"},{"from":"FarToCelAN","to":"c"}],
       constraints: ["FarToCelEQ"],
       executables: ["FarToCelEX"],
@@ -157,7 +157,7 @@ class AN_Elements_TempMonitorAN extends Action {
     super(name, {
       ...opts,
       inParameters: [{"name":"t1","type":"Real","direction":"in"},{"name":"t2","type":"Real","direction":"in"}],
-      outParameters: [],
+      outParameters: [{"name":"TempMonitorAN","type":"Real","direction":"out"}],
       delegates: [{"from":"t1","to":"t1"},{"from":"t2","to":"t2"},{"from":"TempMonitorAN","to":"av"}],
       constraints: ["CalcAverageEQ"],
       executables: ["CalcAverageEX"],
@@ -174,10 +174,11 @@ class CT_Elements_FarToCelEQ extends Constraint {
       outParameters: [{"name":"c","type":"Real","direction":"out"}],
       equation: "(c == ((5 * (f - 32)) / 9))",
       constraintFunction: function(params) {// Constraint equation: (c == ((5 * (f - 32)) / 9))
-          const { f } = params;
+          const { f, c } = params;
           
           // Type validation
           if (typeof f !== 'number') throw new Error('Parameter f must be a Real (number)');
+          if (typeof c !== 'number') throw new Error('Parameter c must be a Real (number)');
           return c == ((5 * (f - 32)) / 9);
         }
     });
@@ -193,11 +194,12 @@ class CT_Elements_CalcAverageEQ extends Constraint {
       outParameters: [{"name":"av","type":"Real","direction":"out"}],
       equation: "(av == ((t1 + t2) / 2))",
       constraintFunction: function(params) {// Constraint equation: (av == ((t1 + t2) / 2))
-          const { t1, t2 } = params;
+          const { t1, t2, av } = params;
           
           // Type validation
           if (typeof t1 !== 'number') throw new Error('Parameter t1 must be a Real (number)');
           if (typeof t2 !== 'number') throw new Error('Parameter t2 must be a Real (number)');
+          if (typeof av !== 'number') throw new Error('Parameter av must be a Real (number)');
           return av == ((t1 + t2) / 2);
         }
     });
@@ -209,12 +211,14 @@ class EX_Elements_FarToCelEX extends Executable {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"f","type":"Real","direction":"in"}],
-      body: "executable def FarToCelEX (in f:Real): out Real {\n\t\treturn 5*(f - 32)/9 ;\n\t}",
+      inParameters: [{"name":"far","type":"Real","direction":"in"}],
+      body: "executable def FarToCelEX (in f:Real): out Real {\r\n\t\treturn 5*(f - 32)/9 ;\r\n\t}",
       executableFunction: function(params) {
           // Type validation
           // Type validation for f: (auto-detected from usage)
-          const { f } = params;
+          // Mapped f -> far (Substring Match)
+          const { far } = params;
+          const f = far;
           return 5*(f - 32)/9;
         }
     });
@@ -226,13 +230,17 @@ class EX_Elements_CalcAverageEX extends Executable {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"temp1","type":"Real","direction":"in"},{"name":"temp2","type":"Real","direction":"in"}],
-      body: "executable def CalcAverageEX(in temp1:Real,in temp2:Real):out Real{\n\t\treturn (temp1 + temp2)/2 ;\n\t}",
+      inParameters: [{"name":"t1","type":"Real","direction":"in"},{"name":"t2","type":"Real","direction":"in"}],
+      body: "executable def CalcAverageEX(in temp1:Real,in temp2:Real):out Real{\r\n\t\treturn (temp1 + temp2)/2 ;\r\n\t}",
       executableFunction: function(params) {
           // Type validation
           // Type validation for temp1: (auto-detected from usage)
           // Type validation for temp2: (auto-detected from usage)
-          const { temp1, temp2 } = params;
+          // Mapped temp1 -> t1 (Positional Fallback)
+          // Mapped temp2 -> t2 (Positional Fallback)
+          const { t1, t2 } = params;
+          const temp1 = t1;
+          const temp2 = t2;
           return (temp1 + temp2)/2;
         }
     });
@@ -246,43 +254,68 @@ class SysADLModel extends Model {
     super("SysADLModel");
     this.SystemCP = new CP_Elements_SystemCP("SystemCP", { sysadlDefinition: "SystemCP" });
     this.addComponent(this.SystemCP);
-    this.SystemCP.s1 = new CP_Elements_SensorCP("s1", { sysadlDefinition: "SensorCP", portAliases: {"current":"temp1"} });
+    this.SystemCP.s1 = new CP_Elements_SensorCP("s1", { isBoundary: true, sysadlDefinition: "SensorCP", portAliases: {"current":"temp1"} });
     this.SystemCP.addComponent(this.SystemCP.s1);
-    this.SystemCP.s2 = new CP_Elements_SensorCP("s2", { sysadlDefinition: "SensorCP", portAliases: {"current":"temp2"} });
+    this.SystemCP.s2 = new CP_Elements_SensorCP("s2", { isBoundary: true, sysadlDefinition: "SensorCP", portAliases: {"current":"temp2"} });
     this.SystemCP.addComponent(this.SystemCP.s2);
     this.SystemCP.stdOut = new CP_Elements_StdOutCP("stdOut", { isBoundary: true, sysadlDefinition: "StdOutCP", portAliases: {"c3":"avg"} });
     this.SystemCP.addComponent(this.SystemCP.stdOut);
-    this.SystemCP.tempMon = new CP_Elements_TempMonitorCP("tempMon", { isBoundary: true, sysadlDefinition: "TempMonitorCP", portAliases: {"average":"average"} });
+    this.SystemCP.tempMon = new CP_Elements_TempMonitorCP("tempMon", { sysadlDefinition: "TempMonitorCP", portAliases: {"average":"average"} });
     this.SystemCP.addComponent(this.SystemCP.tempMon);
 
     this.SystemCP.addConnector(new CN_Elements_FarToCelCN("c1"));
     const c1 = this.SystemCP.connectors["c1"];
     c1.bind(this.SystemCP.s1.getPort("temp1"), this.SystemCP.tempMon.getPort("s1"));
+    try { (function(){ const _binds = [{"source":"temp1","destination":"s1","left":"temp1","right":"s1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.SystemCP.addConnector(new CN_Elements_FarToCelCN("c2"));
     const c2 = this.SystemCP.connectors["c2"];
     c2.bind(this.SystemCP.s2.getPort("temp2"), this.SystemCP.tempMon.getPort("s2"));
+    try { (function(){ const _binds = [{"source":"temp2","destination":"s2","left":"temp2","right":"s2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.SystemCP.addConnector(new CN_Elements_CelToCelCN("c3"));
     const c3 = this.SystemCP.connectors["c3"];
     c3.bind(this.SystemCP.tempMon.getPort("average"), this.SystemCP.stdOut.getPort("avg"));
+    try { (function(){ const _binds = [{"source":"average","destination":"avg","left":"average","right":"avg"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
 
     const ac_FarToCelCN = new AC_Elements_FarToCelAC(
       "FarToCelAC",
       "FarToCelCN",
       [],
-      [{"from":"far","to":"f"},{"from":"cel","to":"c"}]
+      [{"from":"far","to":"f"},{"from":"cel","to":"c"}],
+      {"outParameters":[{"name":"far","type":"Real","direction":"out"},{"name":"cel","type":"Real","direction":"out"}]}
     );
     const ftoc = new AN_Elements_FarToCelAN("ftoc");
     ac_FarToCelCN.registerAction(ftoc);
+    try { ac_FarToCelCN.portToPinMapping["f"] = "far"; } catch(e) {}
+    try { ac_FarToCelCN.portToPinMapping["f"] = "far"; } catch(e) {}
+    try { ac_FarToCelCN.portToPinMapping["c"] = "cel"; } catch(e) {}
+    try { ac_FarToCelCN.portToPinMapping["c"] = "cel"; } catch(e) {}
     this.registerActivity("FarToCelAC", ac_FarToCelCN);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["FarToCelCN"] = ac_FarToCelCN; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["fartocelcn"] = ac_FarToCelCN; } catch(e) {}
     const ac_TempMonitorCP = new AC_Elements_TempMonitorAC(
       "TempMonitorAC",
-      "TempMonitorCP",
+      "SystemCP.tempMon",
       [],
-      [{"from":"s1","to":"t1"},{"from":"s2","to":"t2"},{"from":"average","to":"TempMonitorAN"}]
+      [{"from":"s1","to":"t1"},{"from":"s2","to":"t2"},{"from":"average","to":"TempMonitorAN"}],
+      {"outParameters":[{"name":"s1","type":"Real","direction":"out"},{"name":"s2","type":"Real","direction":"out"},{"name":"average","type":"Real","direction":"out"}]}
     );
     const TempMonitorAN_inst = new AN_Elements_TempMonitorAN("TempMonitorAN");
     ac_TempMonitorCP.registerAction(TempMonitorAN_inst);
+    try { ac_TempMonitorCP.portToPinMapping["t1"] = "s1"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t1"] = "s1"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t"] = "s1"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t"] = "s1"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t2"] = "s2"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t2"] = "s2"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t"] = "s2"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["t"] = "s2"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["TempMonitorAN"] = "average"; } catch(e) {}
+    try { ac_TempMonitorCP.portToPinMapping["tempmonitoran"] = "average"; } catch(e) {}
     this.registerActivity("TempMonitorAC", ac_TempMonitorCP);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["SystemCP.tempMon"] = ac_TempMonitorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["systemcp.tempmon"] = ac_TempMonitorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["tempMon"] = ac_TempMonitorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["tempmon"] = ac_TempMonitorCP; } catch(e) {}
   }
 
 }

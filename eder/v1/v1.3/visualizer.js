@@ -321,6 +321,8 @@ function extractArchitectureData(model, logElement) {
     registerPath(componentPathIndex, resolvedPath, componentId);
     registerPath(componentPathIndex, comp.name, componentId);
 
+    const isComposite = comp.components && typeof comp.components === 'object' && Object.keys(comp.components).length > 0;
+
     if (!componentPortMap.has(componentId)) {
       componentPortMap.set(componentId, { in: [], out: [], other: [] });
     }
@@ -330,28 +332,22 @@ function extractArchitectureData(model, logElement) {
       label: comp.name,
       group: parentId ? 'subcomponent' : 'component',
       parentId,
+      isComposite,
       level,
       shape: 'box',
-      widthConstraint: { maximum: 320, minimum: 160 },
-      heightConstraint: { minimum: 52 },
-      margin: parentId ? 18 : 24,
-      color: parentId
-        ? {
-          background: palette.subcomponentBg,
-          border: palette.subcomponentBorder
-        }
-        : {
-          background: palette.componentBg,
-          border: palette.componentBorder
-        },
-      borderWidth: 0,
+      shapeProperties: isComposite ? { borderDashes: [6, 4], borderRadius: 14 } : { borderRadius: 8 },
+      borderWidth: isComposite ? 2 : 1,
+      color: isComposite 
+        ? { background: 'transparent', border: palette.componentBorder }
+        : (parentId ? { background: palette.subcomponentBg, border: palette.subcomponentBorder } : { background: palette.componentBg, border: palette.componentBorder }),
       font: {
         color: '#0f172a',
         face: 'Inter, "Segoe UI", sans-serif',
-        size: parentId ? 14 : 16,
-        vadjust: 6
+        size: isComposite ? 18 : (parentId ? 14 : 16),
+        vadjust: 6,
+        bold: isComposite ? { size: 18, color: '#0f172a' } : false
       },
-      shadow: {
+      shadow: isComposite ? false : {
         enabled: true,
         size: parentId ? 6 : 12,
         x: 0,
@@ -578,7 +574,7 @@ function extractArchitectureData(model, logElement) {
               arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
               color: { color: palette.connectorEdge },
               width: 2.6,
-              smooth: { type: 'cubicBezier', roundness: 0.34 },
+              smooth: { type: 'horizontal', roundness: 0.4 },
               shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
               font: {
                 size: 12,
@@ -629,7 +625,7 @@ function extractArchitectureData(model, logElement) {
             arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
             color: { color: palette.connectorEdge },
             width: 2.6,
-            smooth: { type: 'cubicBezier', roundness: 0.34 },
+            smooth: { type: 'horizontal', roundness: 0.4 },
             shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
             font: {
               size: 12,
@@ -657,7 +653,10 @@ function extractArchitectureData(model, logElement) {
 
   if (model && typeof model === 'object') {
     try {
-      addComponentNode(model);
+      // Skip drawing the root 'SysADL model' node itself, but draw its inner components as roots
+      if (model.components && typeof model.components === 'object') {
+        Object.values(model.components).forEach(child => addComponentNode(child, null, 0, null));
+      }
       addConnectorEdges(model);
     } catch (error) {
       console.error('Error extracting architecture data:', error);
@@ -671,61 +670,222 @@ function extractArchitectureData(model, logElement) {
 
   const nodesArray = Array.from(nodes.values());
 
-  const levelBuckets = new Map();
+  // 1. Build childrenMap
+  const childrenMap = new Map();
+  const rootNodes = [];
+  
   nodesArray.forEach(node => {
     if (node.group === 'component' || node.group === 'subcomponent') {
-      const level = node.level || 0;
-      const bucket = levelBuckets.get(level) || [];
-      bucket.push(node);
-      levelBuckets.set(level, bucket);
+      if (node.parentId) {
+        if (!childrenMap.has(node.parentId)) childrenMap.set(node.parentId, []);
+        childrenMap.get(node.parentId).push(node.id);
+      } else {
+        rootNodes.push(node);
+      }
     }
   });
 
-  levelBuckets.forEach((bucket, level) => {
-    const verticalSpacing = 220;
-    const startY = -((bucket.length - 1) * verticalSpacing) / 2;
-    bucket.forEach((node, index) => {
-      node.x = level * 420;
-      node.y = startY + index * verticalSpacing;
-      node.fixed = { x: true, y: true };
-      node.physics = false;
+  // 2. Bottom-up sizing
+  const PADDING_TOP = 65;
+  const PADDING_BOTTOM = 40;
+  const PADDING_SIDE = 50;
+  const GAP_X = 140; // Horizontal gap between sibling subcomponents
+  const MIN_WIDTH = 220;
+  const MIN_HEIGHT = 80;
+
+  function calculateLayout(nodeId) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    const childrenList = childrenMap.get(nodeId) || [];
+    
+    // Base case
+    if (childrenList.length === 0) {
+      node.calcWidth = MIN_WIDTH;
+      node.calcHeight = MIN_HEIGHT;
+      node.widthConstraint = { minimum: node.calcWidth, maximum: node.calcWidth };
+      node.heightConstraint = { minimum: node.calcHeight };
+      return;
+    }
+
+    // Recursive case
+    let totalChildrenWidth = 0;
+    let maxChildHeight = 0;
+    
+    childrenList.forEach(childId => calculateLayout(childId));
+    
+    childrenList.forEach((childId, index) => {
+      const childNode = nodes.get(childId);
+      totalChildrenWidth += childNode.calcWidth;
+      if (index > 0) totalChildrenWidth += GAP_X;
+      if (childNode.calcHeight > maxChildHeight) maxChildHeight = childNode.calcHeight;
     });
+
+    node.calcWidth = totalChildrenWidth + (PADDING_SIDE * 2);
+    node.calcHeight = maxChildHeight + PADDING_TOP + PADDING_BOTTOM;
+
+    // Expand bounding box for vis.js drawing plane
+    node.widthConstraint = { minimum: node.calcWidth, maximum: node.calcWidth };
+    node.heightConstraint = { minimum: node.calcHeight };
+    
+    // Shift the composite title to the absolute top of its stretched box
+    node.font = { ...node.font, vadjust: -(node.calcHeight / 2) + 24 };
+  }
+
+  rootNodes.forEach(root => calculateLayout(root.id));
+
+  // 3. Top-down geometric mapping
+  function assignPosition(nodeId, startX, startY) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    // Center pivot calculation
+    node.x = startX + node.calcWidth / 2;
+    node.y = startY + node.calcHeight / 2;
+    node.fixed = { x: true, y: true };
+    node.physics = false;
+
+    // Distribute children sequentially inside (Topologically sorted based on data flow!)
+    let childrenList = childrenMap.get(nodeId) || [];
+    if (childrenList.length > 0) {
+      
+      // Compute Topological Sort left-to-right based on internal connectors
+      const adj = {};
+      const inDegree = {};
+      childrenList.forEach(c => { adj[c] = []; inDegree[c] = 0; });
+      
+      edges.forEach(e => {
+        const fromPort = nodes.get(e.from);
+        const toPort = nodes.get(e.to);
+        const fromComp = fromPort ? fromPort.parentId : null;
+        const toComp = toPort ? toPort.parentId : null;
+        
+        if (fromComp && toComp && fromComp !== toComp && childrenList.includes(fromComp) && childrenList.includes(toComp)) {
+          if (!adj[fromComp].includes(toComp)) {
+            adj[fromComp].push(toComp);
+            inDegree[toComp]++;
+          }
+        }
+      });
+      
+      const sorted = [];
+      const queue = childrenList.filter(c => inDegree[c] === 0);
+      while(queue.length > 0) {
+        const u = queue.shift();
+        sorted.push(u);
+        adj[u].forEach(v => {
+          inDegree[v]--;
+          if (inDegree[v] === 0) queue.push(v);
+        });
+      }
+      
+      // Append any components caught in loops or isolated
+      childrenList.forEach(c => { if (!sorted.includes(c)) sorted.push(c); });
+      childrenList = sorted;
+
+      let currentX = startX + PADDING_SIDE;
+      
+      // Vertical flex alignment (align children centrally within parent height)
+      childrenList.forEach(childId => {
+        const childNode = nodes.get(childId);
+        // StartY computes relative to individual child height so it sits vertically centered
+        const childStartY = startY + PADDING_TOP + ((maxChildHeightForLevel(childrenList) - childNode.calcHeight) / 2);
+        
+        assignPosition(childId, currentX, childStartY);
+        currentX += childNode.calcWidth + GAP_X;
+      });
+    }
+  }
+
+  function maxChildHeightForLevel(childIds) {
+    let max = 0;
+    childIds.forEach(id => {
+      const h = nodes.get(id)?.calcHeight || 0;
+      if (h > max) max = h;
+    });
+    return max;
+  }
+
+  let currentRootX = 0;
+  
+  // Sort the root configurations functionally left-to-right as well
+  let rootList = rootNodes.map(r => r.id);
+  const rootAdj = {};
+  const rootInDegree = {};
+  rootList.forEach(c => { rootAdj[c] = []; rootInDegree[c] = 0; });
+  edges.forEach(e => {
+    const fromPort = nodes.get(e.from);
+    const toPort = nodes.get(e.to);
+    const fromComp = fromPort ? fromPort.parentId : null;
+    const toComp = toPort ? toPort.parentId : null;
+    if (fromComp && toComp && fromComp !== toComp && rootList.includes(fromComp) && rootList.includes(toComp)) {
+      if (!rootAdj[fromComp].includes(toComp)) {
+        rootAdj[fromComp].push(toComp);
+        rootInDegree[toComp]++;
+      }
+    }
+  });
+  const rootSorted = [];
+  const rootQueue = rootList.filter(c => rootInDegree[c] === 0);
+  while(rootQueue.length > 0) {
+    const u = rootQueue.shift();
+    rootSorted.push(u);
+    rootAdj[u].forEach(v => {
+      rootInDegree[v]--;
+      if (rootInDegree[v] === 0) rootQueue.push(v);
+    });
+  }
+  rootList.forEach(c => { if (!rootSorted.includes(c)) rootSorted.push(c); });
+  rootList = rootSorted;
+
+  rootList.forEach(rootId => {
+    const rootNode = nodes.get(rootId);
+    assignPosition(rootId, currentRootX, 0);
+    currentRootX += rootNode.calcWidth + 240; // Wide gap between independent root configurations
   });
 
+  // 4. Distribute Ports geometrically mapping to container size
   componentPortMap.forEach((groups, componentId) => {
     const compNode = nodes.get(componentId);
     if (!compNode) return;
 
-    const baseX = compNode.x || 0;
-    const baseY = compNode.y || 0;
-    const verticalSpacing = 70;
-    const leftXApprox = baseX - 140;
-    const rightXApprox = baseX + 140;
-    const bottomYApprox = baseY + 120;
+    const baseX = compNode.x;
+    const baseY = compNode.y;
+    const halfWidth = compNode.calcWidth / 2;
+    const halfHeight = compNode.calcHeight / 2;
 
-    const placePorts = (portsArr, targetX, align = 'vertical') => {
+    const leftXApprox = baseX - halfWidth;
+    const rightXApprox = baseX + halfWidth;
+    const bottomYApprox = baseY + halfHeight;
+    const topYApprox = baseY - halfHeight;
+
+    const verticalSpacing = 42; 
+    const horizontalSpacing = 60;
+    
+    const placePorts = (portsArr, targetX, targetY, align = 'vertical') => {
       if (!Array.isArray(portsArr) || portsArr.length === 0) return;
       const count = portsArr.length;
       portsArr.forEach((port, index) => {
         const portNode = nodes.get(port.id);
         if (!portNode) return;
+        
         if (align === 'vertical') {
           const offset = (index - (count - 1) / 2) * verticalSpacing;
           portNode.x = targetX;
-          portNode.y = baseY + offset;
+          portNode.y = targetY + offset;
         } else {
-          const offset = (index - (count - 1) / 2) * verticalSpacing;
-          portNode.x = baseX + offset;
-          portNode.y = targetX;
+          const offset = (index - (count - 1) / 2) * horizontalSpacing;
+          portNode.x = targetX + offset;
+          portNode.y = targetY;
         }
         portNode.fixed = { x: true, y: true };
         portNode.physics = false;
       });
     };
 
-    placePorts(groups?.in, leftXApprox, 'vertical');
-    placePorts(groups?.out, rightXApprox, 'vertical');
-    placePorts(groups?.other, bottomYApprox, 'horizontal');
+    placePorts(groups?.in, leftXApprox, baseY, 'vertical');
+    placePorts(groups?.out, rightXApprox, baseY, 'vertical');
+    placePorts(groups?.other, baseX, bottomYApprox, 'horizontal');
   });
 
   return {

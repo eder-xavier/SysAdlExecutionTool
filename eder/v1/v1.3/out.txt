@@ -1,0 +1,368 @@
+Running transformer...
+[TRANSFORMER] Found executable AST node: {
+  name: 'FarToCelEX',
+  type: 'Executable',
+  hasParameters: false,
+  parametersType: 'undefined',
+  parametersLength: 'N/A',
+  hasInParameters: false,
+  inParametersType: 'undefined',
+  inParametersLength: 'N/A',
+  keys: [
+    'type',
+    'name',
+    'params',
+    'returnType',
+    'properties',
+    'body',
+    'location'
+  ]
+}
+[TRANSFORMER] Final extracted params: [ { name: 'f', type: 'Real', direction: 'in' } ]
+[TRANSFORMER] Found executable AST node: {
+  name: 'CalcAverageEX',
+  type: 'Executable',
+  hasParameters: false,
+  parametersType: 'undefined',
+  parametersLength: 'N/A',
+  hasInParameters: false,
+  inParametersType: 'undefined',
+  inParametersLength: 'N/A',
+  keys: [
+    'type',
+    'name',
+    'params',
+    'returnType',
+    'properties',
+    'body',
+    'location'
+  ]
+}
+[TRANSFORMER] Final extracted params: [
+  { name: 'temp1', type: 'Real', direction: 'in' },
+  { name: 'temp2', type: 'Real', direction: 'in' }
+]
+[TRANSFORMER] Found executable AST node: {
+  name: null,
+  type: 'ExecutableAllocation',
+  hasParameters: false,
+  parametersType: 'undefined',
+  parametersLength: 'N/A',
+  hasInParameters: false,
+  inParametersType: 'undefined',
+  inParametersLength: 'N/A',
+  keys: [ 'type', 'source', 'target', 'location' ]
+}
+[TRANSFORMER] Final extracted params: []
+[TRANSFORMER] Found executable AST node: {
+  name: null,
+  type: 'ExecutableAllocation',
+  hasParameters: false,
+  parametersType: 'undefined',
+  parametersLength: 'N/A',
+  hasInParameters: false,
+  inParametersType: 'undefined',
+  inParametersLength: 'N/A',
+  keys: [ 'type', 'source', 'target', 'location' ]
+}
+[TRANSFORMER] Final extracted params: []
+DEBUG: Processing equation for FarToCelEQ, expression type: BinaryExpression
+DEBUG: Transformed equation: (c == ((5 * (f - 32)) / 9))
+DEBUG: Processing equation for CalcAverageEQ, expression type: BinaryExpression
+DEBUG: Transformed equation: (av == ((t1 + t2) / 2))
+DEBUG: Executable function - params: ["f"], body: return 5*(f - 32)/9 ;
+DEBUG: Executable function - params: ["temp1","temp2"], body: return (temp1 + temp2)/2 ;
+Generated C:\Users\ederv\OneDrive\Documentos\Programing\Projects\sysadl\SysAdlWebStudio\eder\v1\v1.3\generated\Simple.js
+📊 ExecutionLogger initialized for model: SysADLModel
+   Session ID: SysADLModel-1774524353960-df4kgx
+   Log level: detailed
+📦 Batch processing started (interval: 100ms, batch size: 10)
+⚡ EventInjector initialized - ready for event injection
+SceneExecutor initialized - ready for scene execution
+ReactiveStateManager initialized - ready for reactive state tracking
+DependencyTracker initialized - ready to analyze SysADL expressions
+ReactiveConditionWatcher initialized - event-driven condition monitoring ready
+ScenarioExecutor initialized with reactive integration
+ExecutionController initialized - master orchestration ready
+🎬 Model initialized with Phase 4-6 components: SysADLModel
+[CONNECTOR BIND] c1: Connector not initialized yet, storing binding for later
+[CONNECTOR BIND] c2: Connector not initialized yet, storing binding for later
+[CONNECTOR BIND] c3: Connector not initialized yet, storing binding for later
+[ACTIVITY CONSTRUCTOR] name=FarToCelAC, component=FarToCelCN
+[ACTIVITY CONSTRUCTOR]   - delegates param: [{"from":"far","to":"f"},{"from":"cel","to":"c"}]
+[ACTIVITY CONSTRUCTOR]   - opts: {"outParameters":[{"name":"cel","type":"Real","direction":"out"}],"inParameters":[{"name":"far","type":"Real","direction":"in"}]}
+[ACTIVITY CONSTRUCTOR]   - fullOpts.delegates: [{"from":"far","to":"f"},{"from":"cel","to":"c"}]
+[INIT PINS] Activity: FarToCelAC
+[INIT PINS]   - inParameters: [ { name: 'far', type: 'Real', direction: 'in' } ]
+[INIT PINS]   - delegates: [ { from: 'far', to: 'f' }, { from: 'cel', to: 'c' } ]
+[INIT PINS]   - delegates JSON: [{"from":"far","to":"f"},{"from":"cel","to":"c"}]
+[INIT PINS]     - Mapped port 'f' to pin 'far'
+[INIT PINS]     - Mapped port 'c' to pin 'cel'
+[INIT PINS]   - Final portToPinMapping: { far: 'far', cel: 'cel', f: 'far', c: 'cel' }
+[ACTIVITY CONSTRUCTOR] name=TempMonitorAC, component=SystemCP.tempMon
+[ACTIVITY CONSTRUCTOR]   - delegates param: [{"from":"s1","to":"t1"},{"from":"s2","to":"t2"},{"from":"average","to":"TempMonitorAN"}]
+[ACTIVITY CONSTRUCTOR]   - opts: {"outParameters":[{"name":"average","type":"Real","direction":"out"}],"inParameters":[{"name":"s1","type":"Real","direction":"in"},{"name":"s2","type":"Real","direction":"in"}]}
+[ACTIVITY CONSTRUCTOR]   - fullOpts.delegates: [{"from":"s1","to":"t1"},{"from":"s2","to":"t2"},{"from":"average","to":"TempMonitorAN"}]
+[INIT PINS] Activity: TempMonitorAC
+[INIT PINS]   - inParameters: [
+  { name: 's1', type: 'Real', direction: 'in' },
+  { name: 's2', type: 'Real', direction: 'in' }
+]
+[INIT PINS]   - delegates: [
+  { from: 's1', to: 't1' },
+  { from: 's2', to: 't2' },
+  { from: 'average', to: 'TempMonitorAN' }
+]
+[INIT PINS]   - delegates JSON: [{"from":"s1","to":"t1"},{"from":"s2","to":"t2"},{"from":"average","to":"TempMonitorAN"}]
+[INIT PINS]     - Mapped port 't1' to pin 's1'
+[INIT PINS]     - Mapped port 't2' to pin 's2'
+[INIT PINS]     - Mapped port 'TempMonitorAN' to pin 'average'
+[INIT PINS]   - Final portToPinMapping: {
+  s1: 's1',
+  s2: 's2',
+  average: 'average',
+  t1: 's1',
+  t2: 's2',
+  TempMonitorAN: 'average'
+}
+[MODEL] initializeAllConnectors() called
+[MODEL]   - _moduleContext available: true
+[MODEL]   - _moduleContext keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+[MODEL]   - Checking component: SystemCP
+[MODEL]     - Initializing connector: c1
+[CONNECTOR setModel] c1: model=SysADLModel, _needsInitialization=true
+[CONNECTOR setModel]   - participantSchema keys: [ 'f', 'c' ]
+[CONNECTOR setModel]   - _moduleContext set with keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN'
+]
+[CONNECTOR setModel]   - Calling initializeInternalParticipants()
+Initializing participant f with portClass PT_Elements_FTempOPT
+Resolving port class: PT_Elements_FTempOPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_FTempOPT extends SimplePort]
+Final result for PT_Elements_FTempOPT: [class PT_Elements_FTempOPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_FTempOPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+Initializing participant c with portClass PT_Elements_CTempIPT
+Resolving port class: PT_Elements_CTempIPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_CTempIPT extends SimplePort]
+Final result for PT_Elements_CTempIPT: [class PT_Elements_CTempIPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_CTempIPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+[BIND TO] c1.f bindTo -> bindingType=Object, hasReceive=true
+[CONNECTOR setModel]   - Processing 1 pending bindings
+[CONNECTOR setModel]     - Re-binding: temp1 -> s1
+[PERFORM BINDING] c1.f <- SystemCP.s1.temp1 (source)
+[PERFORM BINDING]   - internalParticipants: [ 'f', 'c' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=source
+[BIND TO] SystemCP.s1.temp1 bindTo -> bindingType=PT_Elements_FTempOPT, hasReceive=true
+[PERFORM BINDING]   - Set SystemCP.s1.temp1.binding to c1.f
+[PERFORM BINDING]   - Binding details: bindingType=PT_Elements_FTempOPT, hasReceive=true
+[PERFORM BINDING] c1.c <- SystemCP.tempMon.s1 (target)
+[PERFORM BINDING]   - internalParticipants: [ 'f', 'c' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=target
+[BIND TO] c1.c bindTo -> bindingType=PT_Elements_CTempIPT, hasReceive=true
+[PERFORM BINDING]   - Set c1.c.binding to SystemCP.tempMon.s1
+[PERFORM BINDING]   - Internal participant binding details: bindingType=PT_Elements_CTempIPT, hasReceive=true
+[MODEL]     - Initializing connector: c2
+[CONNECTOR setModel] c2: model=SysADLModel, _needsInitialization=true
+[CONNECTOR setModel]   - participantSchema keys: [ 'f', 'c' ]
+[CONNECTOR setModel]   - _moduleContext set with keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN'
+]
+[CONNECTOR setModel]   - Calling initializeInternalParticipants()
+Initializing participant f with portClass PT_Elements_FTempOPT
+Resolving port class: PT_Elements_FTempOPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_FTempOPT extends SimplePort]
+Final result for PT_Elements_FTempOPT: [class PT_Elements_FTempOPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_FTempOPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+Initializing participant c with portClass PT_Elements_CTempIPT
+Resolving port class: PT_Elements_CTempIPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_CTempIPT extends SimplePort]
+Final result for PT_Elements_CTempIPT: [class PT_Elements_CTempIPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_CTempIPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+[BIND TO] c2.f bindTo -> bindingType=Object, hasReceive=true
+[CONNECTOR setModel]   - Processing 1 pending bindings
+[CONNECTOR setModel]     - Re-binding: temp2 -> s2
+[PERFORM BINDING] c2.f <- SystemCP.s2.temp2 (source)
+[PERFORM BINDING]   - internalParticipants: [ 'f', 'c' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=source
+[BIND TO] SystemCP.s2.temp2 bindTo -> bindingType=PT_Elements_FTempOPT, hasReceive=true
+[PERFORM BINDING]   - Set SystemCP.s2.temp2.binding to c2.f
+[PERFORM BINDING]   - Binding details: bindingType=PT_Elements_FTempOPT, hasReceive=true
+[PERFORM BINDING] c2.c <- SystemCP.tempMon.s2 (target)
+[PERFORM BINDING]   - internalParticipants: [ 'f', 'c' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=target
+[BIND TO] c2.c bindTo -> bindingType=PT_Elements_CTempIPT, hasReceive=true
+[PERFORM BINDING]   - Set c2.c.binding to SystemCP.tempMon.s2
+[PERFORM BINDING]   - Internal participant binding details: bindingType=PT_Elements_CTempIPT, hasReceive=true
+[MODEL]     - Initializing connector: c3
+[CONNECTOR setModel] c3: model=SysADLModel, _needsInitialization=true
+[CONNECTOR setModel]   - participantSchema keys: [ 'c1', 'c2' ]
+[CONNECTOR setModel]   - _moduleContext set with keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN'
+]
+[CONNECTOR setModel]   - Calling initializeInternalParticipants()
+Initializing participant c1 with portClass PT_Elements_CTempOPT
+Resolving port class: PT_Elements_CTempOPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_CTempOPT extends SimplePort]
+Final result for PT_Elements_CTempOPT: [class PT_Elements_CTempOPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_CTempOPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+Initializing participant c2 with portClass PT_Elements_CTempIPT
+Resolving port class: PT_Elements_CTempIPT
+Module context available: true
+Module context keys: [
+  'PT_Elements_CTempIPT',
+  'PT_Elements_CTempOPT',
+  'PT_Elements_FTempOPT',
+  'CN_Elements_FarToCelCN',
+  'CN_Elements_CelToCelCN',
+  'CT_Elements_FarToCelEQ',
+  'CT_Elements_CalcAverageEQ',
+  'EX_Elements_FarToCelEX',
+  'EX_Elements_CalcAverageEX'
+]
+Found in module context: [class PT_Elements_CTempIPT extends SimplePort]
+Final result for PT_Elements_CTempIPT: [class PT_Elements_CTempIPT extends SimplePort]
+Resolved simple port class: [class PT_Elements_CTempIPT extends SimplePort]
+PortClass type: function
+PortClass constructor: [Function: Function]
+[BIND TO] c3.c1 bindTo -> bindingType=Object, hasReceive=true
+[CONNECTOR setModel]   - Processing 1 pending bindings
+[CONNECTOR setModel]     - Re-binding: average -> avg
+[PERFORM BINDING] c3.c1 <- SystemCP.tempMon.average (source)
+[PERFORM BINDING]   - internalParticipants: [ 'c1', 'c2' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=source
+[BIND TO] SystemCP.tempMon.average bindTo -> bindingType=PT_Elements_CTempOPT, hasReceive=true
+[PERFORM BINDING]   - Set SystemCP.tempMon.average.binding to c3.c1
+[PERFORM BINDING]   - Binding details: bindingType=PT_Elements_CTempOPT, hasReceive=true
+[PERFORM BINDING] c3.c2 <- SystemCP.stdOut.avg (target)
+[PERFORM BINDING]   - internalParticipants: [ 'c1', 'c2' ]
+[PERFORM BINDING]   - has internal participant: true
+[PERFORM BINDING]   - Calling bindTo() with direction=target
+[BIND TO] c3.c2 bindTo -> bindingType=PT_Elements_CTempIPT, hasReceive=true
+[PERFORM BINDING]   - Set c3.c2.binding to SystemCP.stdOut.avg
+[PERFORM BINDING]   - Internal participant binding details: bindingType=PT_Elements_CTempIPT, hasReceive=true
+[MODEL]   - Checking component: s1
+[MODEL]   - Checking component: s2
+[MODEL]   - Checking component: stdOut
+[MODEL]   - Checking component: tempMon
+[RESOLVE CONSTRAINTS] ftoc: constraintNames=["FarToCelEQ"]
+[RESOLVE CONSTRAINTS] Looking for constraint ending with: _FarToCelEQ, found: CT_Elements_FarToCelEQ
+[RESOLVE CONSTRAINTS] Added constraint: ftoc_FarToCelEQ
+[RESOLVE EXECUTABLES] ftoc: executableNames=["FarToCelEX"]
+[RESOLVE EXECUTABLES] Looking for executable ending with: _FarToCelEX, found: EX_Elements_FarToCelEX
+[RESOLVE EXECUTABLES] Added executable: ftoc_FarToCelEX
+[EXECUTABLE COMPILE] ftoc_FarToCelEX: {
+  inParameters: [ { name: 'far', type: 'Real', direction: 'in' } ],
+  body: 'executable def FarToCelEX (in f:Real): out Real {\r\n' +
+    '\t\treturn 5*(f - 32)/9 ;\r\n' +
+    '\t}'
+}
+[EXECUTABLE COMPILE] ftoc_FarToCelEX: paramNames= [ 'far' ]
+[EXECUTABLE COMPILE] ftoc_FarToCelEX: using transformer-provided executableFunction
+[EXECUTABLE COMPILE] ftoc_FarToCelEX: compiledFn created= true
+[EXECUTABLE COMPILE] ftoc_FarToCelEX: compiledFn.toString()= function (...args) {
+              const paramsObj = {};
+              for (let i = 0; i < paramNames.length; i++) paramsObj[paramNames[i]] = args[i];
+              return fn(paramsObj);
+            }
+[RESOLVE CONSTRAINTS] TempMonitorAN: constraintNames=["CalcAverageEQ"]
+[RESOLVE CONSTRAINTS] Looking for constraint ending with: _CalcAverageEQ, found: CT_Elements_CalcAverageEQ
+[RESOLVE CONSTRAINTS] Added constraint: TempMonitorAN_CalcAverageEQ
+[RESOLVE EXECUTABLES] TempMonitorAN: executableNames=["CalcAverageEX"]
+[RESOLVE EXECUTABLES] Looking for executable ending with: _CalcAverageEX, found: EX_Elements_CalcAv
