@@ -267,6 +267,7 @@ function extractArchitectureData(model, logElement) {
   const rootModel = model;
   const componentPortMap = new Map();
   const componentNodeIds = new Set();
+  const compositeBoxes = new Map(); // id -> { x, y, w, h, label, level }
 
   const warn = (message) => {
     console.warn(message);
@@ -327,35 +328,57 @@ function extractArchitectureData(model, logElement) {
       componentPortMap.set(componentId, { in: [], out: [], other: [] });
     }
 
-    nodes.set(componentId, {
-      id: componentId,
-      label: comp.name,
-      group: parentId ? 'subcomponent' : 'component',
-      parentId,
-      isComposite,
-      level,
-      shape: 'box',
-      shapeProperties: isComposite ? { borderDashes: [6, 4], borderRadius: 14 } : { borderRadius: 8 },
-      borderWidth: isComposite ? 2 : 1,
-      color: isComposite 
-        ? { background: 'transparent', border: palette.componentBorder }
-        : (parentId ? { background: palette.subcomponentBg, border: palette.subcomponentBorder } : { background: palette.componentBg, border: palette.componentBorder }),
-      font: {
-        color: '#0f172a',
-        face: 'Inter, "Segoe UI", sans-serif',
-        size: isComposite ? 18 : (parentId ? 14 : 16),
-        vadjust: 6,
-        bold: isComposite ? { size: 18, color: '#0f172a' } : false
-      },
-      shadow: isComposite ? false : {
-        enabled: true,
-        size: parentId ? 6 : 12,
-        x: 0,
-        y: 6,
-        color: 'rgba(15, 23, 42, 0.24)'
-      },
-      title: `Component: ${comp.name}${parentId ? ` (child of ${parentId})` : ''}`
-    });
+    // Composite components are NOT added as vis-network nodes (to avoid z-index occlusion).
+    // They are stored in compositeBoxes and painted via beforeDrawing.
+    if (!isComposite) {
+      nodes.set(componentId, {
+        id: componentId,
+        label: comp.name,
+        group: parentId ? 'subcomponent' : 'component',
+        parentId,
+        isComposite: false,
+        level,
+        shape: 'box',
+        shapeProperties: { borderRadius: 8 },
+        borderWidth: 1,
+        color: parentId
+          ? {
+              background: palette.subcomponentBg,
+              border: palette.subcomponentBorder,
+              highlight: { background: '#cbd5e1', border: palette.subcomponentHighlight },
+              hover: { background: '#cbd5e1', border: palette.subcomponentHighlight }
+            }
+          : {
+              background: palette.componentBg,
+              border: palette.componentBorder,
+              highlight: { background: '#bfdbfe', border: palette.componentHighlight },
+              hover: { background: '#bfdbfe', border: palette.componentHighlight }
+            },
+        font: {
+          color: '#0f172a',
+          face: 'Inter, "Segoe UI", sans-serif',
+          size: parentId ? 14 : 16,
+          vadjust: 6
+        },
+        shadow: {
+          enabled: true,
+          size: parentId ? 6 : 12,
+          x: 0,
+          y: 6,
+          color: 'rgba(15, 23, 42, 0.24)'
+        },
+        title: `Component: ${comp.name}${parentId ? ` (child of ${parentId})` : ''}`
+      });
+    } else {
+      // Register composite placeholder (geometry filled later during layout).
+      compositeBoxes.set(componentId, {
+        id: componentId,
+        label: comp.name,
+        level,
+        parentId,
+        x: 0, y: 0, w: 0, h: 0
+      });
+    }
 
     if (comp.ports && typeof comp.ports === 'object') {
       Object.entries(comp.ports).forEach(([portName, port]) => {
@@ -574,7 +597,7 @@ function extractArchitectureData(model, logElement) {
               arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
               color: { color: palette.connectorEdge },
               width: 2.6,
-              smooth: { type: 'horizontal', roundness: 0.4 },
+              smooth: false,
               shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
               font: {
                 size: 12,
@@ -625,7 +648,7 @@ function extractArchitectureData(model, logElement) {
             arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
             color: { color: palette.connectorEdge },
             width: 2.6,
-            smooth: { type: 'horizontal', roundness: 0.4 },
+            smooth: false,
             shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
             font: {
               size: 12,
@@ -670,17 +693,24 @@ function extractArchitectureData(model, logElement) {
 
   const nodesArray = Array.from(nodes.values());
 
-  // 1. Build childrenMap
+  // childrenMap uses ALL ids — both nodes Map entries and compositeBoxes
   const childrenMap = new Map();
   const rootNodes = [];
-  
-  nodesArray.forEach(node => {
-    if (node.group === 'component' || node.group === 'subcomponent') {
+
+  // Merge all known component ids
+  const allCompIds = new Set([...nodes.keys(), ...compositeBoxes.keys()]);
+  allCompIds.forEach(id => {
+    const node = nodes.get(id) || compositeBoxes.get(id);
+    if (!node) return;
+    const group = node.group;
+    // Only process component/subcomponent entries (not ports)
+    if (id.includes('.') && !compositeBoxes.has(id)) return; // skip ports (component.port form)
+    if (group === 'component' || group === 'subcomponent' || compositeBoxes.has(id)) {
       if (node.parentId) {
         if (!childrenMap.has(node.parentId)) childrenMap.set(node.parentId, []);
-        childrenMap.get(node.parentId).push(node.id);
+        childrenMap.get(node.parentId).push(id);
       } else {
-        rootNodes.push(node);
+        rootNodes.push(nodes.get(id) || compositeBoxes.get(id));
       }
     }
   });
@@ -693,8 +723,12 @@ function extractArchitectureData(model, logElement) {
   const MIN_WIDTH = 220;
   const MIN_HEIGHT = 80;
 
+  function getNodeObj(id) {
+    return nodes.get(id) || compositeBoxes.get(id);
+  }
+
   function calculateLayout(nodeId) {
-    const node = nodes.get(nodeId);
+    const node = getNodeObj(nodeId);
     if (!node) return;
 
     const childrenList = childrenMap.get(nodeId) || [];
@@ -715,35 +749,56 @@ function extractArchitectureData(model, logElement) {
     childrenList.forEach(childId => calculateLayout(childId));
     
     childrenList.forEach((childId, index) => {
-      const childNode = nodes.get(childId);
-      totalChildrenWidth += childNode.calcWidth;
+      const childNode = getNodeObj(childId);
+      if (!childNode) return;
+      totalChildrenWidth += childNode.calcWidth || MIN_WIDTH;
       if (index > 0) totalChildrenWidth += GAP_X;
-      if (childNode.calcHeight > maxChildHeight) maxChildHeight = childNode.calcHeight;
+      if ((childNode.calcHeight || MIN_HEIGHT) > maxChildHeight) maxChildHeight = childNode.calcHeight || MIN_HEIGHT;
     });
 
     node.calcWidth = totalChildrenWidth + (PADDING_SIDE * 2);
     node.calcHeight = maxChildHeight + PADDING_TOP + PADDING_BOTTOM;
 
-    // Expand bounding box for vis.js drawing plane
-    node.widthConstraint = { minimum: node.calcWidth, maximum: node.calcWidth };
-    node.heightConstraint = { minimum: node.calcHeight };
-    
-    // Shift the composite title to the absolute top of its stretched box
-    node.font = { ...node.font, vadjust: -(node.calcHeight / 2) + 24 };
+    // Expand bounding box for vis.js drawing plane only for real nodes
+    if (nodes.has(nodeId)) {
+      node.widthConstraint = { minimum: node.calcWidth, maximum: node.calcWidth };
+      node.heightConstraint = { minimum: node.calcHeight };
+      node.font = { ...node.font, vadjust: -(node.calcHeight / 2) + 24 };
+    }
+
+    // Sync compositeBox geometry
+    if (compositeBoxes.has(nodeId)) {
+      const cb = compositeBoxes.get(nodeId);
+      cb.w = node.calcWidth;
+      cb.h = node.calcHeight;
+    }
   }
 
   rootNodes.forEach(root => calculateLayout(root.id));
 
   // 3. Top-down geometric mapping
   function assignPosition(nodeId, startX, startY) {
-    const node = nodes.get(nodeId);
+    const node = getNodeObj(nodeId);
     if (!node) return;
 
     // Center pivot calculation
     node.x = startX + node.calcWidth / 2;
     node.y = startY + node.calcHeight / 2;
-    node.fixed = { x: true, y: true };
-    node.physics = false;
+
+    // Only fix position for real vis-network nodes
+    if (nodes.has(nodeId)) {
+      node.fixed = { x: true, y: true };
+      node.physics = false;
+    }
+
+    // Sync compositeBox
+    if (compositeBoxes.has(nodeId)) {
+      const cb = compositeBoxes.get(nodeId);
+      cb.x = startX;
+      cb.y = startY;
+      cb.w = node.calcWidth;
+      cb.h = node.calcHeight;
+    }
 
     // Distribute children sequentially inside (Topologically sorted based on data flow!)
     let childrenList = childrenMap.get(nodeId) || [];
@@ -785,12 +840,9 @@ function extractArchitectureData(model, logElement) {
 
       let currentX = startX + PADDING_SIDE;
       
-      // Vertical flex alignment (align children centrally within parent height)
       childrenList.forEach(childId => {
-        const childNode = nodes.get(childId);
-        // StartY computes relative to individual child height so it sits vertically centered
+        const childNode = getNodeObj(childId);
         const childStartY = startY + PADDING_TOP + ((maxChildHeightForLevel(childrenList) - childNode.calcHeight) / 2);
-        
         assignPosition(childId, currentX, childStartY);
         currentX += childNode.calcWidth + GAP_X;
       });
@@ -800,7 +852,7 @@ function extractArchitectureData(model, logElement) {
   function maxChildHeightForLevel(childIds) {
     let max = 0;
     childIds.forEach(id => {
-      const h = nodes.get(id)?.calcHeight || 0;
+      const h = getNodeObj(id)?.calcHeight || 0;
       if (h > max) max = h;
     });
     return max;
@@ -839,36 +891,38 @@ function extractArchitectureData(model, logElement) {
   rootList = rootSorted;
 
   rootList.forEach(rootId => {
-    const rootNode = nodes.get(rootId);
+    const rootNode = getNodeObj(rootId);
+    if (!rootNode) return;
     assignPosition(rootId, currentRootX, 0);
-    currentRootX += rootNode.calcWidth + 240; // Wide gap between independent root configurations
+    currentRootX += rootNode.calcWidth + 240;
   });
 
   // 4. Distribute Ports geometrically mapping to container size
   componentPortMap.forEach((groups, componentId) => {
-    const compNode = nodes.get(componentId);
+    // Composite components have geometry in compositeBoxes; leaf components in nodes
+    const compNode = getNodeObj(componentId);
     if (!compNode) return;
 
-    const baseX = compNode.x;
-    const baseY = compNode.y;
-    const halfWidth = compNode.calcWidth / 2;
-    const halfHeight = compNode.calcHeight / 2;
+    // For compositeBoxes, x/y is top-left corner; for vis nodes it's centre
+    const isCompBox = compositeBoxes.has(componentId);
+    const baseX = isCompBox ? compNode.x + compNode.w / 2 : compNode.x;
+    const baseY = isCompBox ? compNode.y + compNode.h / 2 : compNode.y;
+    const halfWidth  = (isCompBox ? compNode.w : compNode.calcWidth)  / 2;
+    const halfHeight = (isCompBox ? compNode.h : compNode.calcHeight) / 2;
 
-    const leftXApprox = baseX - halfWidth;
-    const rightXApprox = baseX + halfWidth;
-    const bottomYApprox = baseY + halfHeight;
-    const topYApprox = baseY - halfHeight;
+    const leftXApprox  = baseX - halfWidth  - 18;
+    const rightXApprox = baseX + halfWidth  + 18;
+    const bottomYApprox = baseY + halfHeight + 18;
 
-    const verticalSpacing = 42; 
+    const verticalSpacing = 42;
     const horizontalSpacing = 60;
-    
+
     const placePorts = (portsArr, targetX, targetY, align = 'vertical') => {
       if (!Array.isArray(portsArr) || portsArr.length === 0) return;
       const count = portsArr.length;
       portsArr.forEach((port, index) => {
         const portNode = nodes.get(port.id);
         if (!portNode) return;
-        
         if (align === 'vertical') {
           const offset = (index - (count - 1) / 2) * verticalSpacing;
           portNode.x = targetX;
@@ -883,14 +937,15 @@ function extractArchitectureData(model, logElement) {
       });
     };
 
-    placePorts(groups?.in, leftXApprox, baseY, 'vertical');
+    placePorts(groups?.in,  leftXApprox,  baseY, 'vertical');
     placePorts(groups?.out, rightXApprox, baseY, 'vertical');
     placePorts(groups?.other, baseX, bottomYApprox, 'horizontal');
   });
 
   return {
-    nodes: nodesArray,
+    nodes: Array.from(nodes.values()),
     edges,
+    compositeBoxes: Array.from(compositeBoxes.values()),
     ports: Array.from(ports.entries()),
     componentPortMap: Object.fromEntries(componentPortMap),
     componentNodeIds: Array.from(componentNodeIds),
@@ -919,6 +974,7 @@ function renderVisualization(containerId, generatedCode, logElement) {
     const {
       nodes,
       edges,
+      compositeBoxes,
       componentPortMap,
       componentNodeIds,
       portPathIndex,
@@ -1043,6 +1099,64 @@ function renderVisualization(containerId, generatedCode, logElement) {
     };
 
     const network = new Network(container, data, options);
+
+    // --- Draw composite container boxes BEHIND all nodes + edges ---
+    // vis-network always draws nodes on top of edges; we bypass this by painting
+    // composite containers manually via the beforeDrawing canvas hook.
+    if (compositeBoxes && compositeBoxes.length > 0) {
+      network.on('beforeDrawing', (ctx) => {
+        compositeBoxes.forEach(box => {
+          if (!box.w || !box.h) return;
+          // Convert model coords to canvas coords
+          const topLeft = network.canvasToDOM({ x: box.x, y: box.y });
+          const bottomRight = network.canvasToDOM({ x: box.x + box.w, y: box.y + box.h });
+          const scale = network.getScale();
+
+          const cx = topLeft.x;
+          const cy = topLeft.y;
+          const cw = bottomRight.x - topLeft.x;
+          const ch = bottomRight.y - topLeft.y;
+
+          // Convert back to canvas space (beforeDrawing ctx is in canvas space, not DOM)
+          const canvasTopLeft = network.DOMtoCanvas(topLeft);
+          const canvasBottomRight = network.DOMtoCanvas(bottomRight);
+          const rx = canvasTopLeft.x;
+          const ry = canvasTopLeft.y;
+          const rw = canvasBottomRight.x - canvasTopLeft.x;
+          const rh = canvasBottomRight.y - canvasTopLeft.y;
+          const radius = 14;
+
+          // Filled rounded rect (very subtle tint)
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(rx + radius, ry);
+          ctx.lineTo(rx + rw - radius, ry);
+          ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+          ctx.lineTo(rx + rw, ry + rh - radius);
+          ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+          ctx.lineTo(rx + radius, ry + rh);
+          ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+          ctx.lineTo(rx, ry + radius);
+          ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(219, 234, 254, 0.35)';
+          ctx.fill();
+
+          // Dashed border
+          ctx.setLineDash([8, 5]);
+          ctx.strokeStyle = palette.componentBorder;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Label at top-left
+          ctx.font = `bold ${Math.max(12, 14 * scale)}px Inter, "Segoe UI", sans-serif`;
+          ctx.fillStyle = '#312e81';
+          ctx.fillText(box.label, rx + 12, ry + 20 * scale);
+          ctx.restore();
+        });
+      });
+    }
 
     Array.from(container.querySelectorAll('.flow-overlay')).forEach(el => el.remove());
     const overlay = document.createElement('div');

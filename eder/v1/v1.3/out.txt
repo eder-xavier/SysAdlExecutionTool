@@ -365,4 +365,38 @@ PortClass constructor: [Function: Function]
 [RESOLVE CONSTRAINTS] Looking for constraint ending with: _CalcAverageEQ, found: CT_Elements_CalcAverageEQ
 [RESOLVE CONSTRAINTS] Added constraint: TempMonitorAN_CalcAverageEQ
 [RESOLVE EXECUTABLES] TempMonitorAN: executableNames=["CalcAverageEX"]
-[RESOLVE EXECUTABLES] Looking for executable ending with: _CalcAverageEX, found: EX_Elements_CalcAv
+[RESOLVE EXECUTABLES] Looking for executable ending with: _CalcAverageEX, found: EX_Elements_CalcAverageEX
+[RESOLVE EXECUTABLES] Added executable: TempMonitorAN_CalcAverageEX
+[EXECUTABLE COMPILE] TempMonitorAN_CalcAverageEX: {
+  inParameters: [
+    { name: 't1', type: 'Real', direction: 'in' },
+    { name: 't2', type: 'Real', direction: 'in' }
+  ],
+  body: 'executable def CalcAverageEX(in temp1:Real,in temp2:Real):out Real{\r\n' +
+    '\t\treturn (temp1 + temp2)/2 ;\r\n' +
+    '\t}'
+}
+[EXECUTABLE COMPILE] TempMonitorAN_CalcAverageEX: paramNames= [ 't1', 't2' ]
+[EXECUTABLE COMPILE] TempMonitorAN_CalcAverageEX: using transformer-provided executableFunction
+[EXECUTABLE COMPILE] TempMonitorAN_CalcAverageEX: compiledFn created= true
+[EXECUTABLE COMPILE] TempMonitorAN_CalcAverageEX: compiledFn.toString()= function (...args) {
+              const paramsObj = {};
+              for (let i = 0; i < paramNames.length; i++) paramsObj[paramNames[i]] = args[i];
+              return fn(paramsObj);
+            }
+Nodes:
+  [SystemCP] group="component" (x=700, y=92.5, parent=null)
+  [s1] group="subcomponent" (x=160, y=105, parent=SystemCP)
+  [s1.temp1] group="port_out" (x=270, y=105, parent=s1)
+  [s2] group="subcomponent" (x=520, y=105, parent=SystemCP)
+  [s2.temp2] group="port_out" (x=630, y=105, parent=s2)
+  [stdOut] group="subcomponent" (x=880, y=105, parent=SystemCP)
+  [stdOut.avg] group="port_in" (x=770, y=105, parent=stdOut)
+  [tempMon] group="subcomponent" (x=1240, y=105, parent=SystemCP)
+  [tempMon.s1] group="port_in" (x=1130, y=84, parent=tempMon)
+  [tempMon.s2] group="port_in" (x=1130, y=126, parent=tempMon)
+  [tempMon.average] group="port_out" (x=1350, y=105, parent=tempMon)
+
+Connector Edges:
+  ❌ NO CONNECTOR EDGES FOUND! Total edges: 6
+[11:25:53.982] 🚀 session_start:ExecutionLogger
