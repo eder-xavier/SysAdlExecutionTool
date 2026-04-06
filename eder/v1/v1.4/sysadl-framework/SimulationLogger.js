@@ -351,7 +351,18 @@ class SimulationLogger {
     if (Object.keys(finalValues).length > 0) {
       output += '\nFinal Components Value:\n';
       Object.entries(finalValues).forEach(([port, value]) => {
-        output += `  ${port} = ${value}\n`;
+        let comp = port;
+        let p = '';
+        if (port.includes('.')) {
+          const parts = port.split('.');
+          p = parts.pop();
+          comp = parts.join('.');
+        }
+        if (p) {
+          output += `  ${comp} = ${value} (via ${p})\n`;
+        } else {
+          output += `  ${port} = ${value}\n`;
+        }
       });
     }
 
@@ -672,7 +683,18 @@ class SimulationLogger {
     if (Object.keys(finalValues).length > 0) {
       console.log('\nFinal Components Value:');
       Object.entries(finalValues).forEach(([port, value]) => {
-        console.log(`  ${port} = ${value}`);
+        let comp = port;
+        let p = '';
+        if (port.includes('.')) {
+          const parts = port.split('.');
+          p = parts.pop();
+          comp = parts.join('.');
+        }
+        if (p) {
+          console.log(`  ${comp} = ${value} (via ${p})`);
+        } else {
+          console.log(`  ${port} = ${value}`);
+        }
       });
     }
   }

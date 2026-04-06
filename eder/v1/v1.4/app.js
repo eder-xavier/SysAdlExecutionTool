@@ -581,9 +581,18 @@ function runSimulation(generatedCode, { trace = false, loops = 1, params = {}, s
           finalValuesCard.style.display = 'block';
           finalValuesList.innerHTML = '';
           Object.entries(finalValues).forEach(([port, value]) => {
+            let comp = port;
+            let pTail = '';
+            if (port.includes('.')) {
+              const parts = port.split('.');
+              const pName = parts.pop();
+              comp = parts.join('.');
+              pTail = ` <span style="color: #888; font-size: 12px; font-weight: normal;">(via port <i>${pName}</i>)</span>`;
+            }
+
             const li = document.createElement('li');
-            li.style.marginBottom = '4px';
-            li.innerHTML = `<strong>${port}</strong> <span style="color: #666; margin: 0 8px;">=</span> <span style="color: #2e7d32; font-weight: bold;">${value}</span>`;
+            li.style.marginBottom = '6px';
+            li.innerHTML = `<strong>${comp}</strong>${pTail} <span style="color: #666; margin: 0 8px;">=</span> <span style="color: #2e7d32; font-weight: bold;">${value}</span>`;
             finalValuesList.appendChild(li);
           });
         } else {
@@ -1005,8 +1014,18 @@ function createPortCheckbox(portPath, direction, type, indentPx, typeExamples = 
   const arrow = direction === 'output' ? '→' : direction === 'input' ? '←' : '⇄';
   const label = document.createElement('label');
   label.htmlFor = checkbox.id;
-  label.style.cssText = 'flex: 1; cursor: pointer; font-family: "Fira Mono", "Consolas", monospace; font-size: 13px;';
-  label.innerHTML = `${arrow} ${portPath} <span style="color: #999;">[${type}]</span>`;
+  label.style.cssText = 'flex: 1; cursor: pointer; font-family: var(--mono); font-size: 13px;';
+  
+  let comp = portPath;
+  let pTail = '';
+  if (portPath.includes('.')) {
+    const parts = portPath.split('.');
+    const pName = parts.pop();
+    comp = parts.join('.');
+    pTail = ` <span style="color: #888; font-size: 12px; font-weight: normal;">(via port <i>${pName}</i>)</span>`;
+  }
+  
+  label.innerHTML = `${arrow} <strong style="color: var(--ink);">${comp}</strong>${pTail} <span style="color: #999;">[${type}]</span>`;
 
   // Get example for this type
   const typeExample = typeExamples[type] || getDefaultValue(type);
@@ -1106,8 +1125,18 @@ function createMonitorCheckbox(portPath, direction, type, indentPx) {
   const arrow = direction === 'output' ? '→' : direction === 'input' ? '←' : '⇄';
   const label = document.createElement('label');
   label.htmlFor = checkbox.id;
-  label.style.cssText = 'flex: 1; cursor: pointer; font-family: "Fira Mono", "Consolas", monospace; font-size: 13px;';
-  label.innerHTML = `${arrow} ${portPath} <span style="color: #999;">[${type}]</span>`;
+  label.style.cssText = 'flex: 1; cursor: pointer; font-family: var(--mono); font-size: 13px;';
+  
+  let comp = portPath;
+  let pTail = '';
+  if (portPath.includes('.')) {
+    const parts = portPath.split('.');
+    const pName = parts.pop();
+    comp = parts.join('.');
+    pTail = ` <span style="color: #888; font-size: 12px; font-weight: normal;">(via port <i>${pName}</i>)</span>`;
+  }
+  
+  label.innerHTML = `${arrow} <strong style="color: var(--ink);">${comp}</strong>${pTail} <span style="color: #999;">[${type}]</span>`;
 
   portDiv.appendChild(checkbox);
   portDiv.appendChild(label);

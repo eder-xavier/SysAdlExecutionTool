@@ -64,6 +64,16 @@
               style="max-height: 220px; overflow-y: auto; border: 2px solid rgba(46, 125, 50, 0.3); border-radius: 8px; padding: 12px; background: rgba(46, 125, 50, 0.03);">
               <p style="color: var(--muted); font-style: italic; margin: 0; font-size: 13px;">Press 'Transform ▶' to see monitorable ports...</p>
             </div>
+
+            <!-- Highlighted Final Component Values Card -->
+            <div id="finalValuesCard" style="display: none; background: #e3f2fd; border-left: 4px solid #1976d2; padding: 12px; margin-top: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <h3 style="margin-top: 0; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px; font-size: 14px;">
+               Final Components Value
+              </h3>
+              <ul id="finalValuesList" style="margin: 0; padding-left: 20px; font-family: var(--mono); font-size: 13px;">
+              </ul>
+            </div>
+
           </div>
         </div>
 
@@ -216,15 +226,6 @@
           <input type="checkbox" id="logShowBuilding" />
           <span style="margin-left: 8px; font-size: 13px;">Show Architecture Building</span>
         </label>
-      </div>
-
-      <!-- Highlighted Final Component Values Card -->
-      <div id="finalValuesCard" style="display: none; background: #e3f2fd; border-left: 4px solid #1976d2; padding: 15px; margin-top: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <h3 style="margin-top: 0; margin-bottom: 10px; color: #1565c0; display: flex; align-items: center; gap: 8px; font-size: 16px;">
-         Final Components Value
-        </h3>
-        <ul id="finalValuesList" style="margin: 0; padding-left: 20px; font-family: 'Fira Mono', monospace; font-size: 14px;">
-        </ul>
       </div>
 
       <pre id="log" class="log"></pre>
