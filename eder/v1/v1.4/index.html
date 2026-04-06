@@ -29,15 +29,14 @@
       <div class="toolbar">
         <button id="btnTransform">Process ▶</button>
         <div class="spacer"></div>
-        <label class="switch">
-          <input style="display: none;" id="traceToggle" type="checkbox" />
-          <span style="display: none;">Trace execution</span>
-        </label>
-        <label class="switch">
-          <span style="display: none;">Iterations</span>
-          <input style="display: none;" id="loopCount" type="number" min="1" step="1" value="1" />
-        </label>
         <button id="btnRun" class="success">Run</button>
+        <button id="btnLiveRun" style="background: linear-gradient(135deg, #059669, #10b981); color: white; display: flex; align-items: center; gap: 6px;"
+          title="Run simulation continuously. Click 'Apply Inputs' to change parameters mid-run.">
+          ⏵ Live Run
+        </button>
+        <button id="btnStopLive" class="secondary" style="display: none; border-color: #dc2626; color: #dc2626;">
+          ⏹ Stop
+        </button>
       </div>
       <div class="toolbar" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; display: block;">
         
@@ -50,7 +49,21 @@
             </label>
             <div id="availablePortsList"
               style="max-height: 220px; overflow-y: auto; border: 2px solid rgba(25, 118, 210, 0.3); border-radius: 8px; padding: 12px; background: rgba(25, 118, 210, 0.03);">
-              <p style="color: var(--muted); font-style: italic; margin: 0; font-size: 13px;">Press 'Transform ▶' to see available ports...</p>
+              <p style="color: var(--muted); font-style: italic; margin: 0; font-size: 13px;">Press 'Process ▶' to see available ports...</p>
+            </div>
+            <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
+              <button id="btnApplyInputs" class="secondary" style="padding: 6px 14px; font-size: 13px; display: none;"
+                title="Update simulation with current input values without stopping the loop">
+                ↻ Apply Inputs
+              </button>
+              <span id="liveRunStatus" style="display:none; font-size: 12px; color: #059669; font-weight: 600; animation: livePulse 1.2s infinite;">
+                ● LIVE
+              </span>
+              <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); margin-left:auto;" id="liveIntervalLabel" title="Interval between simulation iterations in milliseconds">
+                Interval (ms):
+                <input id="liveInterval" type="number" min="200" max="10000" step="100" value="1000"
+                  style="width:72px; padding:4px 6px; font-size:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface-alt); color:var(--ink);">
+              </label>
             </div>
           </div>
 

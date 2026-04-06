@@ -1,0 +1,8 @@
+// Paste a SysADL model here and click Transform ▶
+// Simple example:
+model Sample
+configuration {
+  component Sensor s1;
+  component Display d1;
+  connector Wire w1 (s1.out -> d1.in);
+}

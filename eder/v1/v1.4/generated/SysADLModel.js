@@ -518,15 +518,15 @@ class CT_Components_CheckPresenceToSetTemperatureEQ extends Constraint {
       ...opts,
       inParameters: [{"name":"detected","type":"Boolean","direction":"in"},{"name":"userTemp","type":"CelsiusTemperature","direction":"in"}],
       outParameters: [{"name":"target","type":"CelsiusTemperature","direction":"out"}],
-      equation: "((detected == true) ? (target == userTemp) : (target == 2))",
-      constraintFunction: function(params) {// Conditional constraint: ((detected == true) ? (target == userTemp) : (target == 2))
+      equation: "((detected == true) ? (target == userTemp) : (target == 22))",
+      constraintFunction: function(params) {// Conditional constraint: ((detected == true) ? (target == userTemp) : (target == 22))
           const { detected, userTemp, target } = params;
           
           // Type validation
           if (typeof detected !== 'boolean') throw new Error('Parameter detected must be a Boolean');
           // Type validation for userTemp: CelsiusTemperature (no validation implemented)
           // Type validation for target: CelsiusTemperature (no validation implemented)
-          return (detected == true) ? (target == userTemp) : (target == 2);
+          return (detected == true) ? (target == userTemp) : (target == 22);
         }
     });
   }
@@ -617,7 +617,7 @@ class EX_Components_CheckPresenceToSetTemperature extends Executable {
     super(name, {
       ...opts,
       inParameters: [{"name":"detected","type":"Boolean","direction":"in"},{"name":"userTemp","type":"CelsiusTemperature","direction":"in"}],
-      body: "executable def CheckPresenceToSetTemperature(in presence:Boolean, in userTemp:CelsiusTemperature):out CelsiusTemperature{if(presence == true) return userTemp; else return 2; }",
+      body: "executable def CheckPresenceToSetTemperature(in presence:Boolean, in userTemp:CelsiusTemperature):out CelsiusTemperature{if(presence == true) return userTemp; else return 22; }",
       executableFunction: function(params) {
           // Type validation
           // Type validation for presence: (auto-detected from usage)
@@ -626,7 +626,7 @@ class EX_Components_CheckPresenceToSetTemperature extends Executable {
           // Mapped presence -> detected (Positional Fallback)
           const { userTemp, detected } = params;
           const presence = detected;
-          if(presence == true) return userTemp; else return 2;
+          if(presence == true) return userTemp; else return 22;
         }
     });
   }

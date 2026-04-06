@@ -481,6 +481,17 @@ button.secondary:hover {
 }
 
 
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+#btnStopLive:hover {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #dc2626 !important;
+}
+
 footer {
   color: var(--muted);
   text-align: center;

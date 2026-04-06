@@ -77,7 +77,9 @@ const els = {
   traceTableBody: document.getElementById('traceTableBody'),
   traceEventCount: document.getElementById('traceEventCount'),
   traceTableWrapper: document.querySelector('.trace-table-wrapper'),
-  logShowBuilding: document.getElementById('logShowBuilding')
+  logShowBuilding: document.getElementById('logShowBuilding'),
+  btnLiveRun: document.getElementById('btnLiveRun'),
+  btnStopLive: document.getElementById('btnStopLive')
 };
 
 // 3) Monaco init
@@ -90,6 +92,10 @@ let traceAnimator = null;
 let traceTimer = null;
 let traceIndex = -1;
 let tracePlaying = false;
+
+// Live simulation state
+let liveRunIntervalId = null;
+let liveRunIteration = 0;
 
 const TRACE_DELAY_BASE_MS = 900;
 let traceSpeedMultiplier = 1;
@@ -106,11 +112,9 @@ configuration {
   component Display d1;
   connector Wire w1 (s1.out -> d1.in);
 }`;
-    const savedSysADL = localStorage.getItem('sysadlCode');
-
     // SysADL editor (left pane)
     editor = monaco.editor.create(els.editor, {
-      value: (savedSysADL || defaultSysADL).trim(),
+      value: defaultSysADL.trim(),
       language: 'sysadl',
       theme: 'vs-dark',
       automaticLayout: true,
@@ -124,10 +128,6 @@ configuration {
 
     console.log('✅ Monaco SysADL editor created successfully');
 
-    // Auto-save SysADL code
-    editor.onDidChangeModelContent(() => {
-      localStorage.setItem('sysadlCode', editor.getValue());
-    });
 
   } catch (error) {
     console.error('Error creating Monaco editor:', error);
@@ -155,12 +155,7 @@ configuration {
   component Display d1;
   connector Wire w1 (s1.out -> d1.in);
 }`;
-  const savedSysADL = localStorage.getItem('sysadlCode');
-  fallbackTextarea.value = savedSysADL || defaultSysADL;
-
-  fallbackTextarea.addEventListener('input', () => {
-    localStorage.setItem('sysadlCode', fallbackTextarea.value);
-  });
+  fallbackTextarea.value = defaultSysADL;
 
   els.editor.appendChild(fallbackTextarea);
 
@@ -549,6 +544,173 @@ function appendToLog(text) {
   const formatted = lines.map(l => formatLogLine(l)).join('');
   els.log.innerHTML += formatted;
   els.log.scrollTop = els.log.scrollHeight;
+}
+
+// Live simulation: runs a single tick and updates the Final Values card
+function liveRunTick(generatedCode, showBuilding, monitoredPorts) {
+  // Always read current values from UI on every tick
+  const params = getCurrentParams();
+
+  const prelude = cjsPrelude();
+  const suffix = cjsReturn();
+  const code = prelude + '\n' + generatedCode + suffix;
+
+  const options = {
+    trace: false,
+    loop: false,
+    count: 1,
+    params,
+    showBuilding,
+    monitoredPorts
+  };
+
+  liveRunIteration++;
+  const iterLabel = `#${liveRunIteration} @ ${new Date().toLocaleTimeString()}`;
+
+  try {
+    window.Simulator.run(code, options); // discard text output
+
+    // Update the Final Values card
+    if (window._simulationLogger && typeof window._simulationLogger.getFinalValues === 'function') {
+      const finalValues = window._simulationLogger.getFinalValues(showBuilding, monitoredPorts);
+      const finalValuesCard = document.getElementById('finalValuesCard');
+      const finalValuesList = document.getElementById('finalValuesList');
+
+      if (finalValuesCard && finalValuesList) {
+        if (Object.keys(finalValues).length > 0) {
+          finalValuesCard.style.display = 'block';
+          finalValuesList.innerHTML = '';
+
+          // Iteration badge
+          const badge = document.createElement('li');
+          badge.style.cssText = 'list-style: none; margin-bottom: 8px; color: #888; font-size: 11px; border-bottom: 1px solid #d0e4f7; padding-bottom: 4px;';
+          badge.textContent = `Iteration ${iterLabel}`;
+          finalValuesList.appendChild(badge);
+
+          Object.entries(finalValues).forEach(([port, value]) => {
+            let comp = port;
+            let pTail = '';
+            if (port.includes('.')) {
+              const parts = port.split('.');
+              const pName = parts.pop();
+              comp = parts.join('.');
+              pTail = ` <span style="color: #888; font-size: 12px; font-weight: normal;">(via port <i>${pName}</i>)</span>`;
+            }
+            const li = document.createElement('li');
+            li.style.marginBottom = '6px';
+            li.innerHTML = `<strong>${comp}</strong>${pTail} <span style="color:#666; margin:0 8px">=</span> <span style="color:#2e7d32; font-weight:bold;">${value}</span>`;
+            finalValuesList.appendChild(li);
+          });
+        }
+      }
+    }
+  } catch (err) {
+    appendToLog(`[ERROR] Live tick ${iterLabel}: ${err.message}\n`);
+  }
+}
+
+// Gather current params from UI checkboxes & input fields directly
+// Reads from the interactive checkboxes in availablePortsList.
+function getCurrentParams() {
+  // Force sync: update JSON textarea from UI checkboxes first
+  updateSimulationParamsJSON();
+
+  const params = {};
+
+  if (els.availablePortsList) {
+    const inputs = els.availablePortsList.querySelectorAll('input[type="text"]');
+    console.log(`[getCurrentParams] Found ${inputs.length} input(s)`);
+    inputs.forEach(valueInput => {
+      const portPath = valueInput.dataset.portPath;
+      const raw = valueInput.value.trim();
+      if (raw) {
+        console.log(`[getCurrentParams]   ${portPath} => raw="${raw}"`);
+        try {
+          params[portPath] = JSON.parse(raw);
+        } catch (e) {
+          params[portPath] = raw;
+        }
+      }
+    });
+  }
+
+  // Fallback: if no checkboxes produced values, try the JSON textarea
+  if (Object.keys(params).length === 0) {
+    const paramsText = (els.simulationParams && els.simulationParams.value || '').trim();
+    console.log(`[getCurrentParams] Falling back to JSON textarea: "${paramsText.substring(0, 80)}"`);
+    if (paramsText) {
+      try { return JSON.parse(paramsText); } catch(e) {}
+    }
+  }
+
+  console.log(`[getCurrentParams] Final params:`, JSON.stringify(params));
+  return params;
+}
+
+// Restart the live interval so the next tick fires immediately after Apply
+function _restartLiveInterval(generatedCode, showBuilding, monitoredPorts, intervalMs) {
+  if (liveRunIntervalId !== null) {
+    clearInterval(liveRunIntervalId);
+  }
+  // Immediate execution of a tick
+  liveRunTick(generatedCode, showBuilding, monitoredPorts);
+  // Restart interval from now
+  liveRunIntervalId = setInterval(() => liveRunTick(generatedCode, showBuilding, monitoredPorts), intervalMs);
+}
+
+function startLiveRun() {
+  const js = generatedJavaScript.trim();
+  if (!js) {
+    appendToLog('[WARN] Process the model first before starting Live Run.\n');
+    return;
+  }
+  if (!window.SysADLBase) {
+    appendToLog('[ERROR] window.SysADLBase not available!\n');
+    return;
+  }
+
+  const interval = Math.max(200, Number(document.getElementById('liveInterval')?.value || 1000));
+  const showBuilding = els.logShowBuilding ? els.logShowBuilding.checked : false;
+  const monitorNodes = els.monitoredPortsList ? els.monitoredPortsList.querySelectorAll('input.monitor-only-checkbox:checked') : [];
+  const monitoredPorts = Array.from(monitorNodes).map(n => n.dataset.portPath);
+
+  liveRunIteration = 0;
+
+  // Store live context so Apply can restart the interval
+  startLiveRun._ctx = { js, showBuilding, monitoredPorts, interval };
+
+  // UI state
+  if (els.btnLiveRun) els.btnLiveRun.style.display = 'none';
+  if (els.btnStopLive) els.btnStopLive.style.display = 'inline-flex';
+  if (els.btnRun) els.btnRun.disabled = true;
+  const applyBtn = document.getElementById('btnApplyInputs');
+  const liveStatus = document.getElementById('liveRunStatus');
+  if (applyBtn) applyBtn.style.display = 'inline-block';
+  if (liveStatus) liveStatus.style.display = 'inline';
+
+  appendToLog(`[INFO] Live Run started (interval: ${interval}ms). Change inputs and click \u21bb Apply Inputs.\n`);
+
+  // Run first tick immediately, then schedule
+  liveRunTick(js, showBuilding, monitoredPorts);
+  liveRunIntervalId = setInterval(() => liveRunTick(js, showBuilding, monitoredPorts), interval);
+}
+
+function stopLiveRun() {
+  if (liveRunIntervalId !== null) {
+    clearInterval(liveRunIntervalId);
+    liveRunIntervalId = null;
+  }
+
+  // UI state
+  if (els.btnLiveRun) els.btnLiveRun.style.display = 'inline-flex';
+  if (els.btnStopLive) els.btnStopLive.style.display = 'none';
+  if (els.btnRun) els.btnRun.disabled = false;
+  const applyBtn = document.getElementById('btnApplyInputs');
+  const liveStatus = document.getElementById('liveRunStatus');
+  if (applyBtn) applyBtn.style.display = 'none';
+  if (liveStatus) liveStatus.style.display = 'none';
+
+  appendToLog(`[INFO] Live Run stopped after ${liveRunIteration} iteration(s).\n`);
 }
 
 // 6) Simulation execution
@@ -982,39 +1144,28 @@ function createInteractivePortsList(ports, typeExamples = {}) {
         compositeHeader.innerHTML = `⇄ ${port.path} <span style="color: #999;">[CompositePort]</span>`;
         els.availablePortsList.appendChild(compositeHeader);
 
-        // Show sub-ports with checkboxes
+        // Show sub-ports with inputs
         for (const subPort of port.subPorts) {
           const subPortPath = `${port.path}.${subPort.name}`;
-          createPortCheckbox(subPortPath, subPort.direction, subPort.type, 12, typeExamples); // 12px indent for sub-ports
+          createPortInput(subPortPath, subPort.direction, subPort.type, 12, typeExamples); // 12px indent for sub-ports
         }
       } else {
-        // SimplePort - show with checkbox
-        createPortCheckbox(port.path, port.direction, port.type, 0, typeExamples); // No indent
+        // SimplePort - show input
+        createPortInput(port.path, port.direction, port.type, 0, typeExamples); // No indent
       }
     }
   }
-
-  // Initialize JSON as empty
-  updateSimulationParamsJSON();
 }
 
-// Helper function to create a port checkbox with input
-function createPortCheckbox(portPath, direction, type, indentPx, typeExamples = {}) {
+// Helper function to create a port input
+function createPortInput(portPath, direction, type, indentPx, typeExamples = {}) {
   const portDiv = document.createElement('div');
   portDiv.style.cssText = `margin-left: ${indentPx}px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;`;
-
-  // Checkbox
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.id = `port_${portPath.replace(/\./g, '_')}`;
-  checkbox.dataset.portPath = portPath;
-  checkbox.style.cursor = 'pointer';
 
   // Port label
   const arrow = direction === 'output' ? '→' : direction === 'input' ? '←' : '⇄';
   const label = document.createElement('label');
-  label.htmlFor = checkbox.id;
-  label.style.cssText = 'flex: 1; cursor: pointer; font-family: var(--mono); font-size: 13px;';
+  label.style.cssText = 'flex: 1; font-family: var(--mono); font-size: 13px;';
   
   let comp = portPath;
   let pTail = '';
@@ -1030,49 +1181,31 @@ function createPortCheckbox(portPath, direction, type, indentPx, typeExamples = 
   // Get example for this type
   const typeExample = typeExamples[type] || getDefaultValue(type);
 
-  // Value input - increased size to 350px
+  // Value input
   const valueInput = document.createElement('input');
   valueInput.type = 'text';
   valueInput.placeholder = typeExample;
   valueInput.dataset.portPath = portPath;
   valueInput.dataset.typeExample = typeExample;
   valueInput.style.cssText = 'width: 350px; padding: 6px 10px; font-family: "Fira Mono", "Consolas", monospace; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;';
-  valueInput.disabled = true; // Disabled until checkbox is checked
 
   // "Use example" button
   const exampleButton = document.createElement('button');
   exampleButton.textContent = '📋';
   exampleButton.title = 'Use example value';
-  exampleButton.style.cssText = 'padding: 4px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer; display: none;';
-  exampleButton.disabled = true;
+  exampleButton.style.cssText = 'padding: 4px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer; display: inline-block;';
 
   // Event listeners
-  checkbox.addEventListener('change', () => {
-    valueInput.disabled = !checkbox.checked;
-    exampleButton.disabled = !checkbox.checked;
-    exampleButton.style.display = checkbox.checked ? 'inline-block' : 'none';
-
-    if (checkbox.checked && !valueInput.value) {
-      valueInput.value = typeExample;
-    }
-    updateSimulationParamsJSON();
-  });
-
   valueInput.addEventListener('input', () => {
-    if (checkbox.checked) {
-      updateSimulationParamsJSON();
-    }
+    updateSimulationParamsJSON();
   });
 
   exampleButton.addEventListener('click', (e) => {
     e.preventDefault();
     valueInput.value = typeExample;
-    if (checkbox.checked) {
-      updateSimulationParamsJSON();
-    }
+    updateSimulationParamsJSON();
   });
 
-  portDiv.appendChild(checkbox);
   portDiv.appendChild(label);
   portDiv.appendChild(valueInput);
   portDiv.appendChild(exampleButton);
@@ -1151,40 +1284,40 @@ function getDefaultValue(type) {
   return '0';
 }
 
-// Update the JSON textarea based on selected checkboxes
+// Update the JSON textarea based on input values
 function updateSimulationParamsJSON() {
   const params = {};
 
-  // Find all checked checkboxes
-  const checkboxes = els.availablePortsList.querySelectorAll('input[type="checkbox"]:checked');
+  // Find all text inputs
+  const inputs = els.availablePortsList.querySelectorAll('input[type="text"]');
 
-  checkboxes.forEach(checkbox => {
-    const portPath = checkbox.dataset.portPath;
-    const valueInput = els.availablePortsList.querySelector(`input[type="text"][data-port-path="${portPath}"]`);
-
-    if (valueInput && valueInput.value) {
+  inputs.forEach(valueInput => {
+    const portPath = valueInput.dataset.portPath;
+    if (valueInput.value) {
       let value = valueInput.value.trim();
 
-      // Try to parse as JSON value (number, boolean, string, etc.)
-      try {
-        // If it's a number
-        if (!isNaN(value) && value !== '') {
-          params[portPath] = Number(value);
-        }
-        // If it's a boolean
-        else if (value === 'true' || value === 'false') {
-          params[portPath] = value === 'true';
-        }
-        // If it's a string (with quotes)
-        else if (value.startsWith('"') && value.endsWith('"')) {
-          params[portPath] = value.substring(1, value.length - 1);
-        }
-        // Otherwise, treat as string
-        else {
+      if (value) {
+        // Try to parse as JSON value (number, boolean, string, etc.)
+        try {
+          // If it's a number
+          if (!isNaN(value) && value !== '') {
+            params[portPath] = Number(value);
+          }
+          // If it's a boolean
+          else if (value === 'true' || value === 'false') {
+            params[portPath] = value === 'true';
+          }
+          // If it's a string (with quotes)
+          else if (value.startsWith('"') && value.endsWith('"')) {
+            params[portPath] = value.substring(1, value.length - 1);
+          }
+          // Otherwise, treat as string
+          else {
+            params[portPath] = value;
+          }
+        } catch (e) {
           params[portPath] = value;
         }
-      } catch (e) {
-        params[portPath] = value;
       }
     }
   });
@@ -1192,19 +1325,8 @@ function updateSimulationParamsJSON() {
   // Update the JSON textarea
   if (Object.keys(params).length > 0) {
     els.simulationParams.value = JSON.stringify(params, null, 2);
-    localStorage.setItem('sysadlParams', els.simulationParams.value);
   } else {
     els.simulationParams.value = '';
-    localStorage.removeItem('sysadlParams');
-  }
-
-  // Save monitored ports as well
-  const monitorNodes = els.monitoredPortsList ? els.monitoredPortsList.querySelectorAll('input.monitor-only-checkbox:checked') : [];
-  const monitoredPorts = Array.from(monitorNodes).map(node => node.dataset.portPath);
-  if (monitoredPorts.length > 0) {
-    localStorage.setItem('sysadlMonitored', JSON.stringify(monitoredPorts));
-  } else {
-    localStorage.removeItem('sysadlMonitored');
   }
 }
 
@@ -1217,42 +1339,7 @@ if (els.monitoredPortsList) {
   });
 }
 
-function restoreSimulationSelections() {
-  try {
-    // Restore params
-    const savedParams = localStorage.getItem('sysadlParams');
-    if (savedParams) {
-      els.simulationParams.value = savedParams;
-      const parsed = JSON.parse(savedParams);
-      for (const [key, val] of Object.entries(parsed)) {
-        const checkbox = els.availablePortsList.querySelector(`input[type="checkbox"][data-port-path="${key}"]`);
-        const valueInput = els.availablePortsList.querySelector(`input[type="text"][data-port-path="${key}"]`);
-        if (checkbox && valueInput) {
-          checkbox.checked = true;
-          valueInput.value = typeof val === 'object' ? JSON.stringify(val) : String(val);
-          valueInput.disabled = false;
-          const btn = valueInput.nextElementSibling;
-          if (btn && btn.tagName === 'BUTTON') {
-             btn.disabled = false;
-             btn.style.display = 'inline-block';
-          }
-        }
-      }
-    }
-    
-    // Restore monitors
-    const savedMonitored = localStorage.getItem('sysadlMonitored');
-    if (savedMonitored) {
-      const parsedMonitors = JSON.parse(savedMonitored);
-      for (const key of parsedMonitors) {
-        const checkbox = els.monitoredPortsList.querySelector(`input.monitor-only-checkbox[data-port-path="${key}"]`);
-        if (checkbox) checkbox.checked = true;
-      }
-    }
-  } catch (err) {
-    console.warn("Could not restore previous selections:", err);
-  }
-}
+
 
 // 7) Event Handlers
 els.btnTransform.addEventListener('click', async () => {
@@ -1274,7 +1361,6 @@ els.btnTransform.addEventListener('click', async () => {
     const { paramPorts, monitorPorts } = extractAvailablePorts(js);
     createInteractivePortsList(paramPorts, typeExamples);
     createMonitorablePortsList(monitorPorts);
-    restoreSimulationSelections(); // Recall state from LocalStorage after lists are created
     console.log(`📋 Found ${paramPorts.length} parametrizable ports and ${monitorPorts.length} monitorable ports`);
 
     // Auto-visualize after successful transformation
@@ -1343,26 +1429,41 @@ els.btnRun.addEventListener('click', async () => {
     return;
   }
 
-  const trace = !!els.traceToggle.checked;
-  const loops = Number(els.loopCount.value || 1);
+  const trace = !!(els.traceToggle && els.traceToggle.checked);
+  const loops = Number((els.loopCount && els.loopCount.value) || 1);
   const showBuilding = els.logShowBuilding ? els.logShowBuilding.checked : false;
 
   const monitorNodes = els.monitoredPortsList ? els.monitoredPortsList.querySelectorAll('input.monitor-only-checkbox:checked') : [];
   const monitoredPorts = Array.from(monitorNodes).map(node => node.dataset.portPath);
 
-  let params = {};
-  const paramsText = els.simulationParams.value.trim();
-  if (paramsText) {
-    try {
-      params = JSON.parse(paramsText);
-    } catch (error) {
-      appendToLog(`[ERROR] Invalid JSON parameters: ${error.message}\n`);
-      return;
-    }
-  }
+  const params = getCurrentParams();
 
   runSimulation(js, { trace, loops, params, showBuilding, monitoredPorts });
 });
+
+// Live Run button
+if (els.btnLiveRun) {
+  els.btnLiveRun.addEventListener('click', startLiveRun);
+}
+
+// Stop Live button
+if (els.btnStopLive) {
+  els.btnStopLive.addEventListener('click', stopLiveRun);
+}
+
+// Apply Inputs during live run
+const btnApplyInputs = document.getElementById('btnApplyInputs');
+if (btnApplyInputs) {
+  btnApplyInputs.addEventListener('click', () => {
+    if (liveRunIntervalId === null) return;
+    const ctx = startLiveRun._ctx;
+    if (ctx) {
+      // Fire an immediate tick with current UI values and reset the interval
+      appendToLog(`[INFO] Inputs applied \u2014 running tick immediately.\n`);
+      _restartLiveInterval(ctx.js, ctx.showBuilding, ctx.monitoredPorts, ctx.interval);
+    }
+  });
+}
 
 if (els.copyArch) {
   els.copyArch.addEventListener('click', async () => {
