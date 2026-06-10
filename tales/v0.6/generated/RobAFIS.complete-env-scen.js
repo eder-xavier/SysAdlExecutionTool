@@ -729,11 +729,348 @@ class ENVACT_RobAFISEnvironmentActivities {
     this.activities['OperatorEA'] = {
       name: 'OperatorEA',
       onClauses: [
+        {
+          signal: 'StartSimulationSig',
+          guard: null,
+          actionName: 'setMissionParametersOp',
+          applyAction: (ctx, signalData) => {
+            ctx.paramIn = signalData.StartSimulationSig.mission;
+          },
+          sendSignal: 'SetMissionParamSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            data.param = signalData.StartSimulationSig.mission;
+            return data;
+          },
+        },
       ]
     };
     this.activities['UnitEA'] = {
       name: 'UnitEA',
       onClauses: [
+        {
+          signal: 'SetMissionParamSig',
+          guard: null,
+          actionName: 'leavePA',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: 'LeftPASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'LeftPASig',
+          guard: null,
+          actionName: 'detectGreenPad',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Green;
+          },
+          sendSignal: 'DetectedGreenPadSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'DetectedGreenPadSig',
+          guard: null,
+          actionName: 'turnRight',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: 'TurnedRightSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'TurnedRightSig',
+          guard: null,
+          actionName: 'detectRedPad',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Red;
+          },
+          sendSignal: 'DetectedRedPadSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'DetectedRedPadSig',
+          guard: null,
+          actionName: 'stopAtT',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.None;
+          },
+          sendSignal: 'UnitArrivedAtTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'UnitArrivedAtTSig',
+          guard: (ctx) => (ctx.inTPresence === true),
+          actionName: 'exposePieceT',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.inTPieceColor;
+          },
+          sendSignal: 'GrabPieceTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            data.pieceColor = signalData.inTPieceColor;
+            return data;
+          },
+        },
+        {
+          signal: 'GrabPieceTSig',
+          guard: null,
+          actionName: 'extractPieceT',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.GrabPieceTSig.pieceColor;
+          },
+          sendSignal: 'ExtractedPieceTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractedPieceTSig',
+          guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P0) && (ctx.inUnitPieceColor === ctx.PieceType.P1)),
+          actionName: 'routeToSA',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Green;
+          },
+          sendSignal: 'RoutedToSASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractedPieceTSig',
+          guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P0) && (ctx.inUnitPieceColor === ctx.PieceType.P2)),
+          actionName: 'routeToSPD',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Red;
+          },
+          sendSignal: 'RoutedToSPDSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractedPieceTSig',
+          guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P1) && (ctx.inUnitPieceColor === ctx.PieceType.P1)),
+          actionName: 'routeToSPD',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Red;
+          },
+          sendSignal: 'RoutedToSPDSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractedPieceTSig',
+          guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P1) && (ctx.inUnitPieceColor === ctx.PieceType.P2)),
+          actionName: 'routeToSA',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Green;
+          },
+          sendSignal: 'RoutedToSASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'RoutedToSASig',
+          guard: null,
+          actionName: 'stopAtSPE',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.None;
+          },
+          sendSignal: 'UnitArrivedAtSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'RoutedToSPDSig',
+          guard: null,
+          actionName: 'stopAtSPE',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.None;
+          },
+          sendSignal: 'UnitArrivedAtSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'UnitArrivedAtSPESig',
+          guard: (ctx) => (ctx.inSPEPresence === true),
+          actionName: 'exposePieceSPE',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.inSPEPieceColor;
+          },
+          sendSignal: 'GrabPieceSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            data.pieceColor = signalData.inSPEPieceColor;
+            return data;
+          },
+        },
+        {
+          signal: 'GrabPieceSPESig',
+          guard: null,
+          actionName: 'extractPieceSPE',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.GrabPieceSPESig.pieceColor;
+          },
+          sendSignal: 'ExtractedPieceSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractedPieceSPESig',
+          guard: null,
+          actionName: 'arriveAtTargetStock',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Red;
+          },
+          sendSignal: 'UnitArrivedAtTargetStockSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'UnitArrivedAtSPESig',
+          guard: (ctx) => (ctx.inSPEPresence === false),
+          actionName: 'arriveAtTargetStock',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Red;
+          },
+          sendSignal: 'UnitArrivedAtTargetStockSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'UnitArrivedAtTargetStockSig',
+          guard: null,
+          actionName: 'acknowledgeTarget',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.inUnitNavPad;
+          },
+          sendSignal: 'DropPieceSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'DropPieceSig',
+          guard: (ctx) => (ctx.inUnitNavPad === ctx.NavColor.Green),
+          actionName: 'insertPieceSA',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.inUnitPieceColor;
+          },
+          sendSignal: 'InsertedPieceSASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'DropPieceSig',
+          guard: (ctx) => (ctx.inUnitNavPad === ctx.NavColor.Red),
+          actionName: 'insertPieceSPD',
+          applyAction: (ctx, signalData) => {
+            ctx.pieceIn = signalData.inUnitPieceColor;
+          },
+          sendSignal: 'InsertedPieceSPDSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'InsertedPieceSASig',
+          guard: null,
+          actionName: 'returnJourney',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: 'ReturnJourneyStartedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'InsertedPieceSPDSig',
+          guard: null,
+          actionName: 'returnJourney',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: 'ReturnJourneyStartedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ReturnJourneyStartedSig',
+          guard: null,
+          actionName: 'obstacleDetected',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.None;
+          },
+          sendSignal: 'ObstacleDetectedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ObstacleDetectedSig',
+          guard: null,
+          actionName: 'obstacleRemoved',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: 'ObstacleRemovedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            return data;
+          },
+        },
+        {
+          signal: 'ObstacleRemovedSig',
+          guard: null,
+          actionName: 'arriveAtPA',
+          applyAction: (ctx, signalData) => {
+            ctx.colorIn = signalData.NavColor.Black;
+          },
+          sendSignal: null,
+        },
       ]
     };
   }

@@ -1,13 +1,13 @@
 # Task: Simulador SysADL Integrado
 
-## Fase 1: Validar Parser com RobAFIS.complete.sysadl
+## Fase 1: Validar Parser com RobAFIS.complete.sysadl — ✅ CONCLUÍDA
 - [x] Criar test/test-parser.js
 - [x] Executar parser contra RobAFIS.complete.sysadl — ✅ PARSING SUCCEEDED
 - [x] Identificar e corrigir falhas no parser/gramática — Nenhuma falha, parser OK!
 - [x] Validar AST para todos os novos elementos — 18/18 checks passed
 - [x] Dump AST para referência (RobAFIS.complete-ast.json)
 
-## Fase 2: Atualizar Transformer para Nova Gramática
+## Fase 2: Atualizar Transformer para Nova Gramática — ✅ CONCLUÍDA
 - [x] Atualizar classificação de nós AST (hasEnvironmentElements, separateElements) — ✅ Suporta nova e antiga gramática
 - [x] Gerar código para EnvPortDef — ✅ 10 EnvPorts gerados (EP_OutPieceColor, EP_InPieceColor, etc.)
 - [x] Gerar código para EnvConnectorDef (com participants/flows) — ✅ 8 EnvConnectors (ECN_DetectPieceColorEnvCN, etc.)
@@ -23,23 +23,33 @@
 - [x] Corrigir envExprToJS para ArrayAccess e EnumAccess — ✅ Expressões `pieces[0].outPresence` e `PieceType::P1` OK
 - [x] Corrigir duplicação de classes Action (dedup) — ✅ AN_ScenariosRobAFIS_PassPieceTypeAN sem duplicata
 
-## Fase 3: Refatorar SysADLSimulator.js
+### Bugs pendentes da Fase 2 (a corrigir antes ou durante Fase 3):
+- [x] Inserir onClauses nas activities do ENVACT_ (atualmente arrays vazios em OperatorEA e UnitEA)
+- [x] Corrigir conversão de `equation = x == y` nas constraints do Model.js (SyntaxError: Unexpected token '==')
+
+## Fase 3: Refatorar SysADLSimulator.js — ⬜ NÃO INICIADA
+- [x] Corrigir onClauses vazios nas EnvActivities (pré-requisito para execução)
 - [ ] Eliminar performBinding manual
-- [ ] Implementar novo fluxo de execução
+- [ ] Implementar novo fluxo de execução (carregar env-scen.js → instanciar → executar)
 - [ ] Suportar mode (once, etc.)
 - [ ] Suportar inject com timing (immediate, after N)
 - [ ] Suportar parallel blocks (simulado/sequencial)
+- [ ] Implementar avaliação de pre/postconditions das Scenes
+- [ ] Implementar cadeia ON/THEN/SEND dentro das Scenes
 - [ ] Implementar ScenarioReporter (JUnit-style output)
+- [ ] Testar com RobAFIS_Validation_Run_P0 e RobAFIS_Validation_Run_P1
 
-## Fase 4: Formato de Logs
-- [ ] Implementar log JSON estruturado
+## Fase 4: Formato de Logs — ⬜ NÃO INICIADA
+- [ ] Implementar log JSON estruturado (formato definido no implementation_plan.md)
 - [ ] Manter log do simulator.js intacto
 
-## Fase 5: Atualizar Framework (SysADLBase)
+## Fase 5: Atualizar Framework (SysADLBase) — ⬜ NÃO INICIADA
 - [ ] Suportar composição hierárquica de EnvComponents (similar a Component)
 - [ ] Ajustar ScenarioExecution/SceneExecutor para reportar pre/post conditions
 - [ ] Garantir EnvConnector com bindings dispare fluxo correto
+- [ ] Avaliar necessidade de ajustes em Scene, Scenario, ScenarioExecution classes base
 
-## Fase 6: Validar Web App
+## Fase 6: Validar Web App — ⬜ NÃO INICIADA
 - [ ] Testar simulator.js com Simple.sysadl (transform + simulate)
-- [ ] Verificar que nada quebrou
+- [ ] Verificar que nada quebrou na interface web
+- [ ] Validar que server-node.js + transformer.js continuam gerando Model.js corretamente

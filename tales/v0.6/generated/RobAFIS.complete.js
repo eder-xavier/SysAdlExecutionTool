@@ -762,9 +762,9 @@ class CT_SysADL_Behavior_DecideCommandEQ extends Constraint {
       ...opts,
       inParameters: [{"name":"pIn","type":"MissionParameter","direction":"in"},{"name":"colorIn","type":"PieceType","direction":"in"},{"name":"speIn","type":"Boolean","direction":"in"},{"name":"tIn","type":"Boolean","direction":"in"},{"name":"cmdsOut","type":"RobotCommands","direction":"in"}],
       outParameters: [],
-      equation: "(cmdsOut  ,==, ,[object Object] )",
-      constraintFunction: function(params) {// Constraint equation: (cmdsOut  ,==, ,[object Object] )
-          const { pIn, colorIn, speIn, tIn, cmdsOut, object, Object, Unsupported, expression, type } = params;
+      equation: "(cmdsOut === cmdsOut)",
+      constraintFunction: function(params) {// Constraint equation: (cmdsOut === cmdsOut)
+          const { pIn, colorIn, speIn, tIn, cmdsOut } = params;
           
           // Type validation
           // Type validation for pIn: MissionParameter (no validation implemented)
@@ -772,12 +772,7 @@ class CT_SysADL_Behavior_DecideCommandEQ extends Constraint {
           if (typeof speIn !== 'boolean') throw new Error('Parameter speIn must be a Boolean');
           if (typeof tIn !== 'boolean') throw new Error('Parameter tIn must be a Boolean');
           // Type validation for cmdsOut: RobotCommands (no validation implemented)
-          if (typeof object !== 'number') throw new Error('Parameter object must be a Real (number)');
-          if (typeof Object !== 'number') throw new Error('Parameter Object must be a Real (number)');
-          if (typeof Unsupported !== 'number') throw new Error('Parameter Unsupported must be a Real (number)');
-          if (typeof expression !== 'number') throw new Error('Parameter expression must be a Real (number)');
-          if (typeof type !== 'number') throw new Error('Parameter type must be a Real (number)');
-          return cmdsOut  ,==, ,[object Object] ;
+          return cmdsOut === cmdsOut;
         }
     });
   }
@@ -790,19 +785,14 @@ class CT_SysADL_Behavior_ExtractDirEQ extends Constraint {
       ...opts,
       inParameters: [{"name":"cmds","type":"RobotCommands","direction":"in"},{"name":"dir","type":"Direction","direction":"in"}],
       outParameters: [],
-      equation: "(dir  ,==, ,[object Object] )",
-      constraintFunction: function(params) {// Constraint equation: (dir  ,==, ,[object Object] )
-          const { cmds, dir, object, Object, Unsupported, expression, type } = params;
+      equation: "(dir === cmds.dir)",
+      constraintFunction: function(params) {// Constraint equation: (dir === cmds.dir)
+          const { cmds, dir } = params;
           
           // Type validation
           // Type validation for cmds: RobotCommands (no validation implemented)
           // Type validation for dir: Direction (no validation implemented)
-          if (typeof object !== 'number') throw new Error('Parameter object must be a Real (number)');
-          if (typeof Object !== 'number') throw new Error('Parameter Object must be a Real (number)');
-          if (typeof Unsupported !== 'number') throw new Error('Parameter Unsupported must be a Real (number)');
-          if (typeof expression !== 'number') throw new Error('Parameter expression must be a Real (number)');
-          if (typeof type !== 'number') throw new Error('Parameter type must be a Real (number)');
-          return dir  ,==, ,[object Object] ;
+          return dir === cmds.dir;
         }
     });
   }
@@ -815,19 +805,14 @@ class CT_SysADL_Behavior_ExtractGrabEQ extends Constraint {
       ...opts,
       inParameters: [{"name":"cmds","type":"RobotCommands","direction":"in"},{"name":"grab","type":"MotorCommand","direction":"in"}],
       outParameters: [],
-      equation: "(grab  ,==, ,[object Object] )",
-      constraintFunction: function(params) {// Constraint equation: (grab  ,==, ,[object Object] )
-          const { cmds, grab, object, Object, Unsupported, expression, type } = params;
+      equation: "(grab === cmds.grab)",
+      constraintFunction: function(params) {// Constraint equation: (grab === cmds.grab)
+          const { cmds, grab } = params;
           
           // Type validation
           // Type validation for cmds: RobotCommands (no validation implemented)
           // Type validation for grab: MotorCommand (no validation implemented)
-          if (typeof object !== 'number') throw new Error('Parameter object must be a Real (number)');
-          if (typeof Object !== 'number') throw new Error('Parameter Object must be a Real (number)');
-          if (typeof Unsupported !== 'number') throw new Error('Parameter Unsupported must be a Real (number)');
-          if (typeof expression !== 'number') throw new Error('Parameter expression must be a Real (number)');
-          if (typeof type !== 'number') throw new Error('Parameter type must be a Real (number)');
-          return grab  ,==, ,[object Object] ;
+          return grab === cmds.grab;
         }
     });
   }
@@ -1039,40 +1024,6 @@ class EX_ScenariosRobAFIS_Execution_PassNavColorEX extends Executable {
           // Type validation for colorIn: (auto-detected from usage)
           const { colorIn } = params;
           return colorIn;
-        }
-    });
-  }
-}
-
-// Executable class: PassMotorCommandEX
-class EX_ScenariosRobAFIS_Execution_PassMotorCommandEX extends Executable {
-  constructor(name, opts = {}) {
-    super(name, {
-      ...opts,
-      inParameters: [{"name":"cmdIn","type":"MotorCommand","direction":"in"}],
-      body: "executable def PassMotorCommandEX (in cmdIn: MotorCommand) : out MotorCommand { return cmdIn; }",
-      executableFunction: function(params) {
-          // Type validation
-          // Type validation for cmdIn: (auto-detected from usage)
-          const { cmdIn } = params;
-          return cmdIn;
-        }
-    });
-  }
-}
-
-// Executable class: PassPieceTypeEX
-class EX_ScenariosRobAFIS_Execution_PassPieceTypeEX extends Executable {
-  constructor(name, opts = {}) {
-    super(name, {
-      ...opts,
-      inParameters: [{"name":"pieceIn","type":"PieceType","direction":"in"}],
-      body: "executable def PassPieceTypeEX (in pieceIn: PieceType) : out PieceType { return pieceIn; }",
-      executableFunction: function(params) {
-          // Type validation
-          // Type validation for pieceIn: (auto-detected from usage)
-          const { pieceIn } = params;
-          return pieceIn;
         }
     });
   }
@@ -1458,8 +1409,6 @@ function createModel(){
     EX_ScenariosRobAFIS_Execution_PassMotorCommandEX,
     EX_ScenariosRobAFIS_Execution_PassMissionParameterEX,
     EX_ScenariosRobAFIS_Execution_PassNavColorEX,
-    EX_ScenariosRobAFIS_Execution_PassMotorCommandEX,
-    EX_ScenariosRobAFIS_Execution_PassPieceTypeEX,
     EN_PieceType,
     EN_MissionParameter,
     EN_MotorCommand,

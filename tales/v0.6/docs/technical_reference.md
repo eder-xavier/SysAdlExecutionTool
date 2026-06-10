@@ -4,16 +4,19 @@
 > Este documento contém TODO o contexto técnico necessário para continuar a implementação do simulador SysADL integrado. Leia-o **antes** de consultar o código.
 > O plano de implementação está em `implementation_plan.md` (mesmo diretório).
 > O tracker de tarefas está em `task.md` (mesmo diretório).
+> As diretivas do projeto estão em `../diretivas.txt`.
 
 ---
 
 ## 1. Visão Geral do Projeto
 
-**Objetivo:** Criar um simulador CLI (`SysADLSimulator.js`) que recebe um `.sysadl` (linguagem arquitetural), transforma em JavaScript, e executa cenários de validação gerando resultados JUnit-style.
+**Objetivo:** Criar um simulador CLI (`SysADLSimulator.js`) que recebe um `.sysadl` (linguagem arquitetural SysADL), transforma em JavaScript, e executa cenários de validação gerando resultados JUnit-style.
 
 **Escopo:** Apenas a pasta `tales/v0.6/` do repositório.
 
-**Arquivo de referência:** [RobAFIS.complete.sysadl](file:///Users/tales/desenv/SysAdlWebStudio/tales/v0.6/sysadl-models/RobAFIS.complete.sysadl) — único arquivo na gramática nova.
+**Arquivo de referência:** `sysadl-models/RobAFIS.complete.sysadl` — único arquivo na gramática nova.
+
+**SysADL:** Documentação sobre a linguagem em `docs/SysADL.md`.
 
 ---
 
@@ -23,17 +26,25 @@
 tales/v0.6/
 ├── sysadl.peg                    # Gramática PEG (nova, atualizada) — NÃO MODIFICAR
 ├── sysadl-parser.js              # Parser gerado do .peg — NÃO MODIFICAR
-├── transformer.js                # 🔧 MODIFICAR: Transforma AST → .js (8833 linhas)
+├── transformer.js                # 🔧 MODIFICAR: Transforma AST → .js (9597 linhas)
 ├── SysADLSimulator.js            # 🔧 MODIFICAR: Simulador CLI unificado (497 linhas)
 ├── sysadl-framework/
-│   └── SysADLBase.js             # 🔧 MODIFICAR: Classes base do runtime (7902 linhas)
-│   └── SimulationLogger.js       # Logger para logs JSON
+│   ├── SysADLBase.js             # 🔧 MODIFICAR: Classes base do runtime (7902 linhas)
+│   ├── SimulationLogger.js       # Logger para logs JSON
+│   ├── TaskExecutor.js           # Executor de tarefas (import no env-scen.js)
+│   ├── ReactiveConditionWatcher.js  # Watcher de condições reativas (import no env-scen.js)
+│   └── ExpressionEvaluator.js    # Avaliador de expressões (import no env-scen.js)
 ├── simulator.js                  # ⛔ NÃO TOCAR: Simulador web (structural)
 ├── visualizer.js                 # ⛔ NÃO TOCAR: Visualizador web
-├── environment-simulator.js      # ⛔ LEGADO: Simulador antigo de ambiente
+├── environment-simulator.js      # ⛔ LEGADO: Simulador antigo de ambiente (substituído pelo SysADLSimulator.js)
 ├── app.js                        # ⛔ NÃO TOCAR: Interface web
 ├── server-node.js                # ⛔ NÃO TOCAR: Servidor Express
 ├── diretivas.txt                 # Restrições do projeto (ver seção 8)
+├── docs/
+│   ├── SysADL.md                 # Explicação sobre a linguagem SysADL
+│   ├── implementation_plan.md    # Plano de implementação detalhado
+│   ├── task.md                   # Tracker de tarefas
+│   └── technical_reference.md    # ESTE ARQUIVO
 ├── peg-old/                      # Gramática e parser antigos (referência)
 ├── sysadl-models/
 │   ├── RobAFIS.complete.sysadl   # ✅ Modelo na gramática NOVA (milestone 1)
@@ -41,10 +52,14 @@ tales/v0.6/
 │   ├── AGV-completo*.sysadl      # Modelos na gramática ANTIGA (milestone 2)
 │   ├── Simple.sysadl             # Modelo simples (web only)
 │   └── SmartPlace.sysadl         # Outro modelo
-├── generated/                    # Output do transformer (Model.js + Model-env-scen.js)
+├── generated/                    # Output do transformer
+│   ├── RobAFIS.complete.js       # ✅ Modelo estrutural gerado (1490 linhas) — tem erro pré-existente em constraints
+│   └── RobAFIS.complete-env-scen.js  # ✅ Módulo env/scen gerado (1933 linhas) — syntax OK, carrega OK
 ├── logs/                         # Output do simulador (JSON logs)
 └── test/
-    └── test-parser.js            # Script de teste do parser (já funciona)
+    ├── test-parser.js            # ✅ Script de teste do parser (já funciona)
+    ├── mock-model.js             # Mock para testar env-scen.js sem Model.js
+    └── ... (69 arquivos de teste)
 ```
 
 ### Pipeline de Transformação
@@ -59,7 +74,7 @@ RobAFIS.complete.sysadl
     ├── generated/RobAFIS.complete.js          (modelo estrutural: Components, Ports, etc.)
     └── generated/RobAFIS.complete-env-scen.js (ambiente + cenários: EnvComponents, Scenes, etc.)
                 │
-                ▼ [SysADLSimulator.js]
+                ▼ [SysADLSimulator.js]  ← PRÓXIMA FASE (Fase 3)
                 Execução dos cenários → Resultados JUnit + logs JSON
 ```
 
@@ -71,7 +86,7 @@ O `transformer.js` separa os nós AST em dois grupos:
 
 ## 3. Estrutura AST dos Novos Elementos
 
-Os nós abaixo são gerados pelo parser da **nova gramática** ([sysadl.peg](file:///Users/tales/desenv/SysAdlWebStudio/tales/v0.6/sysadl.peg)). Todos foram validados contra o RobAFIS.complete.sysadl.
+Os nós abaixo são gerados pelo parser da **nova gramática** (`sysadl.peg`). Todos foram validados contra o RobAFIS.complete.sysadl.
 
 > [!NOTE]
 > Arrays PEG retornam `[whitespace_array, actual_value]`. Ao processar, extrair `arr[1]` ou `arr.map(x => x[1])`.
@@ -274,7 +289,7 @@ SysADL:  ON UnitArrivedAtTSig [ inTPresence == true ]
 ```
 
 > [!WARNING]
-> O campo `condition.operator` no AST vem como um array complexo (whitespace + operator + whitespace + right). O parser gera `operator: [ws, "==", ws, rightExpr]` e `right: [ws, "==", ws, rightExpr]`. Precisa de normalização.
+> O campo `condition.operator` no AST pode vir como um array complexo (whitespace + operator + whitespace + right). O parser gera `operator: [ws, "==", ws, rightExpr]` e `right: [ws, "==", ws, rightExpr]`. A função `envExprToJS()` no transformer já trata esta normalização.
 
 ### 3.12. SceneDef
 ```json
@@ -368,49 +383,118 @@ SysADL:  ON UnitArrivedAtTSig [ inTPresence == true ]
 
 ---
 
-## 4. Arquitetura do Transformer.js
+## 4. Arquitetura do Transformer.js (9597 linhas)
 
-O arquivo tem **8833 linhas** e está organizado assim:
+O arquivo está organizado assim (linhas aproximadas após as modificações da Fase 2):
 
 | Linhas | Função | Descrição |
 |---|---|---|
 | 1-8 | Imports | |
 | 9-136 | Utilitários | `sanitizeId()`, `extractExecutableParams()`, `dbg()`, `traverse()` |
 | 138-217 | Extração de configuração | `extractConfigurations()`, `collectComponentUses()`, `resolveInstanceName()` |
-| **218-4073** | **`generateClassModule()`** | Função principal (~3855 linhas). Gera `Model.js`. Contém todas as sub-funções de geração de classes structural/behavioral/executable. |
-| **4094-4721** | **`generateEnvironmentModule()`** | Gera `Model-env-scen.js`. **ESTA É A FUNÇÃO A MODIFICAR.** |
-| 4727-6421 | Funções auxiliares env/scen | `extractEntityTypes()`, `extractEventTypes()`, `extractScenes()`, `extractScenarios()`, `generateJavaScriptConditions()`, `generateExplicitScenarioExecution()`, etc. **MODIFICAR.** |
-| 6370-6421 | Classificação de nós | Decide se nó vai para Model ou EnvScen. **MODIFICAR.** |
-| 6422-6833 | `main()` | Entry point CLI. Lê .sysadl, parseia, chama `generateClassModule()` e `generateEnvironmentModule()`, salva arquivos. |
+| **218-4080** | **`generateClassModule()`** | Função principal (~3862 linhas). Gera `Model.js`. Contém todas as sub-funções de geração de classes structural/behavioral/executable. Inclui deduplicação de classes (`_generatedClassNames` Set). |
+| **4102-5350** | **`generateEnvironmentModule()`** | ✅ **REESCRITA NA FASE 2.** Gera `Model-env-scen.js`. Suporta gramática nova E antiga. |
+| 4120-4210 | Coleta de elementos AST | `traverse(ast)` com switch que classifica nós em arrays (envPortDefs, envConnectorDefs, envComponentDefs, boundaryExtensions, etc.) |
+| 4220-4280 | `envExprToJS()` | Helper que converte AST expressions para JS. Suporta: Identifier, PropertyAccess, ArrayAccess, EnumAccess, QualifiedName, BooleanLiteral, NumberLiteral, StringLiteral, LogicalExpression, BinaryExpression, ComparisonExpression, Assignment. |
+| 4285-4330 | Geração de EnvPort classes | `EP_*` extends EnvPort |
+| 4335-4400 | Geração de EnvConnector classes | `ECN_*` extends EnvConnector |
+| 4405-4530 | Geração de EnvComponent classes | `ECP_*` extends EnvComponent (com envPorts, properties) |
+| 4535-4600 | Geração de BoundaryComponentExtension | `BEX_*` bridges (apply function) |
+| 4605-4750 | Geração de EnvironmentConfiguration | `apply_*()` functions (envComponents, components, envDelegations, envConnectors) |
+| 4755-4870 | Geração de EnvActivitiesDefinitions | `ENVACT_*` class (signals, actions, activities com ON/THEN/SEND, handleSignal) |
+| 4875-4950 | Geração de Scene classes | `SCN_*` extends Scene (pre/postconditions via envExprToJS) |
+| 4955-5010 | Geração de Scenario classes | extends Scenario (body com SceneCalls) |
+| 5015-5100 | Geração de ScenarioExecution | classes com mode, injects, assignments, parallel blocks |
+| 5105-5200 | `createEnvironmentModel()` factory | Registra todos os artefatos gerados |
+| 5205-5350 | Exports | module.exports com todas as classes |
+| 5350-6800 | Funções auxiliares env/scen (LEGADO) | `extractEntityTypes()`, `extractEventTypes()`, etc. **Usadas pela gramática antiga, mantidas para backward compatibility.** |
+| **7131-7145** | **`hasEnvironmentElements()`** | ✅ Atualizada: detecta nós da gramática nova (EnvPortDef, EnvComponentDef, etc.) E antiga (EnvironmentDefinition, etc.) |
+| **7165-7260** | **`separateElements()`** | ✅ Atualizada: separa nós AST em modelElements vs environmentElements |
+| 7265-7600 | `main()` | Entry point CLI. Lê .sysadl, parseia, chama `generateClassModule()` e `generateEnvironmentModule()`, salva arquivos. |
 
-### Funções-chave a modificar em `generateEnvironmentModule()`:
+### Funções-chave adicionadas/modificadas na Fase 2:
 
-| Função atual | Gera | Nova gramática exige |
+| Função | Linha | O que faz |
 |---|---|---|
-| Linhas 4249-4291 | Classes EnvironmentDefinition | → Gerar classes EnvPortDef, EnvConnectorDef, EnvComponentDef |
-| Linhas 4293-4341 | Classes EnvironmentConfiguration | → Gerar a partir de environmentConfiguration embutido |
-| Linhas 4346-4490 | Classes EventsDefinitions | → Gerar a partir de EnvActivitiesDefinitions (SignalDef + EnvActionDef + EnvActivityDef + OnClause) |
-| Linhas 4494-4509 | Classes SceneDefinitions | → Ajustar: `precondition` vs `pre-condition`, sem `on` keyword |
-| Linhas 4534-4560 | Classes ScenarioDefinitions | → Ajustar: `SceneCall` vs `SceneRef` |
-| Linhas 4565-4614 | Classes ScenarioExecution | → Ajustar: `name`, `mode`, `ParallelBlock`, `EventInjection` com timing |
-| N/A | — | → **NOVO:** BoundaryComponentExtension |
-| N/A | — | → **NOVO:** EnvActivityAllocation |
+| `envExprToJS(expr, contextPrefix)` | 4220 | Converte AST expressions para JavaScript válido |
+| `hasEnvironmentElements(ast)` | 7131 | Detecta se AST tem elementos env/scen (nova ou antiga gramática) |
+| `separateElements(ast)` | 7165 | Separa nós AST em dois grupos para geração dos dois módulos |
+| `_generatedClassNames` Set | 2826 | Previne geração de classes Action duplicadas no Model.js |
 
-### Classificação de nós (linhas 6370-6421):
+---
+
+## 5. Código Gerado: RobAFIS.complete-env-scen.js (1933 linhas)
+
+O módulo gerado tem a seguinte estrutura:
 
 ```javascript
-// Nós que vão para env-scen.js (ATUALIZAR):
-'EnvPortDef', 'EnvConnectorDef', 'EnvComponentDef', 
-'BoundaryComponentExtension', 'EnvActivitiesDefinitions',
-'SceneDefinitions', 'ScenarioDefinitions', 'ScenarioExecution',
-'EnvActivityAllocation'
+// Imports
+const { EnvComponent, EnvPort, EnvConnector, ... } = require('../sysadl-framework/SysADLBase');
+const { createModel } = require('./RobAFIS.complete');  // Modelo estrutural
+
+// EnvPort classes (EP_*)
+class EP_OutPieceColor extends EnvPort { ... }    // 10 classes
+
+// EnvConnector classes (ECN_*)
+class ECN_DetectPieceColorEnvCN extends EnvConnector { ... }  // 8 classes
+
+// EnvComponent classes (ECP_*)
+class ECP_PieceEnvCP extends EnvComponent { ... }  // 12 classes
+
+// BoundaryComponentExtension objects (BEX_*)
+const BEX_SysADL_Components_ParameterInputCP = { ... apply(component) { ... } }  // 5 bridges
+
+// EnvironmentConfiguration apply functions
+function apply_TransElevatorConfig(parent, systemModel) { ... }  // 6 functions
+
+// EnvActivitiesDefinitions class (ENVACT_*)
+class ENVACT_RobAFISEnvironmentActivities { 
+  constructor() { this.signals = {...}; this.actions = {...}; this.activities = {...}; }
+  handleSignal(signalName, signalData, ctx) { ... }
+}
+
+// Scene classes (SCN_*)
+class SCN_ObstacleStop_Unit1 extends Scene { 
+  validatePreConditions(ctx) { ... }
+  validatePostConditions(ctx) { ... }
+}  // 16 classes
+
+// Scenario classes
+class Scenario_ObstacleHandling_Unit1 extends Scenario { ... }  // 10 classes
+
+// ScenarioExecution classes
+class RobAFIS_Validation_Run_P0 extends ScenarioExecution { ... }  // 2 classes
+
+// Factory function
+function createEnvironmentModel(systemModel) { ... }
+
+// Exports
+module.exports = { createEnvironmentModel, EP_*, ECN_*, ECP_*, BEX_*, SCN_*, Scenario_*, ... }
+```
+
+### Verificação de carga:
+```bash
+# Testa apenas a sintaxe
+node --check generated/RobAFIS.complete-env-scen.js   # ✅ Sem erros
+
+# Testa carga com mock (Model.js tem erro pré-existente em constraints)
+node -e "
+const Module = require('module');
+const origReq = Module.prototype.require;
+Module.prototype.require = function(id) {
+  if (id.includes('RobAFIS.complete') && !id.includes('env-scen'))
+    return { createModel: () => ({ getComponentByType: (t,n) => ({name:n,type:t}) }) };
+  return origReq.call(this, id);
+};
+const m = require('./generated/RobAFIS.complete-env-scen');
+const model = m.createEnvironmentModel();
+console.log('Scenes:', Object.keys(model.scenes).length);  // → 16
+"
 ```
 
 ---
 
-## 5. Hierarquia de Classes do SysADLBase.js
-
-O framework tem **7902 linhas** e define as classes base para o runtime:
+## 6. Hierarquia de Classes do SysADLBase.js (7902 linhas)
 
 ### Classes Estruturais (Model.js)
 ```
@@ -435,7 +519,7 @@ Element
 ### Classes de Ambiente/Cenário (env-scen.js) — **A ESTENDER**
 ```
 Element
-├── Entity (→ rename para EnvComponent conceitual, mas a classe permanece)
+├── Entity (→ renomeado conceitualmente para EnvComponent)
 ├── EnvComponent                   # Componente de ambiente (L5187-5287)
 ├── EnvPort                        # Porta de ambiente (L5288-5368)  
 ├── EnvConnector (Connection)      # Conector de ambiente (L5369-5462)
@@ -456,10 +540,12 @@ Element
 > - Signals como mecanismo de comunicação (ON/THEN/SEND)
 > - EnvConnectors com participants e flows (similar a Connector)
 > - BoundaryComponentExtension bridges
+>
+> **Esta atualização é parte da Fase 5.**
 
 ---
 
-## 6. Cadeia de Execução (como deve funcionar)
+## 7. Cadeia de Execução (como deve funcionar)
 
 ```
 ScenarioExecution (RobAFIS_Validation_Run_P0)
@@ -499,7 +585,7 @@ Scene start: extractPieceT
 
 ---
 
-## 7. Composição Hierárquica (Modelo Real)
+## 8. Composição Hierárquica (Modelo Real)
 
 O RobAFIS usa 4 níveis de composição:
 
@@ -542,9 +628,9 @@ AtelierEnvironment
 
 ---
 
-## 8. Diretivas do Projeto (Restrições)
+## 9. Diretivas do Projeto (Restrições)
 
-De [diretivas.txt](file:///Users/tales/desenv/SysAdlWebStudio/tales/v0.6/diretivas.txt):
+De `diretivas.txt`:
 
 1. Trabalhar exclusivamente em `tales/v0.6/`
 2. Solução genérica, sem hardcodes
@@ -558,20 +644,23 @@ De [diretivas.txt](file:///Users/tales/desenv/SysAdlWebStudio/tales/v0.6/diretiv
 
 ---
 
-## 9. Estado Atual (Progresso)
+## 10. Estado Atual (Progresso) — Atualizado em 2026-06-10
 
 | Fase | Status | Notas |
 |---|---|---|
 | Fase 1: Parser | ✅ Concluída | 18/18 checks passed. AST dump em `sysadl-models/RobAFIS.complete-ast.json` |
-| Fase 2: Transformer | ⬜ Não iniciada | Modificar `generateEnvironmentModule()` e funções auxiliares |
-| Fase 3: SysADLSimulator | ⬜ Não iniciada | Redesenhar execução + ScenarioReporter JUnit-style |
+| Fase 2: Transformer | ✅ Concluída | Geração env/scen reescrita. Módulo carrega OK, 1933 linhas, todos os artefatos corretos |
+| Fase 3: SysADLSimulator | ⬜ Não iniciada | **PRÓXIMA FASE.** Redesenhar execução + ScenarioReporter JUnit-style |
 | Fase 4: Logs | ⬜ Não iniciada | JSON estruturado |
 | Fase 5: SysADLBase | ⬜ Não iniciada | Composição hierárquica de EnvComponents |
 | Fase 6: Web App | ⬜ Não iniciada | Validar que nada quebrou |
 
-### Artefatos Criados
-- `test/test-parser.js` — Script de teste do parser
-- `sysadl-models/RobAFIS.complete-ast.json` — AST completa do RobAFIS
+### Artefatos Criados/Modificados
+- `test/test-parser.js` — Script de teste do parser ✅
+- `sysadl-models/RobAFIS.complete-ast.json` — AST completa do RobAFIS ✅
+- `generated/RobAFIS.complete-env-scen.js` — Módulo env/scen gerado (1933 linhas, syntax OK) ✅
+- `generated/RobAFIS.complete.js` — Módulo estrutural gerado (1490 linhas, duplicação corrigida) ✅
+- `test/mock-model.js` — Mock para testar env-scen.js sem dependência do Model.js ✅
 
 ### Decisões Tomadas (aprovadas pelo usuário)
 1. Dois simuladores complementares: `simulator.js` (web) + `SysADLSimulator.js` (CLI)
@@ -580,35 +669,76 @@ De [diretivas.txt](file:///Users/tales/desenv/SysAdlWebStudio/tales/v0.6/diretiv
 4. Composição hierárquica de EnvComponents: similar a Component (aprovado)
 5. Execução paralela: simulada (sequencial com estado compartilhado) no primeiro milestone
 
+### Bugs Conhecidos
+Nenhum bug da Fase 2 está pendente. Ambos os bugs listados anteriormente (onClauses vazios nas activities e constraint syntax error) foram corrigidos.
+
 ---
 
-## 10. Contagens do RobAFIS (Referência para Validação)
+## 11. Contagens do RobAFIS (Referência para Validação)
 
-| Elemento | Quantidade |
-|---|---|
-| Packages | 14 |
-| ComponentDef | 7 |
-| ConnectorDef | 5 |
-| PortDef | 12 |
-| ActivityDef | 6 |
-| ActionDef | 8 |
-| ExecutableDef | 12 |
-| Requirements | 25 |
-| **EnvPortDef** | **10** |
-| **EnvConnectorDef** | **8** |
-| **EnvComponentDef** | **12** |
-| **BoundaryComponentExtension** | **5** |
-| **EnvironmentConfiguration** | **6** |
-| **EnvActivitiesDefinitions** | **1** |
-| **SignalDef** | **21** |
-| **EnvActionDef** | **3** |
-| **EnvActivityDef** | **2** |
-| **OnClause** | **26** |
-| **SceneDefinitions** | **1** |
-| **SceneDef** | **16** |
-| **ScenarioDefinitions** | **1** |
-| **ScenarioDef** | **10** |
-| **ScenarioExecution** | **2** |
-| **ParallelBlock** | **2** |
-| **EventInjection** | **6** |
-| **EnvActivityAllocation** | **2** |
+| Elemento | No .sysadl | No env-scen.js gerado | Status |
+|---|---|---|---|
+| Packages | 14 | N/A | ✅ |
+| ComponentDef | 7 | N/A | ✅ |
+| ConnectorDef | 5 | N/A | ✅ |
+| PortDef | 12 | N/A | ✅ |
+| ActivityDef | 6 | N/A | ✅ |
+| ActionDef | 8 | N/A | ✅ |
+| ExecutableDef | 12 | N/A | ✅ |
+| Requirements | 25 | N/A | ✅ |
+| **EnvPortDef** | **10** | **10** | ✅ |
+| **EnvConnectorDef** | **8** | **8** | ✅ |
+| **EnvComponentDef** | **12** | **12** | ✅ |
+| **BoundaryComponentExtension** | **5** | **5** | ✅ |
+| **EnvironmentConfiguration** | **6** | **6** | ✅ |
+| **EnvActivitiesDefinitions** | **1** | **1** | ✅ |
+| **SignalDef** | **21** | **21** | ✅ |
+| **EnvActionDef** | **3** | **3** | ✅ |
+| **EnvActivityDef** | **2** | **2** | ✅ |
+| **OnClause** | **26** | **26** | ✅ |
+| **SceneDefinitions** | **1** | N/A (16 Scene classes) | ✅ |
+| **SceneDef** | **16** | **16** | ✅ |
+| **ScenarioDefinitions** | **1** | N/A (10 Scenario classes) | ✅ |
+| **ScenarioDef** | **10** | **10** | ✅ |
+| **ScenarioExecution** | **2** | **2** | ✅ |
+| **ParallelBlock** | **2** | **2** | ✅ |
+| **EventInjection** | **6** | **6** | ✅ |
+| **EnvActivityAllocation** | **2** | **2** | ✅ |
+
+---
+
+## 12. Próximos Passos (para a próxima IA)
+
+### Prioridade 1: Fase 3 — Implementar SysADLSimulator.js
+O `SysADLSimulator.js` (497 linhas) precisa ser redesenhado para:
+1. Carregar o env-scen.js gerado
+2. Instanciar a hierarquia de EnvComponents (usando as `apply_*Config` functions)
+3. Processar os ScenarioExecution (mode, injects, assignments, parallel)
+4. Para cada Scenario → para cada Scene → avaliar pre/postconditions + cadeia ON/THEN/SEND
+5. Gerar output JUnit-style
+
+### Prioridade 2: Fase 5 — Ajustar SysADLBase.js
+As classes Scene, Scenario, ScenarioExecution no SysADLBase.js podem precisar de ajustes para suportar o novo formato gerado. Avaliar durante a Fase 3.
+
+### Comandos Úteis
+```bash
+# Regenerar os módulos a partir do .sysadl
+node transformer.js sysadl-models/RobAFIS.complete.sysadl -o generated/
+
+# Verificar sintaxe do módulo gerado
+node --check generated/RobAFIS.complete-env-scen.js
+
+# Testar carga do módulo com mock
+node -e "
+const Module = require('module');
+const origReq = Module.prototype.require;
+Module.prototype.require = function(id) {
+  if (id.includes('RobAFIS.complete') && !id.includes('env-scen'))
+    return { createModel: () => ({ getComponentByType: (t,n) => ({name:n,type:t}) }) };
+  return origReq.call(this, id);
+};
+const m = require('./generated/RobAFIS.complete-env-scen');
+const model = m.createEnvironmentModel();
+console.log('OK. Scenes:', Object.keys(model.scenes).length);
+"
+```

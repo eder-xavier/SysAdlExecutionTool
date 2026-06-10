@@ -2273,13 +2273,40 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     if (!node) return '';
 
     switch (node.type) {
-      case 'BinaryExpression':
+      case 'BinaryExpression': {
         const left = astExpressionToString(node.left);
-        const right = astExpressionToString(node.right);
-        const op = node.operator;
-        return `(${left} ${op} ${right})`;
+        let op = '==';
+        let rightVal = 'null';
+        if (Array.isArray(node.operator)) {
+          op = node.operator[1] || '==';
+          const rightExpr = node.operator[3];
+          if (rightExpr) {
+            rightVal = astExpressionToString(rightExpr);
+          }
+        } else if (typeof node.operator === 'string') {
+          op = node.operator;
+          if (node.right) {
+            rightVal = astExpressionToString(node.right);
+          }
+        } else if (Array.isArray(node.right)) {
+          op = node.right[1] || '==';
+          const rightExpr = node.right[3];
+          if (rightExpr) {
+            rightVal = astExpressionToString(rightExpr);
+          }
+        } else {
+          op = node.operator || '==';
+          rightVal = astExpressionToString(node.right);
+        }
+        if (op === '==') op = '===';
+        if (op === '!=') op = '!==';
+        if (op === 'AND') op = '&&';
+        if (op === 'OR') op = '||';
+        return `(${left} ${op} ${rightVal})`;
+      }
 
       case 'NameExpression':
+      case 'Identifier':
         return node.name || '';
 
       case 'NaturalLiteral':
@@ -2325,6 +2352,7 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
         const attr = node.attr || '';
         return `${datatype}.${attr}`;
 
+      case 'PropertyAccess':
       case 'PropertyAccessExpression':
       case 'MemberAccessExpression':
         // Handle expressions like obj->property or obj.property
@@ -2340,12 +2368,37 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
         }
         return node.name || '';
       case 'ComparisonExpression':
-      case 'LogicalExpression':
-        // These are all binary expressions with different semantic types
-        const leftExpr = astExpressionToString(node.left);
-        const rightExpr = astExpressionToString(node.right);
-        const operator = node.operator;
-        return `(${leftExpr} ${operator} ${rightExpr})`;
+      case 'LogicalExpression': {
+        const left = astExpressionToString(node.left);
+        let op = '==';
+        let rightVal = 'null';
+        if (Array.isArray(node.operator)) {
+          op = node.operator[1] || '==';
+          const rightExpr = node.operator[3];
+          if (rightExpr) {
+            rightVal = astExpressionToString(rightExpr);
+          }
+        } else if (typeof node.operator === 'string') {
+          op = node.operator;
+          if (node.right) {
+            rightVal = astExpressionToString(node.right);
+          }
+        } else if (Array.isArray(node.right)) {
+          op = node.right[1] || '==';
+          const rightExpr = node.right[3];
+          if (rightExpr) {
+            rightVal = astExpressionToString(rightExpr);
+          }
+        } else {
+          op = node.operator || '==';
+          rightVal = astExpressionToString(node.right);
+        }
+        if (op === '==') op = '===';
+        if (op === '!=') op = '!==';
+        if (op === 'AND') op = '&&';
+        if (op === 'OR') op = '||';
+        return `(${left} ${op} ${rightVal})`;
+      }
 
       default:
         // For unknown types, try to handle them gracefully
@@ -3181,8 +3234,12 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     const executableDefs = [];  // Track executable definitions
     for (const ex of executables) {
       if (!ex.name) continue;
-      executableDefs.push(ex);  // Add to tracked definitions
       const className = getPackagePrefix(ex.name, 'EX') + ex.name;
+      if (_generatedClassNames.has(className)) {
+        continue;
+      }
+      _generatedClassNames.add(className);
+      executableDefs.push(ex);  // Add to tracked definitions
       const params = Array.isArray(ex.params) ? ex.params : (ex.params || []);
 
       // params can be either strings or objects with {name, type, direction}
@@ -4499,8 +4556,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`    this.activities = {};`);
       for (const activity of envActivities) {
         const actName = activity.name;
-        const body = activity.body || {};
-        const onClauses = body.onClauses || [];
+        const onClauses = pegExtract(activity.onClauses || []);
 
         lines.push(`    this.activities['${actName}'] = {`);
         lines.push(`      name: '${actName}',`);
@@ -6768,13 +6824,40 @@ function astExpressionToStringGlobal(node) {
   switch (node.type) {
     case 'BinaryExpression':
     case 'ComparisonExpression':
-    case 'LogicalExpression':
+    case 'LogicalExpression': {
       const left = astExpressionToStringGlobal(node.left);
-      const right = astExpressionToStringGlobal(node.right);
-      const op = node.operator;
-      return `${left} ${op} ${right}`;
+      let op = '==';
+      let rightVal = 'null';
+      if (Array.isArray(node.operator)) {
+        op = node.operator[1] || '==';
+        const rightExpr = node.operator[3];
+        if (rightExpr) {
+          rightVal = astExpressionToStringGlobal(rightExpr);
+        }
+      } else if (typeof node.operator === 'string') {
+        op = node.operator;
+        if (node.right) {
+          rightVal = astExpressionToStringGlobal(node.right);
+        }
+      } else if (Array.isArray(node.right)) {
+        op = node.right[1] || '==';
+        const rightExpr = node.right[3];
+        if (rightExpr) {
+          rightVal = astExpressionToStringGlobal(rightExpr);
+        }
+      } else {
+        op = node.operator || '==';
+        rightVal = astExpressionToStringGlobal(node.right);
+      }
+      if (op === '==') op = '===';
+      if (op === '!=') op = '!==';
+      if (op === 'AND') op = '&&';
+      if (op === 'OR') op = '||';
+      return `${left} ${op} ${rightVal}`;
+    }
 
     case 'NameExpression':
+    case 'Identifier':
       return node.name || '';
 
     case 'NaturalLiteral':
@@ -6786,6 +6869,7 @@ function astExpressionToStringGlobal(node) {
     case 'StringLiteral':
       return `"${node.value || ''}"`;
 
+    case 'PropertyAccess':
     case 'PropertyAccessExpression':
     case 'MemberAccessExpression':
       const object = node.object ? astExpressionToStringGlobal(node.object) : '';
