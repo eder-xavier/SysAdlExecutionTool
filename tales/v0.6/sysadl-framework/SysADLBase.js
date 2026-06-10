@@ -336,6 +336,68 @@
       console.log(`🎬 Model initialized with Phase 4-6 components: ${name}`);
     }
 
+    getComponentByType(type, name) {
+      // Find component recursively in the components tree
+      const allComps = [];
+      const collect = (parent) => {
+        if (!parent || !parent.components) return;
+        for (const comp of Object.values(parent.components)) {
+          allComps.push(comp);
+          collect(comp);
+        }
+      };
+      collect(this);
+
+      // Try to find exact name match
+      let found = allComps.find(c => c.name === name);
+      if (found) return found;
+
+      // Try to find match where system component name is a substring of the requested name
+      found = allComps.find(c => {
+        const cTypeName = c.constructor.name;
+        const matchesType = cTypeName === type || cTypeName === 'CP_' + type || cTypeName.endsWith('_' + type) || cTypeName.endsWith('::' + type);
+        if (matchesType) {
+          if (name.includes(c.name) || c.name.includes(name)) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (found) return found;
+
+      // Try to find any component matching the type
+      found = allComps.find(c => {
+        const cTypeName = c.constructor.name;
+        return cTypeName === type || cTypeName === 'CP_' + type || cTypeName.endsWith('_' + type) || cTypeName.endsWith('::' + type);
+      });
+      if (found) return found;
+
+      // Fallback placeholder to prevent crashes
+      console.warn(`[WARNING] Component of type ${type} with name ${name} not found in system model. Creating placeholder.`);
+      return {
+        name: name,
+        type: type,
+        ports: new Proxy({}, {
+          get(target, prop) {
+            if (!(prop in target)) {
+              target[prop] = {
+                name: prop,
+                direction: 'inout',
+                send: function(val) { console.log(`[MockPort ${name}.${prop}] sent ${val}`); },
+                connect: function() {},
+                bindToPort: function() {},
+                getValue: function() { return this.value; },
+                setValue: function(val) { this.value = val; }
+              };
+            }
+            return target[prop];
+          }
+        }),
+        envPorts: {}
+      };
+    }
+
+
     /**
      * Attach SimulationLogger to the model and propagate to all components
      * @param {SimulationLogger} logger - The SimulationLogger instance
@@ -2752,6 +2814,16 @@
         console.log(`[PORT SEND DEBUG] No binding to call for ${this.owner}.${this.name}`);
       }
 
+      // NOVO: Callback para EnvPort (propagação reversa para portas OUT)
+      if (this.onReceiveCallback && !this._propagating) {
+        this._propagating = true;
+        try {
+          this.onReceiveCallback(v);
+        } finally {
+          this._propagating = false;
+        }
+      }
+
       if (model) {
         // notify model of receive to trigger activities on this component
         model.handlePortReceive(this.owner, this.name, v);
@@ -3971,9 +4043,16 @@
                         console.log(`[ACTIVITY PROPAGATE]   - Found component port: ${this.component}.${portName}`);
                         console.log(`[ACTIVITY PROPAGATE]   - Sending ${value} to ${this.component}.${portName} with model=${this._model?.name}`);
                         componentPort.send(value, this._model);
+                      } else if (ownerComponent && ownerComponent.envPorts && ownerComponent.envPorts[portName]) {
+                        // Boundary component support: propagate to envPort directly if no system port exists
+                        const envPort = ownerComponent.envPorts[portName];
+                        console.log(`[ACTIVITY PROPAGATE]   - Found component envPort (boundary): ${this.component}.${portName}`);
+                        console.log(`[ACTIVITY PROPAGATE]   - Propagating ${value} to envPort ${this.component}.${portName}`);
+                        envPort.setValue(value);
                       } else {
-                        console.warn(`[ACTIVITY PROPAGATE]   - Port ${portName} not found on component ${this.component}`);
+                        console.warn(`[ACTIVITY PROPAGATE]   - Port ${portName} not found on component ${this.component} (checked system and env ports)`);
                         console.warn(`[ACTIVITY PROPAGATE]   - Available ports: ${ownerComponent?.ports ? Object.keys(ownerComponent.ports).join(', ') : 'none'}`);
+                        console.warn(`[ACTIVITY PROPAGATE]   - Available envPorts: ${ownerComponent?.envPorts ? Object.keys(ownerComponent.envPorts).join(', ') : 'none'}`);
                       }
                     }
                   }
@@ -5193,6 +5272,33 @@
       this.state = opts.state || {};
       this.componentBinding = opts.componentBinding || null;
       this.environmentConfig = opts.environmentConfig || null;
+
+      return new Proxy(this, {
+        get(target, prop, receiver) {
+          if (typeof prop === 'string') {
+            if (target.envPorts && prop in target.envPorts) {
+              return target.envPorts[prop].getValue();
+            }
+            if (target.properties && prop in target.properties) {
+              return target.getProperty(prop);
+            }
+          }
+          return Reflect.get(target, prop, receiver);
+        },
+        set(target, prop, value, receiver) {
+          if (typeof prop === 'string') {
+            if (target.envPorts && prop in target.envPorts) {
+              target.envPorts[prop].setValue(value);
+              return true;
+            }
+            if (target.properties && prop in target.properties) {
+              target.setProperty(prop, value);
+              return true;
+            }
+          }
+          return Reflect.set(target, prop, value);
+        }
+      });
     }
 
     addEnvPort(envPort) {
@@ -5284,6 +5390,10 @@
     }
   }
 
+  // Global propagation depth counter to prevent infinite cascades
+  let _globalPropagationDepth = 0;
+  const MAX_PROPAGATION_DEPTH = 20;
+
   // EnvPort class - represents communication ports in environment components (formerly Role)
   class EnvPort extends Element {
     constructor(name, opts = {}) {
@@ -5292,23 +5402,86 @@
       this.value = opts.value || null;
       this.owner = opts.owner || null;
       this.portBinding = opts.portBinding || null;
-      this._propagating = false; // NOVO: Proteção contra loops
+      this._propagating = false;
+      this._observers = []; // Direct observer list: connectors register here
+    }
+
+    // Register a connector as observer of this port
+    addObserver(connector) {
+      if (!this._observers.includes(connector)) {
+        this._observers.push(connector);
+      }
     }
 
     setValue(value) {
+      if (this.value === value) return;
+
+      // Global depth check to prevent infinite cascades
+      if (_globalPropagationDepth >= MAX_PROPAGATION_DEPTH) {
+        console.warn(`[PROPAGATION LIMIT] Max depth ${MAX_PROPAGATION_DEPTH} reached at ${this.owner?.name}.${this.name}, stopping cascade`);
+        this.value = value; // Set value but don't propagate further
+        return;
+      }
+
       const oldValue = this.value;
       this.value = value;
 
-      // NOVO: Propagar para Port interno (com proteção contra loops)
-      if (this.portBinding && typeof this.portBinding.send === 'function' && !this._propagating) {
-        this._propagating = true;
-        try {
-          this.portBinding.send(value);
-        } finally {
-          this._propagating = false;
+      _globalPropagationDepth++;
+      try {
+        // Propagate to bound system Port (with loop protection)
+        if (this.portBinding && !this._propagating) {
+          this._propagating = true;
+          try {
+            const modelToUse = this.model || this.owner?.model || (this.portBinding && (this.portBinding.model || (this.portBinding.owner && this.portBinding.owner.model)));
+            if (typeof this.portBinding.send === 'function') {
+              this.portBinding.send(value, modelToUse);
+            } else if (typeof this.portBinding.setValue === 'function') {
+              this.portBinding.setValue(value, modelToUse);
+            }
+          } finally {
+            this._propagating = false;
+          }
+        } else if (this.owner && this.owner.envComponentType && this.direction === 'in' && !this._propagating) {
+          // Passive leaf propagation: IN port → corresponding OUT port of same EnvComponent
+          this._propagating = true;
+          try {
+            const outPortName = this.name.replace(/^in/, 'out').replace(/^In/, 'Out');
+            const outPort = this.owner.envPorts[outPortName];
+            if (outPort && outPort !== this) {
+              outPort.setValue(value);
+            }
+          } finally {
+            this._propagating = false;
+          }
+        } else if (this.owner && !this.owner.envComponentType && !this._propagating) {
+          // Boundary component port → propagate to system model
+          this._propagating = true;
+          try {
+            const modelToUse = this.model || this.owner.model;
+            if (modelToUse && typeof modelToUse.handlePortReceive === 'function') {
+              modelToUse.handlePortReceive(this.owner._qualifiedName || this.owner.name, this.name, value);
+            }
+          } finally {
+            this._propagating = false;
+          }
         }
+
+        // Propagate through registered observer connectors (O(1) per connector)
+        if (this._observers.length > 0 && !this._propagating) {
+          this._propagating = true;
+          try {
+            for (const connector of this._observers) {
+              connector.activate();
+            }
+          } finally {
+            this._propagating = false;
+          }
+        }
+      } finally {
+        _globalPropagationDepth--;
       }
 
+      // Logging
       if (this.model && this.model.logger) {
         this.model.logger.logExecution({
           type: 'envport.value.changed',
@@ -5336,31 +5509,32 @@
       return this.value;
     }
 
-    // NOVO: Binding bidirecional com Port
+    // Bidirectional binding with system Port
     bindToPort(port) {
       this.portBinding = port;
 
-      // Configurar callback reverso (Port → EnvPort)
+      // Configure reverse callback (Port → EnvPort)
       if (port && typeof port.onReceive === 'function') {
         port.onReceive((value) => {
           this.receiveFromPort(value);
         });
       }
 
-      // Configurar binding reverso no Port
+      // Configure reverse binding on Port
       if (port && typeof port.bindToEnvPort === 'function') {
         port.bindToEnvPort(this);
       }
-
-      console.log(`🔗 EnvPort ${this.name} bound to Port ${port.name}`);
     }
 
-    // NOVO: Receber valor de Port (propagação reversa)
+    // Receive value from system Port (reverse propagation)
     receiveFromPort(value) {
-      // Atualizar valor sem propagar de volta (evitar loop)
       if (!this._propagating) {
-        this.value = value;
-        console.log(`📥 EnvPort ${this.name} received from Port: ${value}`);
+        this._propagating = true;
+        try {
+          this.setValue(value);
+        } finally {
+          this._propagating = false;
+        }
       }
     }
   }
@@ -5437,9 +5611,18 @@
 
     resolveEnvPort(endpoint) {
       if (!this.environmentConfig) return null;
-      const envComponent = this.environmentConfig.envComponents && this.environmentConfig.envComponents[endpoint.envComponent];
+      let envComponent = this.environmentConfig[endpoint.envComponent];
+      if (!envComponent && this.environmentConfig.envComponents) {
+        envComponent = this.environmentConfig.envComponents[endpoint.envComponent];
+      }
       if (!envComponent) return null;
-      return envComponent.getEnvPort(endpoint.envPort);
+      if (typeof envComponent.getEnvPort === 'function') {
+        return envComponent.getEnvPort(endpoint.envPort);
+      }
+      if (envComponent.envPorts) {
+        return envComponent.envPorts[endpoint.envPort];
+      }
+      return null;
     }
 
     validate() {

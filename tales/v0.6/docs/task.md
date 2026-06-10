@@ -27,29 +27,36 @@
 - [x] Inserir onClauses nas activities do ENVACT_ (atualmente arrays vazios em OperatorEA e UnitEA)
 - [x] Corrigir conversão de `equation = x == y` nas constraints do Model.js (SyntaxError: Unexpected token '==')
 
-## Fase 3: Refatorar SysADLSimulator.js — ⬜ NÃO INICIADA
+## Fase 3: Refatorar SysADLSimulator.js — 🟡 EM PROGRESSO
 - [x] Corrigir onClauses vazios nas EnvActivities (pré-requisito para execução)
-- [ ] Eliminar performBinding manual
-- [ ] Implementar novo fluxo de execução (carregar env-scen.js → instanciar → executar)
-- [ ] Suportar mode (once, etc.)
-- [ ] Suportar inject com timing (immediate, after N)
-- [ ] Suportar parallel blocks (simulado/sequencial)
-- [ ] Implementar avaliação de pre/postconditions das Scenes
-- [ ] Implementar cadeia ON/THEN/SEND dentro das Scenes
-- [ ] Implementar ScenarioReporter (JUnit-style output)
+- [x] Eliminar performBinding manual
+- [x] Implementar novo fluxo de execução (carregar env-scen.js → instanciar → executar)
+- [x] Suportar mode (once, etc.)
+- [x] Suportar inject com timing (immediate, after N)
+- [x] Suportar parallel blocks (Promise.all)
+- [x] Implementar avaliação de pre/postconditions das Scenes
+- [x] Implementar cadeia ON/THEN/SEND dentro das Scenes (via handleSignal)
+- [x] Implementar ScenarioReporter (JUnit-style output) e JSON log writer
+- [ ] **🐛 BUG: Corrigir routing de variáveis no proxy SET** — `colorIn`/`pieceIn` setam portas do nível errado (unit1.outUnitNavPad em vez de unit1.navPad.outColor). Ver prompt_continuacao.md para detalhes.
+- [ ] **🐛 BUG: Eliminar loop de polling de postconditions** — usar avaliação síncrona após cadeia ON/THEN/SEND completar
 - [ ] Testar com RobAFIS_Validation_Run_P0 e RobAFIS_Validation_Run_P1
 
-## Fase 4: Formato de Logs — ⬜ NÃO INICIADA
-- [ ] Implementar log JSON estruturado (formato definido no implementation_plan.md)
+## Fase 4: Formato de Logs — 🟡 EM PROGRESSO
+- [x] Implementar log JSON estruturado (formato definido no implementation_plan.md)
+- [x] Implementar JUnit-style console output
+- [ ] Validar output (depende da Fase 3 funcionar)
 - [ ] Manter log do simulator.js intacto
 
-## Fase 5: Atualizar Framework (SysADLBase) — ⬜ NÃO INICIADA
-- [ ] Suportar composição hierárquica de EnvComponents (similar a Component)
-- [ ] Ajustar ScenarioExecution/SceneExecutor para reportar pre/post conditions
-- [ ] Garantir EnvConnector com bindings dispare fluxo correto
+## Fase 5: Atualizar Framework (SysADLBase) — 🟡 EM PROGRESSO
+- [x] EnvPort.setValue() — substituído coleta recursiva O(N²) por observer pattern O(1)
+- [x] Limite global de profundidade de propagação (MAX_PROPAGATION_DEPTH=20)
+- [x] EnvComponent constructor com Proxy para get/set de envPorts e properties
+- [x] Instanciação de conectores registra observers nas portas source
+- [ ] Avaliar se envDelegations precisam propagar valores automaticamente (envDelegation unit1.navPad.outColor → outUnitNavPad)
 - [ ] Avaliar necessidade de ajustes em Scene, Scenario, ScenarioExecution classes base
 
 ## Fase 6: Validar Web App — ⬜ NÃO INICIADA
 - [ ] Testar simulator.js com Simple.sysadl (transform + simulate)
 - [ ] Verificar que nada quebrou na interface web
 - [ ] Validar que server-node.js + transformer.js continuam gerando Model.js corretamente
+

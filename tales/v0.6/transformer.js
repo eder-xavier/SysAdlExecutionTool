@@ -4175,6 +4175,13 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
   // Generate environment/scenario specific classes
   console.error('[Transformer] generateEnvironmentModule called');
 
+  const knownSignals = new Set();
+  traverse(ast, node => {
+    if (node && node.type === 'SignalDef' && node.name) {
+      knownSignals.add(node.name);
+    }
+  });
+
   // New grammar collections
   const envPortDefs = [];
   const envConnectorDefs = [];
@@ -4282,6 +4289,16 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
 
       switch (expr.type) {
         case 'Identifier':
+          if (embeddedTypes && embeddedTypes.enumerations && embeddedTypes.enumerations[expr.name]) {
+            return `ctx.${expr.name}`;
+          }
+          if (contextPrefix === 'signalData') {
+            if (knownSignals.has(expr.name)) {
+              return `signalData.${expr.name}`;
+            } else {
+              return `ctx.${expr.name}`;
+            }
+          }
           return `${contextPrefix}.${expr.name}`;
         case 'PropertyAccess':
           return `${envExprToJS(expr.object, contextPrefix)}.${expr.property}`;
@@ -4503,6 +4520,52 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       for (const del of envDelegations) {
         if (del && del.type === 'Delegation') {
           lines.push(`  // Delegation: ${del.source} → ${del.destination}`);
+          const srcHasDot = del.source.includes('.');
+          const destHasDot = del.destination.includes('.');
+          
+          if (srcHasDot && !destHasDot) {
+            // Child to parent (output delegation)
+            const parts = del.source.split('.');
+            const childName = parts[0];
+            const portName = parts[1];
+            
+            const comp = envComponents.find(c => c && c.name === childName);
+            if (comp && comp.bounds) {
+              lines.push(`  for (let i = ${comp.bounds.lower}; i <= ${comp.bounds.upper}; i++) {`);
+              lines.push(`    if (parent.${childName}[i] && parent.${childName}[i].envPorts['${portName}'] && parent.envPorts['${del.destination}']) {`);
+              lines.push(`      parent.${childName}[i].envPorts['${portName}'].bindToPort(parent.envPorts['${del.destination}']);`);
+              lines.push(`    }`);
+              lines.push(`  }`);
+            } else {
+              lines.push(`  if (parent.${childName} && parent.${childName}.envPorts['${portName}'] && parent.envPorts['${del.destination}']) {`);
+              lines.push(`    parent.${childName}.envPorts['${portName}'].bindToPort(parent.envPorts['${del.destination}']);`);
+              lines.push(`  }`);
+            }
+          } else if (!srcHasDot && destHasDot) {
+            // Parent to child (input delegation)
+            const parts = del.destination.split('.');
+            const childName = parts[0];
+            const portName = parts[1];
+            
+            const comp = envComponents.find(c => c && c.name === childName);
+            if (comp && comp.bounds) {
+              lines.push(`  if (parent.envPorts['${del.source}']) {`);
+              lines.push(`    parent.envPorts['${del.source}'].bindToPort({`);
+              lines.push(`      send: function(val) {`);
+              lines.push(`        for (let i = ${comp.bounds.lower}; i <= ${comp.bounds.upper}; i++) {`);
+              lines.push(`          if (parent.${childName}[i] && parent.${childName}[i].envPorts['${portName}']) {`);
+              lines.push(`            parent.${childName}[i].envPorts['${portName}'].setValue(val);`);
+              lines.push(`          }`);
+              lines.push(`        }`);
+              lines.push(`      }`);
+              lines.push(`    });`);
+              lines.push(`  }`);
+            } else {
+              lines.push(`  if (parent.envPorts['${del.source}'] && parent.${childName} && parent.${childName}.envPorts['${portName}']) {`);
+              lines.push(`    parent.envPorts['${del.source}'].bindToPort(parent.${childName}.envPorts['${portName}']);`);
+              lines.push(`  }`);
+            }
+          }
         }
       }
 
@@ -4619,11 +4682,12 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`    for (const actName of Object.keys(this.activities)) {`);
       lines.push(`      const activity = this.activities[actName];`);
       lines.push(`      for (const on of activity.onClauses) {`);
-      lines.push(`        if (on.signal === signalName) {`);
+      lines.push(`        if (on.signal === signalName || on.actionName === signalName) {`);
       lines.push(`          if (!on.guard || on.guard(ctx)) {`);
-      lines.push(`            on.applyAction(ctx, signalData);`);
+      lines.push(`            const wrappedSignalData = { [on.signal]: signalData };`);
+      lines.push(`            on.applyAction(ctx, wrappedSignalData);`);
       lines.push(`            if (on.sendSignal) {`);
-      lines.push(`              const sendData = on.buildSendData(ctx, signalData);`);
+      lines.push(`              const sendData = on.buildSendData(ctx, wrappedSignalData);`);
       lines.push(`              results.push({ signal: on.sendSignal, data: sendData, action: on.actionName });`);
       lines.push(`            }`);
       lines.push(`            results.push({ executed: on.actionName, signal: signalName });`);
@@ -4654,7 +4718,9 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
         lines.push(`      ...opts,`);
         lines.push(`      sceneType: 'scene',`);
         lines.push(`      startEvent: '${sceneDef.start || ''}',`);
-        lines.push(`      finishEvent: '${sceneDef.finish || ''}'`);
+        lines.push(`      finishEvent: '${sceneDef.finish || ''}',`);
+        lines.push(`      preconditionExprs: ${JSON.stringify(preconds.map(c => envExprToJS(c, 'ctx')))},`);
+        lines.push(`      postconditionExprs: ${JSON.stringify(postconds.map(c => envExprToJS(c, 'ctx')))}`);
         lines.push(`    });`);
         lines.push(`  }`);
         lines.push('');
@@ -4736,7 +4802,15 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
         lines.push(`          pending = next;`);
         lines.push(`        }`);
         lines.push(`      }`);
-        lines.push(`      const postOk = scene.validatePostConditions(ctx);`);
+        lines.push(`      // Wait for postconditions to be met (reactive evaluation)`);
+        lines.push(`      let postOk = false;`);
+        lines.push(`      const startTime = Date.now();`);
+        lines.push(`      const timeout = 2000; // 2 seconds max timeout`);
+        lines.push(`      while (Date.now() - startTime < timeout) {`);
+        lines.push(`        postOk = scene.validatePostConditions(ctx);`);
+        lines.push(`        if (postOk) break;`);
+        lines.push(`        await new Promise(resolve => setTimeout(resolve, 5));`);
+        lines.push(`      }`);
         lines.push(`      results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });`);
         lines.push(`    }`);
         lines.push(`    return results;`);
@@ -4800,7 +4874,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
             const calls = pegExtract(item.calls || []);
             lines.push(`    // parallel block`);
             lines.push(`    {`);
-            lines.push(`      const parallelResults = [];`);
+            lines.push(`      const promises = [];`);
             for (const call of calls) {
               if (call && call.type === 'ScenarioCall') {
                 lines.push(`      // ${call.scenarioName}`);
@@ -4808,12 +4882,15 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
                 lines.push(`        const ScenClass = ctx.scenarios?.['${call.scenarioName}'];`);
                 lines.push(`        if (ScenClass) {`);
                 lines.push(`          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;`);
-                lines.push(`          const result = await scen.execute(ctx);`);
-                lines.push(`          parallelResults.push({ scenario: '${call.scenarioName}', result });`);
+                lines.push(`          promises.push((async () => {`);
+                lines.push(`            const result = await scen.execute(ctx);`);
+                lines.push(`            return { scenario: '${call.scenarioName}', result };`);
+                lines.push(`          })());`);
                 lines.push(`        }`);
                 lines.push(`      }`);
               }
             }
+            lines.push(`      const parallelResults = await Promise.all(promises);`);
             lines.push(`      ctx.parallelResults = parallelResults;`);
             lines.push(`    }`);
             break;

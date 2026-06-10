@@ -1,21 +1,587 @@
 #!/usr/bin/env node
 /**
- * SysADL Simulator - Unified Execution Tool
+ * SysADL Simulator - Integrated Execution Tool
  * 
  * Orchestrates the simulation of SysADL models:
  * 1. Transforms .sysadl -> .js
- * 2. Loads internal model and environment model
- * 3. Binds environment to internal model based on configuration
- * 4. Executes scenarios
- * 5. Generates unified logs (Execution + Simulation Trace)
+ * 2. Loads environment and scenario module
+ * 3. Dynamically builds the environment hierarchy, connectors, and bridges
+ * 4. Executes ScenarioExecutions using a dynamic context proxy
+ * 5. Generates JUnit-style console reports and JSON log artifacts
  */
 
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-// Import SimulationLogger from framework
-const SimulationLogger = require('./sysadl-framework/SimulationLogger');
+// Import Element, EnvComponent, EnvPort, EnvConnector from SysADLBase if needed
+const { EnvComponent, EnvPort, EnvConnector } = require('./sysadl-framework/SysADLBase');
+
+class SimulationScheduler {
+  constructor(ctx) {
+    this.ctx = ctx;
+    this.timers = [];
+  }
+  
+  scheduleInject(signalName, signalData, delayMs) {
+    console.log(`⏱️  [SCHEDULER] Scheduled injection: ${signalName} in ${delayMs}ms`);
+    const timer = setTimeout(() => {
+      console.log(`⚡ [SCHEDULER] Injecting signal: ${signalName}`);
+      if (this.ctx.envActivities) {
+        const results = this.ctx.envActivities.handleSignal(signalName, signalData, this.ctx);
+        let pending = results.filter(r => r.signal);
+        let maxIter = 100;
+        while (pending.length > 0 && maxIter-- > 0) {
+          const next = [];
+          for (const p of pending) {
+            const sub = this.ctx.envActivities.handleSignal(p.signal, p.data || {}, this.ctx);
+            next.push(...sub.filter(r => r.signal));
+          }
+          pending = next;
+        }
+      }
+    }, delayMs);
+    this.timers.push(timer);
+  }
+  
+  clearAll() {
+    for (const t of this.timers) {
+      clearTimeout(t);
+    }
+    this.timers = [];
+  }
+}
+
+function resolvePath(obj, pathStr) {
+  if (!obj || !pathStr) return null;
+  const parts = pathStr.split('.');
+  let current = obj;
+  for (const part of parts) {
+    if (!current) return null;
+    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+    if (arrayMatch) {
+      const name = arrayMatch[1];
+      const idx = parseInt(arrayMatch[2], 10);
+      const arr = current[name];
+      current = arr ? arr[idx] : null;
+    } else {
+      if (current.envPorts && part in current.envPorts) {
+        current = current.envPorts[part];
+      } else if (current.ports && part in current.ports) {
+        current = current.ports[part];
+      } else {
+        current = current[part];
+      }
+    }
+  }
+  return current;
+}
+
+function findRootConfigName(envModel) {
+  const types = Object.keys(envModel.envConfigs);
+  const childTypes = new Set();
+  for (const [typeName, fn] of Object.entries(envModel.envConfigs)) {
+    const code = fn.toString();
+    for (const type of types) {
+      if (code.includes(`new ECP_${type}`) || code.includes(`envComponentDefs.${type}`) || code.includes(`envComponentDefs['${type}']`)) {
+        childTypes.add(type);
+      }
+    }
+  }
+  const rootType = types.find(t => !childTypes.has(t));
+  return rootType || types[types.length - 1];
+}
+
+function instantiateEnvironment(component, envModel, rootComponent = null) {
+  if (!rootComponent) rootComponent = component;
+  component.environment = rootComponent;
+  component.model = envModel;
+
+  for (const [portName, port] of Object.entries(component.envPorts || {})) {
+    port.owner = component;
+    port.model = envModel;
+  }
+
+  const type = component.envComponentType;
+  const applyConfig = envModel.envConfigs[type];
+  if (applyConfig) {
+    applyConfig(component, envModel);
+
+    for (const key of Object.keys(component)) {
+      if (key === 'environment' || key === 'model' || key === 'owner' || key === 'parent') continue;
+      const val = component[key];
+      if (val && typeof val === 'object') {
+        if (val.envComponentType) {
+          instantiateEnvironment(val, envModel, rootComponent);
+        } else if (Array.isArray(val)) {
+          for (const item of val) {
+            if (item && item.envComponentType) {
+              instantiateEnvironment(item, envModel, rootComponent);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function instantiateConnectors(component, envModel) {
+  for (const key of Object.keys(component)) {
+    if (key === 'environment' || key === 'model' || key === 'owner' || key === 'parent') continue;
+    const val = component[key];
+    if (val && typeof val === 'object') {
+      if (val.type && val.source && val.target && typeof val.type === 'string') {
+        const ConnClass = envModel.envConnectorDefs[val.type];
+        if (ConnClass) {
+          const connInstance = new ConnClass(key, {
+            environmentConfig: component,
+            from: { path: val.source },
+            to: { path: val.target }
+          });
+          connInstance.model = envModel;
+          connInstance.resolveEnvPort = function(endpoint) {
+            return resolvePath(this.environmentConfig, endpoint.path);
+          };
+          component[key] = connInstance;
+          
+          // Register connector as observer on its source port for O(1) propagation
+          const srcPort = connInstance.resolveEnvPort(connInstance.from);
+          if (srcPort && typeof srcPort.addObserver === 'function') {
+            srcPort.addObserver(connInstance);
+          }
+          
+          console.log(`🔌  Instantiated connector ${key} of type ${val.type} (${val.source} -> ${val.target})`);
+        }
+      } else if (val.envComponentType) {
+        instantiateConnectors(val, envModel);
+      } else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (item && item.envComponentType) {
+            instantiateConnectors(item, envModel);
+          }
+        }
+      }
+    }
+  }
+}
+
+function applyBoundaryExtensions(rootComponent, envModel) {
+  const extensions = envModel.boundaryExtensions || [];
+  
+  const traverseAndApply = (comp) => {
+    if (!comp) return;
+    for (const key of Object.keys(comp)) {
+      if (key === 'environment' || key === 'model' || key === 'owner' || key === 'parent') continue;
+      const val = comp[key];
+      if (val && typeof val === 'object') {
+        if (val.envComponentType) {
+          traverseAndApply(val);
+        } else if (val.ports && !val.envComponentType) {
+          const compTypeName = val.constructor.name;
+          const match = extensions.find(ext => {
+            const ref = ext.componentRef.replace(/::/g, '.');
+            return ref === compTypeName || ref.endsWith('.' + compTypeName) || compTypeName.endsWith(ref.split('.').pop());
+          });
+          if (match) {
+            console.log(`[Boundary Extension] Applying ${match.componentRef} to system component ${val.name} (${compTypeName})`);
+            match.apply(val);
+            
+            for (const [portName, envPort] of Object.entries(val.envPorts || {})) {
+              const sysPort = val.ports?.[portName];
+              if (sysPort) {
+                envPort.model = envModel;
+                envPort.bindToPort(sysPort);
+                console.log(`  🔗 Implicitly bound envPort ${val.name}.${portName} <-> systemPort ${val.name}.${portName}`);
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+  
+  traverseAndApply(rootComponent);
+}
+
+function getActiveUnit(ctxProxy) {
+  const name = ctxProxy.activeSceneName || ctxProxy.activeScenarioName || '';
+  if (name.includes('Unit2')) {
+    return ctxProxy.rootComponent.unit2;
+  }
+  return ctxProxy.rootComponent.unit1;
+}
+
+function getActiveOperator(ctxProxy) {
+  const name = ctxProxy.activeSceneName || ctxProxy.activeScenarioName || '';
+  if (name.includes('operator2') || name.includes('Unit2')) {
+    return ctxProxy.rootComponent.operator2;
+  }
+  return ctxProxy.rootComponent.operator1;
+}
+
+function createExecutionContext(envModel) {
+  const rootTypeName = findRootConfigName(envModel);
+  const rootComponent = new envModel.envComponentDefs[rootTypeName]('atelier');
+  
+  envModel.rootComponent = rootComponent;
+  instantiateEnvironment(rootComponent, envModel);
+  instantiateConnectors(rootComponent, envModel);
+  applyBoundaryExtensions(rootComponent, envModel);
+  
+  const ctx = {
+    rootComponent,
+    envModel,
+    scenarios: null,
+    scenes: null,
+    envActivities: envModel.envActivities,
+    scheduler: null,
+    activeScenarioName: '',
+    activeSceneName: '',
+    activeAction: '',
+    activeSignal: '',
+    activeActivity: '',
+    sceneResults: {},
+    parallelResults: [],
+    
+    recordPrecondition(sceneName, exprs, result) {
+      this.sceneResults[sceneName] = this.sceneResults[sceneName] || { name: sceneName };
+      this.sceneResults[sceneName].preconditions = {
+        status: result ? 'PASS' : 'FAIL',
+        conditions: exprs.map(e => ({ expression: e, result }))
+      };
+    },
+    
+    recordPostcondition(sceneName, exprs, result) {
+      this.sceneResults[sceneName] = this.sceneResults[sceneName] || { name: sceneName };
+      this.sceneResults[sceneName].postconditions = {
+        status: result ? 'PASS' : 'FAIL',
+        conditions: exprs.map(e => ({ expression: e, result }))
+      };
+    }
+  };
+  
+  ctx.scheduler = new SimulationScheduler(ctx);
+  
+  const scenesProxy = new Proxy(envModel.scenes, {
+    get(target, prop) {
+      const SceneClass = target[prop];
+      if (typeof SceneClass === 'function') {
+        return class WrappedScene extends SceneClass {
+          validatePreConditions(c) {
+            const res = super.validatePreConditions(c);
+            c.recordPrecondition(this.name, this.preconditionExprs || [], res);
+            return res;
+          }
+          validatePostConditions(c) {
+            const res = super.validatePostConditions(c);
+            c.recordPostcondition(this.name, this.postconditionExprs || [], res);
+            return res;
+          }
+        };
+      }
+      return SceneClass;
+    }
+  });
+  
+  const scenariosProxy = new Proxy(envModel.scenarios, {
+    get(target, prop) {
+      const ScenClass = target[prop];
+      if (typeof ScenClass === 'function') {
+        return class WrappedScenario extends ScenClass {
+          async execute(c) {
+            c.activeScenarioName = this.name;
+            const origSequence = this.sceneSequence;
+            const res = [];
+            for (const sceneName of origSequence) {
+              c.activeSceneName = sceneName;
+              const SceneClass = c.scenes[sceneName];
+              if (!SceneClass) {
+                res.push({ scene: sceneName, status: 'NOT_FOUND' });
+                continue;
+              }
+              const sceneInstance = new SceneClass();
+              
+              const preOk = sceneInstance.validatePreConditions(c);
+              if (!preOk) {
+                res.push({ scene: sceneName, status: 'PRECONDITION_FAIL' });
+                continue;
+              }
+              
+              if (c.envActivities) {
+                const chain = c.envActivities.handleSignal(sceneInstance.opts?.startEvent || sceneInstance.startEvent, {}, c);
+                let pending = chain.filter(r => r.signal);
+                let maxIter = 100;
+                while (pending.length > 0 && maxIter-- > 0) {
+                  const next = [];
+                  for (const p of pending) {
+                    const sub = c.envActivities.handleSignal(p.signal, p.data || {}, c);
+                    next.push(...sub.filter(r => r.signal));
+                  }
+                  pending = next;
+                }
+              }
+              
+              let postOk = false;
+              const startTime = Date.now();
+              const timeout = 2000;
+              while (Date.now() - startTime < timeout) {
+                postOk = sceneInstance.validatePostConditions(c);
+                if (postOk) break;
+                await new Promise(r => setTimeout(r, 5));
+              }
+              res.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
+            }
+            return res;
+          }
+        };
+      }
+      return ScenClass;
+    }
+  });
+  
+  ctx.scenes = scenesProxy;
+  ctx.scenarios = scenariosProxy;
+  
+  for (const actName of Object.keys(envModel.envActivities.activities)) {
+    const activity = envModel.envActivities.activities[actName];
+    for (const on of activity.onClauses) {
+      const origApply = on.applyAction;
+      on.applyAction = function(c, signalData) {
+        c.activeAction = on.actionName;
+        c.activeSignal = on.signal;
+        c.activeActivity = actName;
+        return origApply.call(this, c, signalData);
+      };
+      const origBuild = on.buildSendData;
+      if (origBuild) {
+        on.buildSendData = function(c, signalData) {
+          c.activeAction = on.actionName;
+          c.activeSignal = on.signal;
+          c.activeActivity = actName;
+          return origBuild.call(this, c, signalData);
+        };
+      }
+    }
+  }
+
+  const ctxProxy = new Proxy(ctx, {
+    get(target, prop, receiver) {
+      if (typeof prop === 'string') {
+        if (prop in target) {
+          return target[prop];
+        }
+        if (target.rootComponent && prop in target.rootComponent) {
+          return target.rootComponent[prop];
+        }
+        if (target.envModel.typeRegistry && prop in target.envModel.typeRegistry) {
+          const enumName = target.envModel.typeRegistry[prop];
+          return target.envModel._moduleContext[enumName];
+        }
+        
+        const activeUnit = getActiveUnit(receiver);
+        if (activeUnit && activeUnit.envPorts && prop in activeUnit.envPorts) {
+          return activeUnit.envPorts[prop].getValue();
+        }
+        if (activeUnit && activeUnit.properties && prop in activeUnit.properties) {
+          return activeUnit.getProperty(prop);
+        }
+        
+        const activeOperator = getActiveOperator(receiver);
+        if (activeOperator && activeOperator.envPorts && prop in activeOperator.envPorts) {
+          return activeOperator.envPorts[prop].getValue();
+        }
+        if (activeOperator && activeOperator.properties && prop in activeOperator.properties) {
+          return activeOperator.getProperty(prop);
+        }
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+    
+    set(target, prop, value, receiver) {
+      if (typeof prop === 'string') {
+        if (prop in target) {
+          target[prop] = value;
+          return true;
+        }
+        if (target.rootComponent && prop in target.rootComponent) {
+          target.rootComponent[prop] = value;
+          return true;
+        }
+        
+        const activeUnit = getActiveUnit(receiver);
+        const activeOperator = getActiveOperator(receiver);
+        
+        if (prop === 'colorIn') {
+          const action = receiver.activeAction;
+          if (['leavePA', 'turnRight', 'returnJourney', 'obstacleDetected', 'obstacleRemoved', 'arriveAtPA'].includes(action)) {
+            if (action === 'arriveAtPA') {
+              activeUnit.envPorts.outUnitPAColor.setValue(value);
+            } else {
+              activeUnit.envPorts.outUnitNavLine.setValue(value);
+            }
+            return true;
+          } else if (['detectGreenPad', 'detectRedPad', 'stopAtT', 'routeToSA', 'routeToSPD', 'stopAtSPE', 'arriveAtTargetStock'].includes(action)) {
+            activeUnit.envPorts.outUnitNavPad.setValue(value);
+            return true;
+          }
+        } else if (prop === 'pieceIn') {
+          const action = receiver.activeAction;
+          if (action === 'extractPieceT' || action === 'extractPieceSPE') {
+            activeUnit.envPorts.outUnitPieceColor.setValue(value);
+            return true;
+          } else if (action === 'insertPieceSA') {
+            activeUnit.envPorts.outSAPieceColor.setValue(value);
+            return true;
+          } else if (action === 'insertPieceSPD') {
+            activeUnit.envPorts.outSPDPieceColor.setValue(value);
+            return true;
+          }
+        } else if (prop === 'paramIn') {
+          activeOperator.envPorts.outParam.setValue(value);
+          return true;
+        }
+        
+        if (activeUnit && activeUnit.envPorts && prop in activeUnit.envPorts) {
+          activeUnit.envPorts[prop].setValue(value);
+          return true;
+        }
+        if (activeUnit && activeUnit.properties && prop in activeUnit.properties) {
+          activeUnit.setProperty(prop, value);
+          return true;
+        }
+      }
+      return Reflect.set(target, prop, value, receiver);
+    }
+  });
+
+  ctx.scheduler.ctx = ctxProxy;
+
+  return ctxProxy;
+}
+
+function printExecutionSummary(executionName, ctxProxy) {
+  console.log('\n' + '='.repeat(60));
+  console.log(`╔═══════════════════════════════════════════════════════╗`);
+  console.log(`║      SysADL Scenario Execution: ${executionName.padEnd(25)} ║`);
+  console.log(`║      Mode: once                                       ║`);
+  console.log(`╚═══════════════════════════════════════════════════════╝`);
+  console.log(`\n▶ ${executionName}`);
+  console.log(`  ├── [PARALLEL]`);
+  
+  let totalScenarios = 0;
+  let passedScenarios = 0;
+  
+  for (const pRes of ctxProxy.parallelResults) {
+    totalScenarios++;
+    const scenarioName = pRes.scenario;
+    const sceneResults = pRes.result;
+    
+    console.log(`  │   ├── ${scenarioName}`);
+    let scenPassed = true;
+    
+    for (const sRes of sceneResults) {
+      const sceneName = sRes.scene;
+      const status = sRes.status;
+      const details = ctxProxy.sceneResults[sceneName] || {};
+      const isPass = status === 'PASS';
+      if (!isPass) scenPassed = false;
+      
+      console.log(`  │   │   ├── ${sceneName} [${isPass ? '✅ PASS' : '❌ FAIL'}]`);
+      
+      if (details.preconditions) {
+        console.log(`  │   │   │   ├── Preconditions:  [${details.preconditions.status === 'PASS' ? '✅ PASS' : '❌ FAIL'}]`);
+        for (const cond of details.preconditions.conditions) {
+          console.log(`  │   │   │   │   └── ${cond.expression}   [${cond.result ? '✅' : '❌'}]`);
+        }
+      }
+      
+      if (details.postconditions) {
+        console.log(`  │   │   │   └── Postconditions: [${details.postconditions.status === 'PASS' ? '✅ PASS' : '❌ FAIL'}]`);
+        for (const cond of details.postconditions.conditions) {
+          console.log(`  │   │   │   │   └── ${cond.expression}   [${cond.result ? '✅' : '❌'}]`);
+        }
+      }
+    }
+    
+    if (scenPassed) passedScenarios++;
+    console.log(`  │   │   Result: [${scenPassed ? '✅ PASS' : '❌ FAIL'}] (${sceneResults.filter(r => r.status === 'PASS').length}/${sceneResults.length} scenes)`);
+    console.log(`  │   │`);
+  }
+  
+  console.log(`  Result: [${passedScenarios === totalScenarios ? '✅ PASS' : '❌ FAIL'}] (${passedScenarios}/${totalScenarios} scenarios)`);
+  console.log('='.repeat(60));
+  console.log(`Summary: ${passedScenarios} passed, ${totalScenarios - passedScenarios} failed (${totalScenarios} total scenarios)`);
+  console.log('='.repeat(60));
+}
+
+function writeJsonLog(executionName, durationMs, ctxProxy, envModel) {
+  const logDir = './logs';
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+  
+  const timestamp = new Date().toISOString();
+  const filename = path.join(logDir, `simulation-${executionName}-${Date.now()}.jsonl`);
+  
+  const scenariosLog = [];
+  let totalScenes = 0;
+  let scenesPassed = 0;
+  let scenesFailed = 0;
+  
+  for (const pRes of ctxProxy.parallelResults) {
+    const scenarioName = pRes.scenario;
+    const sceneResults = pRes.result;
+    
+    const scenes = sceneResults.map(sRes => {
+      totalScenes++;
+      const isPass = sRes.status === 'PASS';
+      if (isPass) scenesPassed++; else scenesFailed++;
+      
+      const details = ctxProxy.sceneResults[sRes.scene] || {};
+      
+      return {
+        name: sRes.scene,
+        status: sRes.status,
+        preconditions: details.preconditions || { status: 'SKIP', conditions: [] },
+        execution: {
+          status: isPass ? 'PASS' : 'FAIL',
+          start_event: envModel.scenes[sRes.scene]?.startEvent || '',
+          finish_event: envModel.scenes[sRes.scene]?.finishEvent || ''
+        },
+        postconditions: details.postconditions || { status: 'SKIP', conditions: [] }
+      };
+    });
+    
+    scenariosLog.push({
+      name: scenarioName,
+      status: sceneResults.every(r => r.status === 'PASS') ? 'PASS' : 'FAIL',
+      scenes
+    });
+  }
+  
+  const logData = {
+    simulation: {
+      model: 'RobAFIS',
+      execution: executionName,
+      timestamp,
+      mode: 'once',
+      duration_ms: durationMs
+    },
+    scenarios: scenariosLog,
+    summary: {
+      total_scenarios: ctxProxy.parallelResults.length,
+      passed: ctxProxy.parallelResults.filter(p => p.result.every(r => r.status === 'PASS')).length,
+      failed: ctxProxy.parallelResults.filter(p => !p.result.every(r => r.status === 'PASS')).length,
+      total_scenes: totalScenes,
+      scenes_passed: scenesPassed,
+      scenes_failed: scenesFailed,
+      scenes_skipped: 0
+    }
+  };
+  
+  fs.writeFileSync(filename, JSON.stringify(logData, null, 2));
+  console.log(`💾 JSON log saved to: ${filename}`);
+}
 
 class SysADLSimulator {
     constructor(config = {}) {
@@ -35,7 +601,7 @@ class SysADLSimulator {
     }
 
     async run(sysadlFile) {
-        console.log('🚀 SysADL Unified Simulator');
+        console.log('🚀 SysADL Integrated CLI Simulator');
         console.log('='.repeat(50));
 
         try {
@@ -43,64 +609,39 @@ class SysADLSimulator {
             this.validateInput(sysadlFile);
             const generatedFiles = await this.transform(sysadlFile);
 
-            // 2. Load Models
-            console.log('\n📦 Loading models...');
-            const { mainModel, envModel } = this.loadModels(generatedFiles);
-
-            if (!envModel) {
-                throw new Error('Environment model not found. Ensure .sysadl contains environment/scenario definitions.');
-            }
-
-            // 3. Setup Logging
-            console.log('📝 Setting up loggers...');
-            const simLogger = this.setupLogging(mainModel, envModel);
-
-            // 4. Perform Binding
-            console.log('Binding environment to system...');
-            this.performBinding(mainModel, envModel);
-
-            // 4.5. Configure execution mode on SceneExecutors
-            if (this.config.mode) {
-                if (envModel.sceneExecutor) {
-                    envModel.sceneExecutor.setExecutionMode(this.config.mode);
+            // 2. Load Environment Scenarios Module
+            console.log('\n📦 Loading environment scenario module...');
+            delete require.cache[require.resolve(path.resolve(generatedFiles.envScen))];
+            const envModule = require(path.resolve(generatedFiles.envScen));
+            const envModel = envModule.createEnvironmentModel();
+            
+            // 3. Create Execution Context Proxy
+            console.log('🔧 Instantiating environment hierarchy, connectors and bridges...');
+            const ctxProxy = createExecutionContext(envModel);
+            
+            // 4. Run Scenarios
+            console.log('\nExecuting scenario executions...');
+            
+            for (const [execName, execution] of Object.entries(envModel.scenarioExecutions)) {
+                console.log(`\n▶ Starting execution: ${execName}`);
+                const runStartTime = Date.now();
+                
+                if (execution.executeAsync) {
+                    await execution.executeAsync(ctxProxy);
+                } else if (execution.start) {
+                    await execution.start(ctxProxy);
                 }
-                if (mainModel && mainModel.sceneExecutor) {
-                    mainModel.sceneExecutor.setExecutionMode(this.config.mode);
-                }
+                
+                ctxProxy.scheduler.clearAll();
+                const durationMs = Date.now() - runStartTime;
+                
+                // 5. Print JUnit-style log report
+                printExecutionSummary(execName, ctxProxy);
+                
+                // 6. Write JSON log
+                writeJsonLog(execName, durationMs, ctxProxy, envModel);
             }
-
-            // 5. Run Scenarios
-            // Note: JSONL is written incrementally, so Ctrl+C will preserve logs
-            console.log('\nExecuting scenarios...');
-            await this.runScenarios(envModel);
-
-            // 6. Save Logs (also saved incrementally by SimulationLogger)
-            this.saveLogs(simLogger, sysadlFile);
-
-            // Cleanup loggers to allow process exit
-            if (mainModel.logger && typeof mainModel.logger.stop === 'function') {
-                mainModel.logger.stop();
-            }
-            if (envModel.logger && typeof envModel.logger.stop === 'function') {
-                envModel.logger.stop();
-            }
-
-            // Show auto-recovery summary if in permissive mode
-            if (this.config.mode === 'permissive' && envModel.sceneExecutor) {
-                const summary = envModel.sceneExecutor.getAutoRecoverySummary();
-                if (summary) {
-                    console.log('\n' + '='.repeat(60));
-                    console.log('[SIMULATION SUMMARY]');
-                    console.log('='.repeat(60));
-                    console.log(`Mode: permissive`);
-                    console.log(`Auto-recoveries: ${summary.count}`);
-                    for (const recovery of summary.recoveries) {
-                        console.log(`  - ${recovery.scene}: ${recovery.message}${recovery.inferred ? ' (inferred)' : ''}`);
-                    }
-                    console.log('='.repeat(60));
-                }
-            }
-
+            
             console.log('\n[INFO] Simulation completed successfully!');
             process.exit(0);
 
@@ -135,7 +676,6 @@ class SysADLSimulator {
         }
 
         const transformerPath = path.join(__dirname, 'transformer.js');
-
         this.log(`Running transformer on ${sysadlFile}...`);
 
         await new Promise((resolve, reject) => {
@@ -145,287 +685,19 @@ class SysADLSimulator {
             child.on('close', code => code === 0 ? resolve() : reject(new Error(`Transformer failed with code ${code}`)));
         });
 
-
         return {
             main: mainOutput,
             envScen: fs.existsSync(envScenOutput) ? envScenOutput : null
         };
     }
-
-    loadModels(files) {
-        // Clear cache to ensure fresh load
-        delete require.cache[require.resolve(path.resolve(files.main))];
-        const mainModule = require(path.resolve(files.main));
-        const mainModel = mainModule.createModel();
-        this.log(`✓ Loaded system model: ${mainModel.name}`);
-
-        let envModel = null;
-        if (files.envScen) {
-            delete require.cache[require.resolve(path.resolve(files.envScen))];
-            const envModule = require(path.resolve(files.envScen));
-            envModel = envModule.createEnvironmentModel();
-            this.log(`✓ Loaded environment model: ${envModel.name}`);
-        }
-
-        return { mainModel, envModel };
-    }
-
-    setupLogging(mainModel, envModel) {
-        // SimulationLogger now writes JSONL incrementally (each event appended immediately)
-        const simLogger = new SimulationLogger(this.config);
-        simLogger.enable();
-
-        // Attach to main model
-        if (mainModel.attachSimulationLogger) {
-            mainModel.attachSimulationLogger(simLogger);
-        }
-
-        // Attach logger to environment model if supported
-        if (envModel.attachSimulationLogger) {
-            envModel.attachSimulationLogger(simLogger);
-        }
-
-        // ExecutionLogger (Console/Narrative)
-        // SysADLBase models usually have a default logger, we ensure it prints to console
-        if (mainModel.logger) {
-            mainModel.logger.logToConsole = true;
-        }
-        if (envModel.logger) {
-            envModel.logger.logToConsole = true;
-        }
-
-        return simLogger;
-    }
-
-    performBinding(mainModel, envModel) {
-        const config = envModel.configuration;
-        if (!config || !config.associations) {
-            this.log('! No associations found in environment configuration.');
-            return;
-        }
-
-        for (const [envPath, sysPath] of Object.entries(config.associations)) {
-            // envPath: e.g., "Vehicle.outNotification" (EnvComponent.EnvPort)
-            // sysPath: e.g., "agvs.in_outDataAgv.outNotifications" (Component...Port)
-
-            const envPort = this.resolveEnvPort(envModel, envPath);
-            const sysPort = this.resolveSysPort(mainModel, sysPath);
-
-            if (envPort && sysPort) {
-                // Perform bidirectional binding
-                // EnvPort -> Port
-                envPort.bindToPort(sysPort);
-                this.log(`✓ Bound ${envPath} <-> ${sysPath}`);
-            } else {
-                console.warn(`! Failed to bind ${envPath} <-> ${sysPath}`);
-                if (!envPort) console.warn(`  - EnvPort not found: ${envPath}`);
-                if (!sysPort) console.warn(`  - SysPort not found: ${sysPath}`);
-            }
-        }
-    }
-
-    resolveEnvPort(envModel, pathStr) {
-        // Expected format: "EnvComponentName.EnvPortName"
-        // But envModel contains instances in 'configuration' or directly if it's the config object
-        // Actually, envModel IS the EnvironmentConfiguration instance usually
-
-        // We need to find the EnvComponent instance in the configuration
-        // The configuration usually has properties for instances, or we look into 'environmentDef'
-
-        // Let's look at how AGV-completo-env-scen.js defines it:
-        // class MyFactoryConfiguration extends EnvironmentConfiguration { ... this.associations = ... }
-        // It doesn't seem to expose instances directly in a list, but they might be properties of the class if instantiated?
-        // Wait, in the generated code:
-        // this.registerEntityClass...
-        // But where are the instances?
-        // Ah, the generated code for EnvironmentConfiguration usually instantiates them?
-        // Let's check AGV-completo-env-scen.js content again.
-
-        // It seems the instances are NOT explicitly created as properties of configuration in the snippet I saw.
-        // However, the associations use "Vehicle.outNotification". "Vehicle" is the CLASS name or INSTANCE name?
-        // In SysADL: "entity Vehicle" -> "EnvComponent Vehicle"
-        // In associations: "Vehicle.outNotification"
-
-        // If "Vehicle" is a singleton/instance name, we need to find it.
-        // SysADLBase EnvironmentConfiguration might store them.
-
-        // HACK: For now, let's assume the EnvironmentConfiguration instance has properties matching the names
-        // OR we traverse `envModel` to find them.
-
-        const [compName, portName] = pathStr.split('.');
-
-        // Try to find component in envModel properties
-        // In the generated code, we didn't see explicit "this.Vehicle = new Vehicle()" in the constructor snippet.
-        // But maybe they are created dynamically or I missed it.
-        // Let's assume they are available on envModel (the configuration instance).
-
-        // If not found directly, maybe we need to look deeper.
-        // But wait, the associations are defined as strings.
-
-        // Let's try to find the component by name in the model
-        // SysADLBase might have a registry?
-
-        // Fallback: Check if envModel has a 'components' or 'entities' collection
-        let comp = envModel[compName];
-
-        // If not found, maybe it's inside an 'environmentDef'?
-        if (!comp && envModel.environmentDef) {
-            // environmentDef is the EnvironmentDefinition, which registers classes, not instances.
-        }
-
-        // If the generated code doesn't instantiate them, we might have a problem.
-        // But `simulator.js` worked? No, `simulator.js` runs `AGV-completo-env-scen.js`.
-        // Let's look at how `simulator.js` runs it.
-        // It calls `model.startScenarioExecution`.
-
-        // Wait, the binding needs to happen on INSTANCES.
-        // Who creates the instances?
-        // The Scenario Execution? Or the Configuration?
-
-        // In SysADL, the Configuration *defines* the structure.
-        // The instances should be created when the Configuration is instantiated.
-
-        // Let's look at `AGV-completo-env-scen.js` again (lines 180+).
-        // It has `this.associations = ...`.
-        // But I don't see `this.Vehicle = ...`.
-
-        // HOWEVER, the events (lines 213+) use global variables like `supervisor`, `agv1`, `agv2`.
-        // Where do these come from?
-        // Ah, they are likely created in the global scope or module scope by the generated code?
-        // Or maybe they are created inside `EnvironmentConfiguration`?
-
-        // Let's check `AGV-completo-env-scen.js` lines 1-100 again or search for `new Vehicle`.
-        // I'll assume for now that `envModel` (the configuration) SHOULD have them.
-        // If not, I'll have to debug.
-
-        if (!comp) {
-            // Try to find in global scope if they were leaked (unlikely in Node module)
-            // Try to find in `envModel.entities` if it exists
-            if (envModel.entities && envModel.entities[compName]) {
-                comp = envModel.entities[compName];
-            }
-        }
-
-        if (comp && comp.ports && comp.ports[portName]) {
-            return comp.ports[portName];
-        }
-        return null;
-    }
-
-    resolveSysPort(mainModel, pathStr) {
-        // pathStr: "agvs.in_outDataAgv.outNotifications"
-        // This is a path into the main model structure.
-        const parts = pathStr.split('.');
-        let current = mainModel;
-
-        for (const part of parts) {
-            if (!current) return null;
-
-            // Check components
-            if (current.components && current.components[part]) {
-                current = current.components[part];
-                continue;
-            }
-
-            // Check ports
-            if (current.ports && current.ports[part]) {
-                current = current.ports[part];
-                continue;
-            }
-
-            // Check subports (for composite ports)
-            if (current.subports && current.subports[part]) {
-                current = current.subports[part];
-                continue;
-            }
-
-            return null;
-        }
-
-        // If we ended up at a Port (or EnvPort-like), return it
-        if (current && (current.constructor.name.includes('Port') || current.direction)) {
-            return current;
-        }
-
-        return null;
-    }
-
-    async runScenarios(envModel) {
-        if (!envModel.scenarioExecutions) {
-            console.log('! No scenario executions defined.');
-            return;
-        }
-
-        // Execute all defined scenario executions
-        for (const [name, execution] of Object.entries(envModel.scenarioExecutions)) {
-            console.log(`\n▶ Starting execution: ${name}`);
-
-            // Attach environment configuration if missing
-            if (!execution.environment && envModel.environments) {
-                const envConfigName = Object.keys(envModel.environments).find(k =>
-                    envModel.environments[k].constructor.name.includes('Configuration') ||
-                    k.endsWith('Configuration')
-                );
-                if (envConfigName) {
-                    execution.environment = envModel.environments[envConfigName];
-                    console.log(`  ✓ Attached environment: ${envConfigName}`);
-                }
-            }
-
-            // We need to wait for completion. 
-            // SysADLBase `startScenarioExecution` might be async or return a promise?
-            // Checking SysADLBase would be good, but let's assume it returns a Promise or we can wrap it.
-            // If it's synchronous, `await` does no harm.
-
-            try {
-                await envModel.startScenarioExecution(name);
-            } catch (e) {
-                console.error(`  ❌ Execution ${name} failed: ${e.message}`);
-            } finally {
-                // Cleanup
-                if (envModel.stopScenarioExecution) {
-                    envModel.stopScenarioExecution();
-                }
-                // Also explicitly stop event scheduler if it exists
-                if (envModel.eventScheduler) {
-                    envModel.eventScheduler.clearAll();
-                }
-
-                // Stop ExecutionLoggers
-                if (envModel.logger && typeof envModel.logger.stop === 'function') {
-                    envModel.logger.stop();
-                }
-                // We don't have easy access to mainModel here, but usually envModel.logger is the main one or they are separate.
-                // If mainModel.logger needs stopping, we should pass it or access it.
-                // However, runScenarios only takes envModel.
-            }
-        }
-    }
-
-    saveLogs(simLogger, sysadlFile) {
-        // Use the same log file that SimulationLogger created
-        // This overwrites the incremental log with the complete version
-        const logFile = simLogger.logFile;
-
-        if (!logFile) {
-            console.log('[SimulationLogger] No log file was created (file logging may be disabled)');
-            return;
-        }
-
-        // Get events from logger
-        const events = simLogger.events;
-
-        // Write as JSONL (overwrites the incremental log)
-        const content = events.map(evt => JSON.stringify(evt)).join('\n');
-        fs.writeFileSync(logFile, content);
-
-        console.log(`\n💾 Log saved to: ${logFile}`);
-    }
 }
 
-// CLI Help
-function showHelp() {
-    console.log(`
+// CLI Entry Point
+if (require.main === module) {
+    const args = process.argv.slice(2);
+
+    if (args.length < 1 || args.includes('--help') || args.includes('-h')) {
+        console.log(`
 SysADL Simulator v1.0
 
 Usage: node SysADLSimulator.js <file.sysadl> [options]
@@ -435,60 +707,21 @@ Arguments:
 
 Options:
   --skip-transform        Skip code generation, use existing generated files
-  --mode=<mode>           Simulation mode (default: strict)
-                            strict     - Fail on timeout, abort after retries
-                            permissive - Auto-recover from missing events, continue simulation
-  --timeout=<ms>          Scene timeout in milliseconds (default: 30000)
   --verbose               Show detailed execution logs
   --help, -h              Show this help message
-
-Examples:
-  node SysADLSimulator.js AGV-completo.sysadl
-  node SysADLSimulator.js AGV-completo.sysadl --mode=permissive
-  node SysADLSimulator.js AGV-completo.sysadl --skip-transform --timeout=60000
-
-Logs:
-  Simulation logs are saved to ./logs/simulation-<timestamp>.jsonl
 `);
-    process.exit(0);
-}
-
-// Parse CLI arguments
-function parseArgs(args) {
-    const config = {
-        verbose: false,
-        skipTransform: false,
-        mode: 'strict',
-        timeout: 30000
-    };
-
-    for (const arg of args) {
-        if (arg === '--verbose') config.verbose = true;
-        if (arg === '--skip-transform') config.skipTransform = true;
-        if (arg.startsWith('--mode=')) config.mode = arg.split('=')[1];
-        if (arg.startsWith('--timeout=')) config.timeout = parseInt(arg.split('=')[1], 10);
+        process.exit(0);
     }
 
-    return config;
-}
-
-// CLI Entry Point
-if (require.main === module) {
-    const args = process.argv.slice(2);
-
-    // Show help if requested or no arguments
-    if (args.length < 1 || args.includes('--help') || args.includes('-h')) {
-        showHelp();
-    }
-
-    // Find the sysadl file (first argument that doesn't start with --)
     const sysadlFile = args.find(arg => !arg.startsWith('--'));
     if (!sysadlFile) {
-        showHelp();
+        process.exit(1);
     }
 
-    const config = parseArgs(args);
-    console.log(`[MODE] Running in ${config.mode} mode`);
+    const config = {
+        verbose: args.includes('--verbose'),
+        skipTransform: args.includes('--skip-transform')
+    };
 
     const simulator = new SysADLSimulator(config);
     simulator.run(sysadlFile);

@@ -110,8 +110,11 @@ function getLogLevel(eventType) {
  * @param {string} message - The message to format
  * @returns {string} - Formatted console message
  */
-function formatConsoleMessage(eventType, message) {
+function formatConsoleMessage(eventType, message, summary, context) {
   const prefix = getConsolePrefix(eventType);
+  if (summary !== undefined) {
+    return `${prefix} ${message} ${summary}`;
+  }
   return `${prefix} ${message}`;
 }
 

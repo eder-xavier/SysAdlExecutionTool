@@ -568,10 +568,53 @@ function apply_TransElevatorConfig(parent, systemModel) {
     parent.pieces[i] = new ECP_PieceEnvCP('pieces[' + i + ']');
   }
   // Delegation: pieces.outPresence → outPresence
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outPresence'] && parent.envPorts['outPresence']) {
+      parent.pieces[i].envPorts['outPresence'].bindToPort(parent.envPorts['outPresence']);
+    }
+  }
   // Delegation: pieces.outColor → outPieceColor
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outColor'] && parent.envPorts['outPieceColor']) {
+      parent.pieces[i].envPorts['outColor'].bindToPort(parent.envPorts['outPieceColor']);
+    }
+  }
   // Delegation: inCommand → pieces.inCommand
+  if (parent.envPorts['inCommand']) {
+    parent.envPorts['inCommand'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inCommand']) {
+            parent.pieces[i].envPorts['inCommand'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: inPresence → pieces.inPresence
+  if (parent.envPorts['inPresence']) {
+    parent.envPorts['inPresence'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inPresence']) {
+            parent.pieces[i].envPorts['inPresence'].setValue(val);
+          }
+        }
+      }
+    });
+  }
 }
 
 // EnvironmentConfiguration: SharedEntryConfig (for SharedEntryStockEnvCP)
@@ -581,9 +624,41 @@ function apply_SharedEntryConfig(parent, systemModel) {
     parent.pieces[i] = new ECP_PieceEnvCP('pieces[' + i + ']');
   }
   // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: pieces.outPresence → outPresence
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outPresence'] && parent.envPorts['outPresence']) {
+      parent.pieces[i].envPorts['outPresence'].bindToPort(parent.envPorts['outPresence']);
+    }
+  }
   // Delegation: pieces.outColor → outPieceColor
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outColor'] && parent.envPorts['outPieceColor']) {
+      parent.pieces[i].envPorts['outColor'].bindToPort(parent.envPorts['outPieceColor']);
+    }
+  }
   // Delegation: inPresence → pieces.inPresence
+  if (parent.envPorts['inPresence']) {
+    parent.envPorts['inPresence'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inPresence']) {
+            parent.pieces[i].envPorts['inPresence'].setValue(val);
+          }
+        }
+      }
+    });
+  }
 }
 
 // EnvironmentConfiguration: ArrivalStockConfig (for ArrivalStockEnvCP)
@@ -593,8 +668,35 @@ function apply_ArrivalStockConfig(parent, systemModel) {
     parent.pieces[i] = new ECP_PieceEnvCP('pieces[' + i + ']');
   }
   // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: inDropCommand → pieces.inCommand
+  if (parent.envPorts['inDropCommand']) {
+    parent.envPorts['inDropCommand'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inCommand']) {
+            parent.pieces[i].envPorts['inCommand'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: pieces.outColor → outPieceColor
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outColor'] && parent.envPorts['outPieceColor']) {
+      parent.pieces[i].envPorts['outColor'].bindToPort(parent.envPorts['outPieceColor']);
+    }
+  }
 }
 
 // EnvironmentConfiguration: SharedDepartureConfig (for SharedDepartureStockEnvCP)
@@ -604,8 +706,35 @@ function apply_SharedDepartureConfig(parent, systemModel) {
     parent.pieces[i] = new ECP_PieceEnvCP('pieces[' + i + ']');
   }
   // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: inDropCommand → pieces.inCommand
+  if (parent.envPorts['inDropCommand']) {
+    parent.envPorts['inDropCommand'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inCommand']) {
+            parent.pieces[i].envPorts['inCommand'].setValue(val);
+          }
+        }
+      }
+    });
+  }
   // Delegation: pieces.outColor → outTransferToSPE
+  for (let i = 0; i <= 3; i++) {
+    if (parent.pieces[i] && parent.pieces[i].envPorts['outColor'] && parent.envPorts['outTransferToSPE']) {
+      parent.pieces[i].envPorts['outColor'].bindToPort(parent.envPorts['outTransferToSPE']);
+    }
+  }
 }
 
 // EnvironmentConfiguration: UnitConfig (for ProductionUnitEnvCP)
@@ -631,16 +760,49 @@ function apply_UnitConfig(parent, systemModel) {
   // System component: unit_driveSys : DriveSystemCP
   parent.unit_driveSys = systemModel ? systemModel.getComponentByType('DriveSystemCP', 'unit_driveSys') : { name: 'unit_driveSys', type: 'DriveSystemCP' };
   // Delegation: inUnitTransferFromSPD → entryStock.inPieceColor
+  if (parent.envPorts['inUnitTransferFromSPD'] && parent.entryStock && parent.entryStock.envPorts['inPieceColor']) {
+    parent.envPorts['inUnitTransferFromSPD'].bindToPort(parent.entryStock.envPorts['inPieceColor']);
+  }
   // Delegation: inSPEPresence → entryStock.inPresence
+  if (parent.envPorts['inSPEPresence'] && parent.entryStock && parent.entryStock.envPorts['inPresence']) {
+    parent.envPorts['inSPEPresence'].bindToPort(parent.entryStock.envPorts['inPresence']);
+  }
   // Delegation: inTPresence → transElevator.inPresence
+  if (parent.envPorts['inTPresence'] && parent.transElevator && parent.transElevator.envPorts['inPresence']) {
+    parent.envPorts['inTPresence'].bindToPort(parent.transElevator.envPorts['inPresence']);
+  }
   // Delegation: inTPieceColor → transElevator.inPieceColor
+  if (parent.envPorts['inTPieceColor'] && parent.transElevator && parent.transElevator.envPorts['inPieceColor']) {
+    parent.envPorts['inTPieceColor'].bindToPort(parent.transElevator.envPorts['inPieceColor']);
+  }
   // Delegation: departureStock.outTransferToSPE → outUnitTransferToSPE
+  if (parent.departureStock && parent.departureStock.envPorts['outTransferToSPE'] && parent.envPorts['outUnitTransferToSPE']) {
+    parent.departureStock.envPorts['outTransferToSPE'].bindToPort(parent.envPorts['outUnitTransferToSPE']);
+  }
   // Delegation: navLine.outColor → outUnitNavLine
+  if (parent.navLine && parent.navLine.envPorts['outColor'] && parent.envPorts['outUnitNavLine']) {
+    parent.navLine.envPorts['outColor'].bindToPort(parent.envPorts['outUnitNavLine']);
+  }
   // Delegation: navPad.outColor → outUnitNavPad
+  if (parent.navPad && parent.navPad.envPorts['outColor'] && parent.envPorts['outUnitNavPad']) {
+    parent.navPad.envPorts['outColor'].bindToPort(parent.envPorts['outUnitNavPad']);
+  }
   // Delegation: transElevator.outPieceColor → outUnitPieceColor
+  if (parent.transElevator && parent.transElevator.envPorts['outPieceColor'] && parent.envPorts['outUnitPieceColor']) {
+    parent.transElevator.envPorts['outPieceColor'].bindToPort(parent.envPorts['outUnitPieceColor']);
+  }
   // Delegation: arrivalStock.outPieceColor → outSAPieceColor
+  if (parent.arrivalStock && parent.arrivalStock.envPorts['outPieceColor'] && parent.envPorts['outSAPieceColor']) {
+    parent.arrivalStock.envPorts['outPieceColor'].bindToPort(parent.envPorts['outSAPieceColor']);
+  }
   // Delegation: departureStock.outPieceColor → outSPDPieceColor
+  if (parent.departureStock && parent.departureStock.envPorts['outPieceColor'] && parent.envPorts['outSPDPieceColor']) {
+    parent.departureStock.envPorts['outPieceColor'].bindToPort(parent.envPorts['outSPDPieceColor']);
+  }
   // Delegation: standbyPos.outColor → outUnitPAColor
+  if (parent.standbyPos && parent.standbyPos.envPorts['outColor'] && parent.envPorts['outUnitPAColor']) {
+    parent.standbyPos.envPorts['outColor'].bindToPort(parent.envPorts['outUnitPAColor']);
+  }
   // EnvConnector: tPresenceC : ReadPresenceEnvCN bindings transElevator.outPresence = unit_tSens.inPresence
   parent.tPresenceC = { type: 'ReadPresenceEnvCN', source: 'transElevator.outPresence', target: 'unit_tSens.inPresence' };
   // EnvConnector: colorC : ReadPieceColorEnvCN bindings transElevator.outPieceColor = unit_colorSens.inColor
@@ -753,7 +915,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'leavePA',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: 'LeftPASig',
           buildSendData: (ctx, signalData) => {
@@ -766,7 +928,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'detectGreenPad',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Green;
+            ctx.colorIn = ctx.NavColor.Green;
           },
           sendSignal: 'DetectedGreenPadSig',
           buildSendData: (ctx, signalData) => {
@@ -779,7 +941,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'turnRight',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: 'TurnedRightSig',
           buildSendData: (ctx, signalData) => {
@@ -792,7 +954,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'detectRedPad',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Red;
+            ctx.colorIn = ctx.NavColor.Red;
           },
           sendSignal: 'DetectedRedPadSig',
           buildSendData: (ctx, signalData) => {
@@ -805,7 +967,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'stopAtT',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.None;
+            ctx.colorIn = ctx.NavColor.None;
           },
           sendSignal: 'UnitArrivedAtTSig',
           buildSendData: (ctx, signalData) => {
@@ -818,12 +980,12 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => (ctx.inTPresence === true),
           actionName: 'exposePieceT',
           applyAction: (ctx, signalData) => {
-            ctx.pieceIn = signalData.inTPieceColor;
+            ctx.pieceIn = ctx.inTPieceColor;
           },
           sendSignal: 'GrabPieceTSig',
           buildSendData: (ctx, signalData) => {
             const data = {};
-            data.pieceColor = signalData.inTPieceColor;
+            data.pieceColor = ctx.inTPieceColor;
             return data;
           },
         },
@@ -845,7 +1007,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P0) && (ctx.inUnitPieceColor === ctx.PieceType.P1)),
           actionName: 'routeToSA',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Green;
+            ctx.colorIn = ctx.NavColor.Green;
           },
           sendSignal: 'RoutedToSASig',
           buildSendData: (ctx, signalData) => {
@@ -858,7 +1020,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P0) && (ctx.inUnitPieceColor === ctx.PieceType.P2)),
           actionName: 'routeToSPD',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Red;
+            ctx.colorIn = ctx.NavColor.Red;
           },
           sendSignal: 'RoutedToSPDSig',
           buildSendData: (ctx, signalData) => {
@@ -871,7 +1033,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P1) && (ctx.inUnitPieceColor === ctx.PieceType.P1)),
           actionName: 'routeToSPD',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Red;
+            ctx.colorIn = ctx.NavColor.Red;
           },
           sendSignal: 'RoutedToSPDSig',
           buildSendData: (ctx, signalData) => {
@@ -884,7 +1046,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => ((ctx.inOpParam === ctx.MissionParameter.P1) && (ctx.inUnitPieceColor === ctx.PieceType.P2)),
           actionName: 'routeToSA',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Green;
+            ctx.colorIn = ctx.NavColor.Green;
           },
           sendSignal: 'RoutedToSASig',
           buildSendData: (ctx, signalData) => {
@@ -897,7 +1059,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'stopAtSPE',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.None;
+            ctx.colorIn = ctx.NavColor.None;
           },
           sendSignal: 'UnitArrivedAtSPESig',
           buildSendData: (ctx, signalData) => {
@@ -910,7 +1072,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'stopAtSPE',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.None;
+            ctx.colorIn = ctx.NavColor.None;
           },
           sendSignal: 'UnitArrivedAtSPESig',
           buildSendData: (ctx, signalData) => {
@@ -923,12 +1085,12 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => (ctx.inSPEPresence === true),
           actionName: 'exposePieceSPE',
           applyAction: (ctx, signalData) => {
-            ctx.pieceIn = signalData.inSPEPieceColor;
+            ctx.pieceIn = ctx.inSPEPieceColor;
           },
           sendSignal: 'GrabPieceSPESig',
           buildSendData: (ctx, signalData) => {
             const data = {};
-            data.pieceColor = signalData.inSPEPieceColor;
+            data.pieceColor = ctx.inSPEPieceColor;
             return data;
           },
         },
@@ -950,7 +1112,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'arriveAtTargetStock',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Red;
+            ctx.colorIn = ctx.NavColor.Red;
           },
           sendSignal: 'UnitArrivedAtTargetStockSig',
           buildSendData: (ctx, signalData) => {
@@ -963,7 +1125,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => (ctx.inSPEPresence === false),
           actionName: 'arriveAtTargetStock',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Red;
+            ctx.colorIn = ctx.NavColor.Red;
           },
           sendSignal: 'UnitArrivedAtTargetStockSig',
           buildSendData: (ctx, signalData) => {
@@ -976,7 +1138,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'acknowledgeTarget',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.inUnitNavPad;
+            ctx.colorIn = ctx.inUnitNavPad;
           },
           sendSignal: 'DropPieceSig',
           buildSendData: (ctx, signalData) => {
@@ -989,7 +1151,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => (ctx.inUnitNavPad === ctx.NavColor.Green),
           actionName: 'insertPieceSA',
           applyAction: (ctx, signalData) => {
-            ctx.pieceIn = signalData.inUnitPieceColor;
+            ctx.pieceIn = ctx.inUnitPieceColor;
           },
           sendSignal: 'InsertedPieceSASig',
           buildSendData: (ctx, signalData) => {
@@ -1002,7 +1164,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: (ctx) => (ctx.inUnitNavPad === ctx.NavColor.Red),
           actionName: 'insertPieceSPD',
           applyAction: (ctx, signalData) => {
-            ctx.pieceIn = signalData.inUnitPieceColor;
+            ctx.pieceIn = ctx.inUnitPieceColor;
           },
           sendSignal: 'InsertedPieceSPDSig',
           buildSendData: (ctx, signalData) => {
@@ -1015,7 +1177,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'returnJourney',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: 'ReturnJourneyStartedSig',
           buildSendData: (ctx, signalData) => {
@@ -1028,7 +1190,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'returnJourney',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: 'ReturnJourneyStartedSig',
           buildSendData: (ctx, signalData) => {
@@ -1041,7 +1203,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'obstacleDetected',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.None;
+            ctx.colorIn = ctx.NavColor.None;
           },
           sendSignal: 'ObstacleDetectedSig',
           buildSendData: (ctx, signalData) => {
@@ -1054,7 +1216,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'obstacleRemoved',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: 'ObstacleRemovedSig',
           buildSendData: (ctx, signalData) => {
@@ -1067,7 +1229,7 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'arriveAtPA',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = signalData.NavColor.Black;
+            ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: null,
         },
@@ -1080,11 +1242,12 @@ class ENVACT_RobAFISEnvironmentActivities {
     for (const actName of Object.keys(this.activities)) {
       const activity = this.activities[actName];
       for (const on of activity.onClauses) {
-        if (on.signal === signalName) {
+        if (on.signal === signalName || on.actionName === signalName) {
           if (!on.guard || on.guard(ctx)) {
-            on.applyAction(ctx, signalData);
+            const wrappedSignalData = { [on.signal]: signalData };
+            on.applyAction(ctx, wrappedSignalData);
             if (on.sendSignal) {
-              const sendData = on.buildSendData(ctx, signalData);
+              const sendData = on.buildSendData(ctx, wrappedSignalData);
               results.push({ signal: on.sendSignal, data: sendData, action: on.actionName });
             }
             results.push({ executed: on.actionName, signal: signalName });
@@ -1103,7 +1266,9 @@ class SCN_ObstacleStop_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'obstacleDetected',
-      finishEvent: 'obstacleDetected'
+      finishEvent: 'obstacleDetected',
+      preconditionExprs: ["(ctx.unit1.navLine.outColor === ctx.NavColor.Black)"],
+      postconditionExprs: ["(ctx.unit1.navLine.outColor === ctx.NavColor.None)"]
     });
   }
 
@@ -1129,7 +1294,9 @@ class SCN_ObstacleResume_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'obstacleRemoved',
-      finishEvent: 'obstacleRemoved'
+      finishEvent: 'obstacleRemoved',
+      preconditionExprs: ["(ctx.unit1.navLine.outColor === ctx.NavColor.None)"],
+      postconditionExprs: ["(ctx.unit1.navLine.outColor === ctx.NavColor.Black)"]
     });
   }
 
@@ -1155,7 +1322,9 @@ class SCN_ObstacleStop_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'obstacleDetected',
-      finishEvent: 'obstacleDetected'
+      finishEvent: 'obstacleDetected',
+      preconditionExprs: ["(ctx.unit2.navLine.outColor === ctx.NavColor.Black)"],
+      postconditionExprs: ["(ctx.unit2.navLine.outColor === ctx.NavColor.None)"]
     });
   }
 
@@ -1181,7 +1350,9 @@ class SCN_ObstacleResume_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'obstacleRemoved',
-      finishEvent: 'obstacleRemoved'
+      finishEvent: 'obstacleRemoved',
+      preconditionExprs: ["(ctx.unit2.navLine.outColor === ctx.NavColor.None)"],
+      postconditionExprs: ["(ctx.unit2.navLine.outColor === ctx.NavColor.Black)"]
     });
   }
 
@@ -1207,7 +1378,9 @@ class SCN_SPEArrival_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'stopAtSPE',
-      finishEvent: 'extractPieceSPE'
+      finishEvent: 'extractPieceSPE',
+      preconditionExprs: ["(ctx.unit1.entryStock.outPresence === true)"],
+      postconditionExprs: []
     });
   }
 
@@ -1230,7 +1403,9 @@ class SCN_SPEArrival_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'stopAtSPE',
-      finishEvent: 'extractPieceSPE'
+      finishEvent: 'extractPieceSPE',
+      preconditionExprs: ["(ctx.unit2.entryStock.outPresence === true)"],
+      postconditionExprs: []
     });
   }
 
@@ -1253,7 +1428,9 @@ class SCN_MatrixDecision_SA_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSA'
+      finishEvent: 'routeToSA',
+      preconditionExprs: ["((ctx.operator1.outParam === ctx.MissionParameter.P0) && (ctx.unit1.transElevator.outPieceColor === ctx.PieceType.P1))"],
+      postconditionExprs: ["(ctx.unit1.navPad.outColor === ctx.NavColor.Green)"]
     });
   }
 
@@ -1279,7 +1456,9 @@ class SCN_MatrixDecision_SPD_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSPD'
+      finishEvent: 'routeToSPD',
+      preconditionExprs: ["((ctx.operator1.outParam === ctx.MissionParameter.P0) && (ctx.unit1.transElevator.outPieceColor === ctx.PieceType.P2))"],
+      postconditionExprs: ["(ctx.unit1.navPad.outColor === ctx.NavColor.Red)"]
     });
   }
 
@@ -1305,7 +1484,9 @@ class SCN_MatrixDecision_SA_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSA'
+      finishEvent: 'routeToSA',
+      preconditionExprs: ["((ctx.operator2.outParam === ctx.MissionParameter.P0) && (ctx.unit2.transElevator.outPieceColor === ctx.PieceType.P1))"],
+      postconditionExprs: ["(ctx.unit2.navPad.outColor === ctx.NavColor.Green)"]
     });
   }
 
@@ -1331,7 +1512,9 @@ class SCN_MatrixDecision_SPD_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSPD'
+      finishEvent: 'routeToSPD',
+      preconditionExprs: ["((ctx.operator2.outParam === ctx.MissionParameter.P0) && (ctx.unit2.transElevator.outPieceColor === ctx.PieceType.P2))"],
+      postconditionExprs: ["(ctx.unit2.navPad.outColor === ctx.NavColor.Red)"]
     });
   }
 
@@ -1357,7 +1540,9 @@ class SCN_MatrixDecision_SA_P1_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSA'
+      finishEvent: 'routeToSA',
+      preconditionExprs: ["((ctx.operator1.outParam === ctx.MissionParameter.P1) && (ctx.unit1.transElevator.outPieceColor === ctx.PieceType.P2))"],
+      postconditionExprs: ["(ctx.unit1.navPad.outColor === ctx.NavColor.Green)"]
     });
   }
 
@@ -1383,7 +1568,9 @@ class SCN_MatrixDecision_SPD_P1_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSPD'
+      finishEvent: 'routeToSPD',
+      preconditionExprs: ["((ctx.operator1.outParam === ctx.MissionParameter.P1) && (ctx.unit1.transElevator.outPieceColor === ctx.PieceType.P1))"],
+      postconditionExprs: ["(ctx.unit1.navPad.outColor === ctx.NavColor.Red)"]
     });
   }
 
@@ -1409,7 +1596,9 @@ class SCN_MatrixDecision_SA_P1_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSA'
+      finishEvent: 'routeToSA',
+      preconditionExprs: ["((ctx.operator2.outParam === ctx.MissionParameter.P1) && (ctx.unit2.transElevator.outPieceColor === ctx.PieceType.P2))"],
+      postconditionExprs: ["(ctx.unit2.navPad.outColor === ctx.NavColor.Green)"]
     });
   }
 
@@ -1435,7 +1624,9 @@ class SCN_MatrixDecision_SPD_P1_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'extractPieceT',
-      finishEvent: 'routeToSPD'
+      finishEvent: 'routeToSPD',
+      preconditionExprs: ["((ctx.operator2.outParam === ctx.MissionParameter.P1) && (ctx.unit2.transElevator.outPieceColor === ctx.PieceType.P1))"],
+      postconditionExprs: ["(ctx.unit2.navPad.outColor === ctx.NavColor.Red)"]
     });
   }
 
@@ -1461,7 +1652,9 @@ class SCN_ReturnToPA_Unit1 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'returnJourney',
-      finishEvent: 'arriveAtPA'
+      finishEvent: 'arriveAtPA',
+      preconditionExprs: [],
+      postconditionExprs: ["(ctx.unit1.standbyPos.outColor === ctx.NavColor.Black)"]
     });
   }
 
@@ -1484,7 +1677,9 @@ class SCN_ReturnToPA_Unit2 extends Scene {
       ...opts,
       sceneType: 'scene',
       startEvent: 'returnJourney',
-      finishEvent: 'arriveAtPA'
+      finishEvent: 'arriveAtPA',
+      preconditionExprs: [],
+      postconditionExprs: ["(ctx.unit2.standbyPos.outColor === ctx.NavColor.Black)"]
     });
   }
 
@@ -1533,7 +1728,15 @@ class Scenario_ObstacleHandling_Unit1 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1573,7 +1776,15 @@ class Scenario_ObstacleHandling_Unit2 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1612,7 +1823,15 @@ class Scenario_PriorityResolution_Unit1 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1651,7 +1870,15 @@ class Scenario_PriorityResolution_Unit2 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1691,7 +1918,15 @@ class Scenario_RoutingLogic_P0_Unit1 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1731,7 +1966,15 @@ class Scenario_RoutingLogic_P1_Unit1 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1771,7 +2014,15 @@ class Scenario_RoutingLogic_P0_Unit2 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1811,7 +2062,15 @@ class Scenario_RoutingLogic_P1_Unit2 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1850,7 +2109,15 @@ class Scenario_EndMission_Unit1 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1889,7 +2156,15 @@ class Scenario_EndMission_Unit2 extends Scenario {
           pending = next;
         }
       }
-      const postOk = scene.validatePostConditions(ctx);
+      // Wait for postconditions to be met (reactive evaluation)
+      let postOk = false;
+      const startTime = Date.now();
+      const timeout = 2000; // 2 seconds max timeout
+      while (Date.now() - startTime < timeout) {
+        postOk = scene.validatePostConditions(ctx);
+        if (postOk) break;
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
       results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
     }
     return results;
@@ -1953,14 +2228,16 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P1;
     // parallel block
     {
-      const parallelResults = [];
+      const promises = [];
       // Scenario_RoutingLogic_P0_Unit1
       {
         const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P0_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_RoutingLogic_P0_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_RoutingLogic_P0_Unit1', result };
+          })());
         }
       }
       // Scenario_ObstacleHandling_Unit1
@@ -1968,8 +2245,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_ObstacleHandling_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_ObstacleHandling_Unit1', result };
+          })());
         }
       }
       // Scenario_PriorityResolution_Unit1
@@ -1977,8 +2256,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_PriorityResolution_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_PriorityResolution_Unit1', result };
+          })());
         }
       }
       // Scenario_EndMission_Unit1
@@ -1986,8 +2267,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_EndMission_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_EndMission_Unit1', result };
+          })());
         }
       }
       // Scenario_RoutingLogic_P0_Unit2
@@ -1995,8 +2278,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P0_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_RoutingLogic_P0_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_RoutingLogic_P0_Unit2', result };
+          })());
         }
       }
       // Scenario_ObstacleHandling_Unit2
@@ -2004,8 +2289,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_ObstacleHandling_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_ObstacleHandling_Unit2', result };
+          })());
         }
       }
       // Scenario_PriorityResolution_Unit2
@@ -2013,8 +2300,10 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_PriorityResolution_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_PriorityResolution_Unit2', result };
+          })());
         }
       }
       // Scenario_EndMission_Unit2
@@ -2022,10 +2311,13 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_EndMission_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_EndMission_Unit2', result };
+          })());
         }
       }
+      const parallelResults = await Promise.all(promises);
       ctx.parallelResults = parallelResults;
     }
     return { success: true, execution: 'RobAFIS_Validation_Run_P0' };
@@ -2089,14 +2381,16 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P2;
     // parallel block
     {
-      const parallelResults = [];
+      const promises = [];
       // Scenario_RoutingLogic_P1_Unit1
       {
         const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P1_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_RoutingLogic_P1_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_RoutingLogic_P1_Unit1', result };
+          })());
         }
       }
       // Scenario_ObstacleHandling_Unit1
@@ -2104,8 +2398,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_ObstacleHandling_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_ObstacleHandling_Unit1', result };
+          })());
         }
       }
       // Scenario_PriorityResolution_Unit1
@@ -2113,8 +2409,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_PriorityResolution_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_PriorityResolution_Unit1', result };
+          })());
         }
       }
       // Scenario_EndMission_Unit1
@@ -2122,8 +2420,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit1'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_EndMission_Unit1', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_EndMission_Unit1', result };
+          })());
         }
       }
       // Scenario_RoutingLogic_P1_Unit2
@@ -2131,8 +2431,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P1_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_RoutingLogic_P1_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_RoutingLogic_P1_Unit2', result };
+          })());
         }
       }
       // Scenario_ObstacleHandling_Unit2
@@ -2140,8 +2442,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_ObstacleHandling_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_ObstacleHandling_Unit2', result };
+          })());
         }
       }
       // Scenario_PriorityResolution_Unit2
@@ -2149,8 +2453,10 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_PriorityResolution_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_PriorityResolution_Unit2', result };
+          })());
         }
       }
       // Scenario_EndMission_Unit2
@@ -2158,10 +2464,13 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
         const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit2'];
         if (ScenClass) {
           const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          const result = await scen.execute(ctx);
-          parallelResults.push({ scenario: 'Scenario_EndMission_Unit2', result });
+          promises.push((async () => {
+            const result = await scen.execute(ctx);
+            return { scenario: 'Scenario_EndMission_Unit2', result };
+          })());
         }
       }
+      const parallelResults = await Promise.all(promises);
       ctx.parallelResults = parallelResults;
     }
     return { success: true, execution: 'RobAFIS_Validation_Run_P1' };

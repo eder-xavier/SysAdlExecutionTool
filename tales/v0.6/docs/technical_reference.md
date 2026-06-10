@@ -644,21 +644,21 @@ De `diretivas.txt`:
 
 ---
 
-## 10. Estado Atual (Progresso) — Atualizado em 2026-06-10
+## 10. Estado Atual (Progresso) — Atualizado em 2026-06-10 (sessão 2)
 
 | Fase | Status | Notas |
 |---|---|---|
 | Fase 1: Parser | ✅ Concluída | 18/18 checks passed. AST dump em `sysadl-models/RobAFIS.complete-ast.json` |
-| Fase 2: Transformer | ✅ Concluída | Geração env/scen reescrita. Módulo carrega OK, 1933 linhas, todos os artefatos corretos |
-| Fase 3: SysADLSimulator | ⬜ Não iniciada | **PRÓXIMA FASE.** Redesenhar execução + ScenarioReporter JUnit-style |
-| Fase 4: Logs | ⬜ Não iniciada | JSON estruturado |
-| Fase 5: SysADLBase | ⬜ Não iniciada | Composição hierárquica de EnvComponents |
+| Fase 2: Transformer | ✅ Concluída | Geração env/scen reescrita. Módulo carrega OK, ~2580 linhas, todos os artefatos corretos |
+| Fase 3: SysADLSimulator | 🟡 Em progresso | Simulador reescrito (~730 linhas). OOM corrigido. **Trava no polling de postconditions** (ver Bugs Conhecidos) |
+| Fase 4: Logs | 🟡 Em progresso | JUnit-style output e JSON log implementados, mas não testados (dependem da Fase 3) |
+| Fase 5: SysADLBase | 🟡 Em progresso | EnvPort.setValue() corrigido com observer pattern + profundidade global |
 | Fase 6: Web App | ⬜ Não iniciada | Validar que nada quebrou |
 
 ### Artefatos Criados/Modificados
 - `test/test-parser.js` — Script de teste do parser ✅
 - `sysadl-models/RobAFIS.complete-ast.json` — AST completa do RobAFIS ✅
-- `generated/RobAFIS.complete-env-scen.js` — Módulo env/scen gerado (1933 linhas, syntax OK) ✅
+- `generated/RobAFIS.complete-env-scen.js` — Módulo env/scen gerado (~2580 linhas, syntax OK) ✅
 - `generated/RobAFIS.complete.js` — Módulo estrutural gerado (1490 linhas, duplicação corrigida) ✅
 - `test/mock-model.js` — Mock para testar env-scen.js sem dependência do Model.js ✅
 
@@ -670,7 +670,12 @@ De `diretivas.txt`:
 5. Execução paralela: simulada (sequencial com estado compartilhado) no primeiro milestone
 
 ### Bugs Conhecidos
-Nenhum bug da Fase 2 está pendente. Ambos os bugs listados anteriormente (onClauses vazios nas activities e constraint syntax error) foram corrigidos.
+
+**BUG ATIVO: Postconditions nunca satisfeitas → simulação trava**
+
+O simulador processa assignments iniciais e propagação de conectores (~40ms), mas trava nos loops de polling de postconditions. A causa raiz: o proxy SET do `ctx` mapeia variáveis como `colorIn` para portas do nível errado na hierarquia. Exemplo: `routeToSA` seta `ctx.colorIn = Green` → proxy resolve para `unit1.envPorts.outUnitNavPad.setValue(Green)`, mas a postcondição verifica `unit1.navPad.outColor` (porta `outColor` do sub-componente `NavigationPadEnvCP`). Não há propagação entre esses dois níveis.
+
+Detalhes completos e soluções propostas em `docs/prompt_continuacao.md`.
 
 ---
 
