@@ -1,0 +1,1329 @@
+Model SysADLModel ; 
+package SysADL.types { 
+	value type Int { } 
+	value type Boolean { } 
+	value type String { } 
+	value type Void { } 
+	value type Real { }
+	
+	//RobAFIS specific types
+    	enum PieceType { P1, P2 }
+	enum MissionParameter { P0, P1 }
+    	enum MotorCommand { On, Off }
+    	enum Direction { Forward, Left, Right, Stop }
+    	enum NavColor { Black, Green, Red, None }
+    
+    	datatype RobotCommands { 
+    		attributes: 
+    			dir: Direction ; 
+        		grab: MotorCommand ; 
+    	}
+} 
+
+package SysADL.Ports {
+    import SysADL.types ;
+
+    port def ParameterIPT { flow in MissionParameter }
+    port def ParameterOPT { flow out MissionParameter }
+
+    port def PieceTypeIPT { flow in PieceType }
+    port def PieceTypeOPT { flow out PieceType }
+
+    port def PresenceIPT { flow in Boolean }
+    port def PresenceOPT { flow out Boolean }
+
+    port def CommandIPT { flow in MotorCommand }
+    port def CommandOPT { flow out MotorCommand }
+
+    port def DirectionIPT { flow in Direction }
+    port def DirectionOPT { flow out Direction }
+}
+
+package SysADL.Connectors {
+    import SysADL.types ;
+    import SysADL.Ports ;
+
+    connector def ParameterCN {
+        participants:
+            ~ parameterOPT: ParameterOPT;
+            ~ parameterIPT: ParameterIPT;
+        flows: 
+            MissionParameter from parameterOPT to parameterIPT
+    }
+
+	connector def PieceTypeCN {
+        participants:
+            ~ pieceTypeOPT: PieceTypeOPT;
+            ~ pieceTypeIPT: PieceTypeIPT;
+        flows: 
+            PieceType from pieceTypeOPT to pieceTypeIPT
+    }
+
+    connector def PresenceCN {
+        participants:
+            ~ presenceOPT: PresenceOPT;
+            ~ presenceIPT: PresenceIPT;
+        flows: 
+	    Boolean from presenceOPT to presenceIPT
+    }
+
+    connector def CommandCN {
+        participants:
+            ~ commandOPT: CommandOPT;
+            ~ commandIPT: CommandIPT;
+        flows: 
+	    MotorCommand from commandOPT to commandIPT
+    }
+
+    connector def DirectionCN {
+        participants:
+            ~ directionOPT: DirectionOPT;
+            ~ directionIPT: DirectionIPT;
+        flows: 
+	    Direction from directionOPT to directionIPT
+    }
+}
+
+package SysADL.Components {
+    import SysADL.types ;
+    import SysADL.Ports ;
+    import SysADL.Connectors ;
+    import EnvPortsRobAFIS ;
+
+    component def RobAFISSystemCFD {
+        configuration {
+            components :
+                pInput : ParameterInputCP {	 
+                    using ports : pOut : ParameterOPT ; 
+                }
+                colorSens : ColorSensorCP {	 
+                    using ports : colorOut : PieceTypeOPT ; 
+                }
+                speSens : PresenceSensorCP {	 
+                    using ports : spePresenceOut : PresenceOPT ; 
+                }
+                tSens : PresenceSensorCP {	 
+                    using ports : tPresenceOut : PresenceOPT ; 
+                }
+                drive : DriveSystemCP {	 
+                    using ports : dirIn : DirectionIPT ; 
+                }
+                grabber : GrabberCP {	 
+                    using ports : cmdIn : CommandIPT ; 
+                }
+                controller : RobAFISControllerCP { 
+                    using ports : 
+                        pIn : ParameterIPT ; 
+                        colorIn : PieceTypeIPT ; 
+                        spePresenceIn : PresenceIPT ; 
+                        tPresenceIn : PresenceIPT ; 
+                        dirOut : DirectionOPT ; 
+                        grabOut : CommandOPT ; 
+                }
+            
+            connectors :
+                pConn : ParameterCN bindings pOut = pIn ;
+                colorConn : PieceTypeCN bindings colorOut = colorIn ;
+                speConn : PresenceCN bindings spePresenceOut = spePresenceIn ;
+                tConn : PresenceCN bindings tPresenceOut = tPresenceIn ;
+                dirConn : DirectionCN bindings dirOut = dirIn ;
+                grabConn : CommandCN bindings grabOut = cmdIn ;
+        }
+    } 
+    boundary component def ParameterInputCP {
+        ports: pOut : ParameterOPT ;
+    } 
+    boundary component def ColorSensorCP {
+        ports: colorOut : PieceTypeOPT ;
+    } 
+    boundary component def PresenceSensorCP {
+        ports: presenceOut : PresenceOPT ;
+    } 
+    boundary component def DriveSystemCP {
+        ports: dirIn : DirectionIPT ;
+    } 
+    boundary component def GrabberCP {
+        ports: cmdIn : CommandIPT ;
+    }
+
+    // Controller
+    component def RobAFISControllerCP {
+        ports:
+            pIn : ParameterIPT;
+            colorIn : PieceTypeIPT;
+            spePresenceIn : PresenceIPT;
+            tPresenceIn : PresenceIPT;
+            dirOut : DirectionOPT;
+            grabOut : CommandOPT;
+    }
+}
+
+package SysADL.Behavior {
+    import SysADL.types ;
+    
+    constraint DecideCommandEQ (pIn: MissionParameter, colorIn: PieceType, speIn: Boolean, tIn: Boolean, cmdsOut: RobotCommands) {equation = cmdsOut == cmdsOut }
+    constraint ExtractDirEQ(cmds: RobotCommands, dir: Direction) {equation = dir == cmds->dir }
+    constraint ExtractGrabEQ(cmds: RobotCommands, grab: MotorCommand) {equation = grab == cmds->grab }
+
+    action def DecideCommandAN (pIn: MissionParameter, colorIn: PieceType, speIn: Boolean, tIn: Boolean) : RobotCommands {constraint: post-condition DecideCommandEQ }
+    action def ExtractDirAN(cmds: RobotCommands) : Direction { constraint: post-condition ExtractDirEQ }
+    action def ExtractGrabAN(cmds: RobotCommands) : MotorCommand { constraint: post-condition ExtractGrabEQ }
+
+    activity def RobAFISControllerAC ( pIn : MissionParameter ) ( colorIn : PieceType ) ( spePresenceIn : Boolean ) ( tPresenceIn : Boolean ) : ( dirOut : Direction , grabOut : MotorCommand ) { 
+	body {
+			
+	    actions : 
+		DecideCommandAN : DecideCommandAN { using pins : pIn : MissionParameter ; colorIn : PieceType ; speIn : Boolean ; tIn : Boolean ; } 
+		ExtractDirAN : ExtractDirAN { using pins : cmdDirection : RobotCommands ; } 
+		ExtractGrabAN : ExtractGrabAN { using pins : cmdMotor : RobotCommands ; } 
+			
+		delegate pIn to pIn 
+		delegate colorIn to colorIn 
+		delegate spePresenceIn to speIn 
+		delegate tPresenceIn to tIn 
+		delegate grabOut to ExtractGrabAN 
+		delegate dirOut to ExtractDirAN 
+		
+		flow from DecideCommandAN to cmdDirection 
+		flow from DecideCommandAN to cmdMotor 
+	}
+    } 
+}
+
+package SysADL.Execution {
+    import SysADL.types ;
+
+    executable def DecideCommandEX ( in pIn : MissionParameter, in colorIn : PieceType, in spePresenceIn : Boolean, in tPresenceIn : Boolean ) : out RobotCommands {
+        
+        let cmds : RobotCommands;
+
+        if (spePresenceIn == true) {
+            cmds->dir = Direction::Forward;
+            cmds->grab = MotorCommand::On;
+        } 
+        else if (tPresenceIn == true) {
+            if (pIn == MissionParameter::P0) {
+                if (colorIn == PieceType::P1) {
+                    cmds->dir = Direction::Left;   
+                } else {
+                    cmds->dir = Direction::Right;  
+                }
+            } else if (pIn == MissionParameter::P1) {
+                if (colorIn == PieceType::P2) {
+                    cmds->dir = Direction::Left;   
+                } else {
+                    cmds->dir = Direction::Right;  
+                }
+            }
+            cmds->grab = MotorCommand::On;
+        } 
+        else {
+            cmds->dir = Direction::Stop;
+            cmds->grab = MotorCommand::Off;
+        }
+
+        return cmds;
+    }
+
+    executable def ExtractDirEX ( in cmds : RobotCommands ) : out Direction {
+        return cmds->dir;
+    }
+    
+    executable def ExtractGrabEX ( in cmds : RobotCommands ) : out MotorCommand {
+        return cmds->grab;
+    }
+}
+
+Requirement SortAndTransportFR ( 1 ) { 
+	text = "The system must be capable of sorting, transporting, and storing pieces P1 and P2 in the production environment." 
+	} 
+Requirement ConfigureMissionFR ( 1.1 ) { 
+	text = "The system must be configured at the beginning of the mission with a parameter p to assign the sorting logic." 
+	satisfied by SysADL.Components.ParameterInputCP verified by [ValidationPlan_RobAFIS.Scenario_RoutingLogic_P0_Unit1, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P1_Unit1, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P0_Unit2, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P1_Unit2]; 
+	derive SortAndTransportFR ;
+} 
+Requirement RetrievePieceFR ( 1.2 ) { 
+	text = "The system must retrieve a piece provided in the trans-elevador stock (T)." 
+	satisfied by SysADL.Components.GrabberCP ; 
+	derive SortAndTransportFR ;
+} 
+Requirement IdentifyPieceFR ( 1.3 ) { 
+	text = "The system must identify the type of the retrieved piece (P1 or P2)." 
+	satisfied by SysADL.Components.ColorSensorCP verified by [ValidationPlan_RobAFIS.Scenario_RoutingLogic_P0_Unit1, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P1_Unit1, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P0_Unit2, ValidationPlan_RobAFIS.Scenario_RoutingLogic_P1_Unit2];  
+	derive SortAndTransportFR ;
+} 
+Requirement StorePieceFR ( 1.4 ) { 
+	text = "The system must transport and store the piece in the arrival stock (SA) or departure shared stock (SPD) according to the mission parameter p." 
+	derive SortAndTransportFR ;
+} 
+Requirement DecideTargetRouteFR ( 1.4.1 ) {
+    text = "The controller must logically decide the correct route to the target stock based on the piece color and mission parameter."
+    satisfied by SysADL.Components.RobAFISControllerCP ;
+    derive StorePieceFR ;
+}
+Requirement ReleasePieceFR ( 1.4.2 ) {
+    text = "The manipulator must physically release the piece into the target stock."
+    satisfied by SysADL.Components.GrabberCP ;
+    derive StorePieceFR ;
+}
+Requirement PrioritizeSPEFR ( 1.5 ) { 
+	text = "The system must prioritize the collection of a piece present in the entry shared stock (SPE) to avoid blocking the other unit." 
+	derive SortAndTransportFR ;
+} 
+Requirement DetectSPEPresenceFR ( 1.5.1 ) {
+    text = "The system must detect if there is a piece waiting in the entry shared stock (SPE)."
+    satisfied by SysADL.Components.PresenceSensorCP ;
+    derive PrioritizeSPEFR ;
+}
+Requirement ExecutePriorityLogicFR ( 1.5.2 ) {
+    text = "The controller must override the nominal routing to grab the priority piece from the SPE."
+    satisfied by SysADL.Components.RobAFISControllerCP ;
+    derive PrioritizeSPEFR ;
+}
+Requirement NavigateAutonomouslyFR ( 1.6 ) { 
+	text = "The system must navigate autonomously using lines and direction indicators on the floor, stopping when an obstacle is encountered." 
+	derive SortAndTransportFR ;
+} 
+Requirement FollowLineFR ( 1.6.1 ) {
+    text = "The drive system must follow the navigation lines and color pads on the floor to reach the destination."
+    satisfied by SysADL.Components.DriveSystemCP ;
+    derive NavigateAutonomouslyFR ;
+}
+Requirement HaltOnObstacleFR ( 1.6.2 ) {
+    text = "The drive system must immediately halt movement when an obstacle is detected in the path."
+    satisfied by SysADL.Components.DriveSystemCP ;
+    derive NavigateAutonomouslyFR ;
+}
+Requirement ReturnToStandbyFR ( 1.7 ) { 
+	text = "The system must automatically return to its standby position (PA) when both the trans-elevador (T) and the entry shared stock (SPE) are empty." 
+	satisfied by SysADL.Components.DriveSystemCP ; 
+	derive SortAndTransportFR ;
+} 
+Requirement SystemConstraintsNFR ( 2 ) { 
+	text = "The system must comply with the operational, performance, and safety constraints of the production environment." 
+	} 
+Requirement MaintenanceNFR ( 2.1 ) { 
+	text = "The system must execute the mission without requiring any preventive or curative maintenance during operation." 
+	satisfied by SysADL.Components.RobAFISSystemCFD ; 
+	derive SystemConstraintsNFR ;
+} 
+Requirement SafetyZoneNFR ( 2.2 ) { 
+	text = "The system must not penetrate the restricted machine zones." 
+	derive SystemConstraintsNFR ;
+} 
+Requirement DetectZoneLimitNFR ( 2.2.1 ) {
+    text = "The sensors must detect the physical boundaries of the restricted machine zones."
+    satisfied by SysADL.Components.PresenceSensorCP ;
+    derive SafetyZoneNFR ;
+}
+Requirement AvoidZoneNFR ( 2.2.2 ) {
+    text = "The drive system must prevent or halt any movement that crosses into the restricted machine zones."
+    satisfied by SysADL.Components.DriveSystemCP ;
+    derive SafetyZoneNFR ;
+}
+Requirement MissionTimeNFR ( 2.3 ) { 
+	text = "The system must complete the nominal mission within a maximum time of 4 minutes." 
+	satisfied by SysADL.Components.RobAFISSystemCFD ; 
+	derive SystemConstraintsNFR ;
+} 
+Requirement PriorityTimeNFR ( 2.4 ) { 
+	text = "A piece appearing in the priority stock (SPE) must be retrieved within a maximum delay of 2 minutes." 
+	derive SystemConstraintsNFR ;
+} 
+Requirement PriorityRoutingTimeNFR ( 2.4.1 ) {
+    text = "The controller must process the SPE priority interrupt and calculate the new route."
+    satisfied by SysADL.Components.RobAFISControllerCP ;
+    derive PriorityTimeNFR ;
+}
+Requirement PriorityTravelTimeNFR ( 2.4.2 ) {
+    text = "The drive system must transit to the SPE location within the allocated time budget."
+    satisfied by SysADL.Components.DriveSystemCP ;
+    derive PriorityTimeNFR ;
+}
+
+Requirement PriorityExtractionTimeNFR ( 2.4.3 ) {
+    text = "The grabber must physically extract the priority piece within the allocated time budget."
+    satisfied by SysADL.Components.GrabberCP ;
+    derive PriorityTimeNFR ;
+}
+Requirement AutonomyNFR ( 2.5 ) { 
+	text = "The system must operate autonomously without human intervention or remote control after the initial start." 
+	satisfied by SysADL.Components.RobAFISControllerCP ; 
+	derive SystemConstraintsNFR ;
+}
+
+
+package EnvPortsRobAFIS {
+    
+    import SysADL.types;
+
+    EnvPort def OutPieceColor { flow out PieceType } 
+    EnvPort def InPieceColor { flow in PieceType }
+
+    EnvPort def OutNavColor { flow out NavColor } 
+    EnvPort def InNavColor { flow in NavColor }
+
+    EnvPort def OutPresence { flow out Boolean } 
+    EnvPort def InPresence { flow in Boolean }
+
+    EnvPort def OutParameter { flow out MissionParameter } 
+    EnvPort def InParameter { flow in MissionParameter }
+
+    EnvPort def OutMotorCommand { flow out MotorCommand } 
+    EnvPort def InMotorCommand { flow in MotorCommand }
+}
+
+package EnvConnectorsRobAFIS {
+    import SysADL.types ;
+    import EnvPortsRobAFIS;
+
+    EnvConnector def DetectPieceColorEnvCN {
+        participants: 
+           ~ outColor: OutPieceColor; 
+           ~ inColor: InPieceColor;
+        flows: PieceType from outColor to inColor
+    }
+
+    EnvConnector def DetectParameterEnvCN {
+        participants:
+            ~ outParam: OutParameter;
+            ~ inParam: InParameter;
+        flows: MissionParameter from outParam to inParam
+    }
+
+    EnvConnector def ReadParameterEnvCN {
+        participants:
+            ~ outParam : OutParameter ;
+            ~ inParam : InParameter ;
+        flows: MissionParameter from outParam to inParam
+    }
+
+    EnvConnector def ReadPieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceType from outColor to inColor
+    }
+
+    EnvConnector def ReadPresenceEnvCN {
+        participants:
+            ~ outPresence : OutPresence ;
+            ~ inPresence : InPresence ;
+        flows: Boolean from outPresence to inPresence
+    }
+
+    EnvConnector def SendMotorCommandEnvCN {
+        participants:
+            ~ outCommand : OutMotorCommand ;
+            ~ inCommand : InMotorCommand ;
+        flows: MotorCommand from outCommand to inCommand
+    }
+
+    EnvConnector def SendEnvironmentalDirectionEnvCN {
+        participants:
+            ~ outColor : OutNavColor ;
+            ~ inColor : InNavColor ;
+        flows: NavColor from outColor to inColor
+    }
+
+    EnvConnector def SendPieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceType from outColor to inColor
+    }
+}
+
+package SysADL.Boundary.Behavior {
+    import SysADL.types ;
+
+    action def PassParameterAN (inParam: MissionParameter) : MissionParameter { }
+    action def PassPieceTypeAN (inColor: PieceType) : PieceType { }
+    action def PassPresenceAN (inPresence: Boolean) : Boolean { }
+    action def PassMotorCommandAN (inCmd: MotorCommand) : MotorCommand { }    
+    action def TranslateDirectionToColorAN (inDir: Direction) : NavColor { }
+
+    activity def ParameterInputAC ( inParam : MissionParameter ) : ( pOut : MissionParameter ) {
+        body {
+            actions:
+                passParam : PassParameterAN { using pins : inParam : MissionParameter ; }
+            
+            delegate inParam to inParam
+            delegate pOut to passParam
+        }
+    }
+
+    activity def ColorSensorAC ( inColor : PieceType ) : ( colorOut : PieceType ) {
+        body {
+            actions:
+                passColor : PassPieceTypeAN { using pins : inColor : PieceType ; }
+            
+            delegate inColor to inColor
+            delegate colorOut to passColor
+        }
+    }
+
+    activity def PresenceSensorAC ( inPresence : Boolean ) : ( presenceOut : Boolean ) {
+        body {
+            actions:
+                passPresence : PassPresenceAN { using pins : inPresence : Boolean ; }
+            
+            delegate inPresence to inPresence
+            delegate presenceOut to passPresence
+        }
+    }
+
+    activity def GrabberAC ( cmdIn : MotorCommand ) : ( outCommand : MotorCommand ) {
+        body {
+            actions:
+                passCmd : PassMotorCommandAN { using pins : inCmd : MotorCommand ; }
+            
+            delegate cmdIn to inCmd
+            delegate outCommand to passCmd
+        }
+    }
+
+    activity def DriveSystemAC ( dirIn : Direction ) : ( outColor : NavColor ) {
+        body {
+            actions:
+                translateDir : TranslateDirectionToColorAN { using pins : inDir : Direction ; }
+            
+            delegate dirIn to inDir
+            delegate outColor to translateDir
+        }
+    }
+}
+
+package SysADL.Boundary.Execution {
+    import SysADL.types ;
+    
+    executable def TranslateDirectionToColorEX(in inDir: Direction) : out NavColor {
+        if (inDir == Direction::Stop) {
+            return NavColor::None;
+        }
+        else if (inDir == Direction::Left) {
+            return NavColor::Green;
+        }
+        else if (inDir == Direction::Right) {
+            return NavColor::Red;
+        }
+        else {
+            return NavColor::Black;  
+        }
+    }
+    executable def PassParameterEX (in inParam : MissionParameter) : out MissionParameter {
+        return inParam;
+    }
+
+    executable def PassPieceTypeEX (in inColor : PieceType) : out PieceType {
+        return inColor;
+    }
+
+    executable def PassPresenceEX (in inPresence : Boolean) : out Boolean {
+        return inPresence;
+    }
+
+    executable def PassMotorCommandEX (in inCmd : MotorCommand) : out MotorCommand {
+        return inCmd;
+    }
+}
+
+package SysADL.Boundary.Components {
+
+    import SysADL.Components ;
+    import SysADL.types ;
+    import EnvPortsRobAFIS ;
+
+    boundary component SysADL.Components::ParameterInputCP {
+        envPorts: inParam : InParameter ;
+    } 
+    boundary component SysADL.Components::ColorSensorCP {
+        envPorts: inColor : InPieceColor ;
+    }
+    boundary component SysADL.Components::PresenceSensorCP {
+        envPorts: inPresence : InPresence ;
+    }
+    boundary component SysADL.Components::DriveSystemCP {
+        envPorts: outColor : OutNavColor ;
+    }
+    boundary component SysADL.Components::GrabberCP {
+        envPorts:
+            outCommand : OutMotorCommand ;
+            outPieceColor : OutPieceColor ;
+    }
+}
+
+package EnvComponentsRobAFIS {
+    import SysADL.types ;
+    import EnvPortsRobAFIS ;
+    import EnvConnectorsRobAFIS ;
+    import SysADL.Boundary.Components ;
+
+    EnvComponent def PieceEnvCP {
+        envPorts:
+            outColor : OutPieceColor ;
+            inColor : InPieceColor ;
+            outPresence : OutPresence ;
+            inPresence : InPresence ; 
+            inCommand : InMotorCommand ;
+        properties:
+            Property def color : PieceType ;
+    }
+
+    EnvComponent def HumanOperatorEnvCP {
+        envPorts: outParam : OutParameter ;
+    }
+
+    EnvComponent def NavigationLineEnvCP { 
+        envPorts: 
+            outColor : OutNavColor ;
+            inColor : InNavColor ; 
+    } 
+
+    EnvComponent def NavigationPadEnvCP { 
+        envPorts: 
+            outColor : OutNavColor ;
+            inColor : InNavColor ; 
+    } 
+
+    EnvComponent def StandbyPositionEnvCP { 
+        envPorts: 
+            outColor : OutNavColor ;
+            inColor : InNavColor ; 
+    }
+
+    EnvComponent def RestrictedMachineZoneEnvCP { 
+	envPorts: outPresence : OutPresence ; 
+    }
+
+    EnvComponent def TransElevatorEnvCP {
+        envPorts:
+            outPresence : OutPresence ;
+            outPieceColor : OutPieceColor ;
+            inCommand : InMotorCommand ;
+	    inPieceColor : InPieceColor ;
+	    inPresence : InPresence ;
+
+        environmentConfiguration TransElevatorConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+
+            envDelegations:
+                pieces.outPresence to outPresence ;
+                pieces.outColor to outPieceColor ;
+                inCommand to pieces.inCommand ;
+		inPieceColor to pieces.inColor ;
+		inPresence to pieces.inPresence ;
+        }
+    }
+
+    EnvComponent def SharedEntryStockEnvCP {
+        envPorts:
+            inPieceColor : InPieceColor ;
+            inPresence : InPresence ;
+            outPresence : OutPresence ;
+	    outPieceColor : OutPieceColor ;
+
+        environmentConfiguration SharedEntryConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                pieces.outPresence to outPresence ;
+		pieces.outColor to outPieceColor ;
+		inPresence to pieces.inPresence ; 
+        }
+    }
+
+    EnvComponent def ArrivalStockEnvCP {
+        envPorts:
+            inPieceColor : InPieceColor ;
+            inDropCommand : InMotorCommand ;
+	    outPieceColor : OutPieceColor ;
+
+        environmentConfiguration ArrivalStockConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                inDropCommand to pieces.inCommand ;
+		pieces.outColor to outPieceColor ;
+        }
+    }
+
+    EnvComponent def SharedDepartureStockEnvCP {
+        envPorts:
+            inPieceColor : InPieceColor ;
+            inDropCommand : InMotorCommand ;
+            outTransferToSPE : OutPieceColor ;
+
+        environmentConfiguration SharedDepartureConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                inDropCommand to pieces.inCommand ;
+                pieces.outColor to outTransferToSPE ;
+        }
+    }
+
+    EnvComponent def ProductionUnitEnvCP {
+       envPorts:
+          inOpParam : InParameter ;
+          inUnitNavPad : InNavColor ;
+          inUnitPieceColor : InPieceColor ;
+          inSPEPresence : InPresence ;
+          inTPresence : InPresence ;
+          inTPieceColor : InPieceColor ;
+          inSPEPieceColor : InPieceColor ;
+          outUnitNavLine : OutNavColor ;
+          outUnitNavPad : OutNavColor ;
+          outUnitPieceColor : OutPieceColor ;
+          outSAPieceColor : OutPieceColor ;
+          outSPDPieceColor : OutPieceColor ;
+          outUnitPAColor : OutNavColor ;
+          inUnitTransferFromSPD : InPieceColor ;
+	  outUnitTransferToSPE : OutPieceColor ;
+	
+       environmentConfiguration UnitConfig {
+          envComponents:
+	     standbyPos: StandbyPositionEnvCP;
+	     transElevator: TransElevatorEnvCP;
+	     arrivalStock: ArrivalStockEnvCP;
+             entryStock: SharedEntryStockEnvCP;
+	     departureStock: SharedDepartureStockEnvCP;
+   	     navLine: NavigationLineEnvCP;
+   	     navPad: NavigationPadEnvCP;
+	     machineZone: RestrictedMachineZoneEnvCP;
+	
+	  components:
+	     unit_colorSens: ColorSensorCP ;
+	     unit_tSens: PresenceSensorCP ;
+	     unit_speSens: PresenceSensorCP ;
+	     unit_zoneSens: PresenceSensorCP ;
+	     unit_grabber: GrabberCP ;
+	     unit_driveSys: DriveSystemCP ;
+  	     
+          envDelegations:
+	     inUnitTransferFromSPD to entryStock.inPieceColor ;
+             inSPEPresence to entryStock.inPresence ;
+             inTPresence to transElevator.inPresence ;
+             inTPieceColor to transElevator.inPieceColor ;	  
+
+             departureStock.outTransferToSPE to outUnitTransferToSPE ;
+             navLine.outColor to outUnitNavLine ;
+             navPad.outColor to outUnitNavPad ;
+             transElevator.outPieceColor to outUnitPieceColor ;
+             arrivalStock.outPieceColor to outSAPieceColor ;
+             departureStock.outPieceColor to outSPDPieceColor ;
+             standbyPos.outColor to outUnitPAColor ;
+
+          envConnectors:
+             tPresenceC: ReadPresenceEnvCN bindings
+                 transElevator.outPresence = unit_tSens.inPresence ;
+
+             colorC: ReadPieceColorEnvCN bindings
+                 transElevator.outPieceColor = unit_colorSens.inColor ;
+
+             grabC: SendMotorCommandEnvCN bindings
+                 unit_grabber.outCommand = transElevator.inCommand ;
+
+             spePresenceC: ReadPresenceEnvCN bindings
+                 entryStock.outPresence = unit_speSens.inPresence ;
+
+             zoneC: ReadPresenceEnvCN bindings
+                 machineZone.outPresence = unit_zoneSens.inPresence ;
+                
+             navLineC: SendEnvironmentalDirectionEnvCN bindings
+                 unit_driveSys.outColor = navLine.inColor ;
+
+             navPadC: SendEnvironmentalDirectionEnvCN bindings
+                 unit_driveSys.outColor = navPad.inColor ;
+
+             paColorC: SendEnvironmentalDirectionEnvCN bindings
+                 unit_driveSys.outColor = standbyPos.inColor ;
+                
+             dropSA_CommandC: SendMotorCommandEnvCN bindings
+                 unit_grabber.outCommand = arrivalStock.inDropCommand ;
+
+             dropSPD_CommandC: SendMotorCommandEnvCN bindings
+                 unit_grabber.outCommand = departureStock.inDropCommand ;
+
+             dropSA_PieceC: SendPieceColorEnvCN bindings
+                 unit_grabber.outPieceColor = arrivalStock.inPieceColor ;
+
+             dropSPD_PieceC: SendPieceColorEnvCN bindings
+                 unit_grabber.outPieceColor = departureStock.inPieceColor ;
+	}
+    }
+
+    EnvComponent def AtelierEnvironment {
+	environmentConfiguration AtelierConfig {
+           envComponents:
+	      unit1: ProductionUnitEnvCP;
+	      unit2: ProductionUnitEnvCP;
+	      operator1: HumanOperatorEnvCP;
+	      operator2: HumanOperatorEnvCP;
+	
+	   components:
+		r1_pInput: ParameterInputCP ;
+		r2_pInput: ParameterInputCP ;
+	
+	   envConnectors:
+		unit1ToUnit2TransferC : DetectPieceColorEnvCN bindings
+			unit1.outUnitTransferToSPE = unit2.inUnitTransferFromSPD ;
+				
+		unit2ToUnit1TransferC : DetectPieceColorEnvCN bindings
+			unit2.outUnitTransferToSPE = unit1.inUnitTransferFromSPD ;
+	
+                param1C: ReadParameterEnvCN bindings
+                        operator1.outParam = r1_pInput.inParam ;
+
+                param2C: ReadParameterEnvCN bindings
+                        operator2.outParam = r2_pInput.inParam ;
+
+                unit1MissionC: DetectParameterEnvCN bindings
+                    	operator1.outParam = unit1.inOpParam ;
+
+                unit2MissionC: DetectParameterEnvCN bindings
+                    	operator2.outParam = unit2.inOpParam ;
+		}
+	}
+}
+
+package ScenariosRobAFIS {
+    
+    import EnvComponentsRobAFIS;
+    import SysADL.types;
+
+    EnvActivitiesDefinitions RobAFISEnvironmentActivities {
+
+       signal def StartSimulationSig { attributes : mission : MissionParameter ; }
+
+       signal def SetMissionParamSig { attributes : param : MissionParameter ; }
+       signal def GrabPieceTSig { attributes : pieceColor : PieceType ; }
+       signal def GrabPieceSPESig { attributes : pieceColor : PieceType ; }
+    
+       signal def DropPieceSig { } 
+       signal def UnitArrivedAtTSig { }
+       signal def UnitArrivedAtSPESig { }
+       signal def UnitArrivedAtTargetStockSig { }
+
+       signal def LeftPASig { }
+       signal def DetectedGreenPadSig { }
+       signal def TurnedRightSig { }
+       signal def DetectedRedPadSig { }
+       signal def ExtractedPieceTSig { }
+       signal def RoutedToSASig { }
+       signal def RoutedToSPDSig { }
+       signal def ExtractedPieceSPESig { }
+       signal def InsertedPieceSASig { }
+       signal def InsertedPieceSPDSig { }
+       signal def ReturnJourneyStartedSig { }
+       signal def ObstacleDetectedSig { }
+       signal def ObstacleRemovedSig { }
+
+       EnvAction def PassMissionParameterAN (paramIn: MissionParameter) : MissionParameter { }
+       EnvAction def PassNavColorAN (colorIn: NavColor) : NavColor { }
+       EnvAction def PassPieceTypeAN (pieceIn: PieceType) : PieceType { }
+
+       EnvActivity def OperatorEA () : ( opParamOut : MissionParameter ) {
+          body {
+	     actions :
+		setMissionParametersOp : PassMissionParameterAN { using pins : paramIn : MissionParameter ; }
+	
+		delegate opParamOut to setMissionParametersOp
+	
+		ON StartSimulationSig
+	   	   THEN setMissionParametersOp { paramIn = StartSimulationSig.mission ; }
+		   SEND SetMissionParamSig { param = StartSimulationSig.mission ; }
+	   }
+       }
+	
+       EnvActivity def UnitEA (
+		inOpParam : MissionParameter,
+		inUnitNavPad : NavColor,
+		inUnitPieceColor : PieceType,
+		inSPEPresence : Boolean,
+		inTPresence : Boolean,
+		inTPieceColor : PieceType,
+		inSPEPieceColor : PieceType
+	   ) : (
+		outUnitNavLine : NavColor,
+		outUnitNavPad : NavColor,
+		outUnitPieceColor : PieceType,
+		outSAPieceColor : PieceType,
+		outSPDPieceColor : PieceType,
+		outUnitPAColor : NavColor
+	   ) {
+	   body {
+	      actions:
+		 leavePA : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 detectGreenPad : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 turnRight : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 detectRedPad : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 stopAtT : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 routeToSA : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 routeToSPD : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 stopAtSPE : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 arriveAtTargetStock : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 returnJourney : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 obstacleDetected : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 obstacleRemoved : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 arriveAtPA : PassNavColorAN { using pins : colorIn : NavColor ; }
+		 acknowledgeTarget : PassNavColorAN { using pins : colorIn : NavColor ; }
+	
+	 	 extractPieceT : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+		 extractPieceSPE : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+		 insertPieceSA : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+		 insertPieceSPD : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+	  	 
+                 exposePieceT : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+		 exposePieceSPE : PassPieceTypeAN { using pins : pieceIn : PieceType ; }
+	
+		 delegate outUnitNavLine to leavePA
+		 delegate outUnitNavLine to turnRight
+		 delegate outUnitNavLine to returnJourney
+		 delegate outUnitNavLine to obstacleDetected
+		 delegate outUnitNavLine to obstacleRemoved
+	
+	 	 delegate outUnitNavPad to detectGreenPad
+		 delegate outUnitNavPad to detectRedPad
+		 delegate outUnitNavPad to stopAtT
+		 delegate outUnitNavPad to routeToSA
+		 delegate outUnitNavPad to routeToSPD
+		 delegate outUnitNavPad to stopAtSPE
+		 delegate outUnitNavPad to arriveAtTargetStock
+	
+	 	 delegate outUnitPieceColor to extractPieceT
+		 delegate outUnitPieceColor to extractPieceSPE
+		 delegate outSAPieceColor to insertPieceSA
+	 	 delegate outSPDPieceColor to insertPieceSPD
+ 		 delegate outUnitPAColor to arriveAtPA
+	
+	  	 ON SetMissionParamSig
+		    THEN leavePA { colorIn = NavColor::Black ; }
+		    SEND LeftPASig { }
+	
+	  	 ON LeftPASig
+		    THEN detectGreenPad { colorIn = NavColor::Green ; }
+		    SEND DetectedGreenPadSig { }
+	
+	 	 ON DetectedGreenPadSig
+		    THEN turnRight { colorIn = NavColor::Black ; }
+		    SEND TurnedRightSig { }
+	
+	 	 ON TurnedRightSig
+		    THEN detectRedPad { colorIn = NavColor::Red ; }
+		    SEND DetectedRedPadSig { }
+	
+	 	 ON DetectedRedPadSig
+		    THEN stopAtT { colorIn = NavColor::None ; }
+		    SEND UnitArrivedAtTSig { }
+	
+		 ON UnitArrivedAtTSig [ inTPresence == true ]
+		    THEN exposePieceT { pieceIn = inTPieceColor ; }
+		    SEND GrabPieceTSig { pieceColor = inTPieceColor ; }
+	
+		 ON GrabPieceTSig
+		    THEN extractPieceT { pieceIn = GrabPieceTSig.pieceColor ; }
+		    SEND ExtractedPieceTSig { }
+	
+	 	 ON ExtractedPieceTSig [ inOpParam == MissionParameter::P0 AND inUnitPieceColor == PieceType::P1 ]
+		    THEN routeToSA { colorIn = NavColor::Green ; }
+		    SEND RoutedToSASig { }
+	
+		 ON ExtractedPieceTSig [ inOpParam == MissionParameter::P0 AND inUnitPieceColor == PieceType::P2 ]
+		    THEN routeToSPD { colorIn = NavColor::Red ; }
+		    SEND RoutedToSPDSig { }
+	
+	  	 ON ExtractedPieceTSig [ inOpParam == MissionParameter::P1 AND inUnitPieceColor == PieceType::P1 ]
+		    THEN routeToSPD { colorIn = NavColor::Red ; }
+		    SEND RoutedToSPDSig { }
+	
+		 ON ExtractedPieceTSig [ inOpParam == MissionParameter::P1 AND inUnitPieceColor == PieceType::P2 ]
+		    THEN routeToSA { colorIn = NavColor::Green ; }
+		    SEND RoutedToSASig { }
+	
+		 ON RoutedToSASig
+		    THEN stopAtSPE { colorIn = NavColor::None ; }
+		    SEND UnitArrivedAtSPESig { }
+	
+		 ON RoutedToSPDSig
+		    THEN stopAtSPE { colorIn = NavColor::None ; }
+		    SEND UnitArrivedAtSPESig { }
+	
+		 ON UnitArrivedAtSPESig [ inSPEPresence == true ]
+		    THEN exposePieceSPE { pieceIn = inSPEPieceColor ; }
+		    SEND GrabPieceSPESig { pieceColor = inSPEPieceColor ; }
+	
+		 ON GrabPieceSPESig
+		    THEN extractPieceSPE { pieceIn = GrabPieceSPESig.pieceColor ; }
+		    SEND ExtractedPieceSPESig { }
+	
+		 ON ExtractedPieceSPESig
+		    THEN arriveAtTargetStock { colorIn = NavColor::Red ; }
+		    SEND UnitArrivedAtTargetStockSig { }
+	
+	 	 ON UnitArrivedAtSPESig [ inSPEPresence == false ]
+		    THEN arriveAtTargetStock { colorIn = NavColor::Red ; }
+		    SEND UnitArrivedAtTargetStockSig { }
+	
+		 ON UnitArrivedAtTargetStockSig
+		    THEN acknowledgeTarget { colorIn = inUnitNavPad ; }
+		    SEND DropPieceSig { }
+	
+		 ON DropPieceSig [ inUnitNavPad == NavColor::Green ]
+		    THEN insertPieceSA { pieceIn = inUnitPieceColor ; }
+		    SEND InsertedPieceSASig { }
+	
+	 	 ON DropPieceSig [ inUnitNavPad == NavColor::Red ]
+		    THEN insertPieceSPD { pieceIn = inUnitPieceColor ; }
+		    SEND InsertedPieceSPDSig { }
+	
+		 ON InsertedPieceSASig
+		    THEN returnJourney { colorIn = NavColor::Black ; }
+		    SEND ReturnJourneyStartedSig { }
+	
+		 ON InsertedPieceSPDSig
+		    THEN returnJourney { colorIn = NavColor::Black ; }
+		    SEND ReturnJourneyStartedSig { }
+	
+	 	 ON ReturnJourneyStartedSig
+		    THEN obstacleDetected { colorIn = NavColor::None ; }
+		    SEND ObstacleDetectedSig { }
+	
+	  	 ON ObstacleDetectedSig
+		    THEN obstacleRemoved { colorIn = NavColor::Black ; }
+		    SEND ObstacleRemovedSig { }
+	
+	  	 ON ObstacleRemovedSig
+		    THEN arriveAtPA { colorIn = NavColor::Black ; }
+           }
+       }
+    }
+}
+
+package ScenariosRobAFIS.Execution {
+    import SysADL.types;
+
+    executable def PassMissionParameterEX (in paramIn: MissionParameter) : out MissionParameter { return paramIn; }
+    executable def PassNavColorEX (in colorIn: NavColor) : out NavColor { return colorIn; }
+    executable def PassMotorCommandEX (in cmdIn: MotorCommand) : out MotorCommand { return cmdIn; }
+    executable def PassPieceTypeEX (in pieceIn: PieceType) : out PieceType { return pieceIn; }
+}
+
+
+SceneDefinitions RobAFISScenes to RobAFISEnvironmentActivities {
+
+    // =========================================================
+    // Obstacle Handling Scenes (Unit 1 e Unit 2)
+    // =========================================================
+    Scene def SCN_ObstacleStop_Unit1 {
+        precondition { unit1.navLine.outColor == NavColor::Black; }
+        start obstacleDetected;
+        finish obstacleDetected;
+        postcondition { unit1.navLine.outColor == NavColor::None; }
+    }
+
+    Scene def SCN_ObstacleResume_Unit1 {
+        precondition { unit1.navLine.outColor == NavColor::None; }
+        start obstacleRemoved;
+        finish obstacleRemoved;
+        postcondition { unit1.navLine.outColor == NavColor::Black; }
+    }
+
+    Scene def SCN_ObstacleStop_Unit2 {
+        precondition { unit2.navLine.outColor == NavColor::Black; }
+        start obstacleDetected;
+        finish obstacleDetected;
+        postcondition { unit2.navLine.outColor == NavColor::None; }
+    }
+
+    Scene def SCN_ObstacleResume_Unit2 {
+        precondition { unit2.navLine.outColor == NavColor::None; }
+        start obstacleRemoved;
+        finish obstacleRemoved;
+        postcondition { unit2.navLine.outColor == NavColor::Black; }
+    }
+
+    // =========================================================
+    // PRIORITY RESOLUTION SCENES (SPE)
+    // =========================================================
+    Scene def SCN_SPEArrival_Unit1 {
+        precondition { unit1.entryStock.outPresence == true; }
+        start stopAtSPE;
+        finish extractPieceSPE;
+    }
+
+    Scene def SCN_SPEArrival_Unit2 {
+        precondition { unit2.entryStock.outPresence == true; }
+        start stopAtSPE;
+        finish extractPieceSPE;
+    }
+
+    // =========================================================
+    // SCENES FROM THE ROUTE DECISION LOGIC (P0)
+    // =========================================================
+    Scene def SCN_MatrixDecision_SA_Unit1 {
+        precondition { operator1.outParam == MissionParameter::P0 AND unit1.transElevator.outPieceColor == PieceType::P1; }
+        start extractPieceT;
+        finish routeToSA;
+        postcondition { unit1.navPad.outColor == NavColor::Green; }
+    }
+
+    Scene def SCN_MatrixDecision_SPD_Unit1 {
+        precondition { operator1.outParam == MissionParameter::P0 AND unit1.transElevator.outPieceColor == PieceType::P2; }
+        start extractPieceT;
+        finish routeToSPD;
+        postcondition { unit1.navPad.outColor == NavColor::Red; }
+    }
+
+    Scene def SCN_MatrixDecision_SA_Unit2 {
+        precondition { operator2.outParam == MissionParameter::P0 AND unit2.transElevator.outPieceColor == PieceType::P1; }
+        start extractPieceT;
+        finish routeToSA;
+        postcondition { unit2.navPad.outColor == NavColor::Green; }
+    }
+
+    Scene def SCN_MatrixDecision_SPD_Unit2 {
+        precondition { operator2.outParam == MissionParameter::P0 AND unit2.transElevator.outPieceColor == PieceType::P2; }
+        start extractPieceT;
+        finish routeToSPD;
+        postcondition { unit2.navPad.outColor == NavColor::Red; }
+    }
+
+    // =========================================================
+    // SCENES FROM THE REVERSE ROUTE DECISION LOGIC (P1)
+    // =========================================================
+    Scene def SCN_MatrixDecision_SA_P1_Unit1 {
+        precondition { operator1.outParam == MissionParameter::P1 AND unit1.transElevator.outPieceColor == PieceType::P2; }
+        start extractPieceT;
+        finish routeToSA;
+        postcondition { unit1.navPad.outColor == NavColor::Green; }
+    }
+
+    Scene def SCN_MatrixDecision_SPD_P1_Unit1 {
+        precondition { operator1.outParam == MissionParameter::P1 AND unit1.transElevator.outPieceColor == PieceType::P1; }
+        start extractPieceT;
+        finish routeToSPD;
+        postcondition { unit1.navPad.outColor == NavColor::Red; }
+    }
+
+    Scene def SCN_MatrixDecision_SA_P1_Unit2 {
+        precondition { operator2.outParam == MissionParameter::P1 AND unit2.transElevator.outPieceColor == PieceType::P2; }
+        start extractPieceT;
+        finish routeToSA;
+        postcondition { unit2.navPad.outColor == NavColor::Green; }
+    }
+
+    Scene def SCN_MatrixDecision_SPD_P1_Unit2 {
+        precondition { operator2.outParam == MissionParameter::P1 AND unit2.transElevator.outPieceColor == PieceType::P1; }
+        start extractPieceT;
+        finish routeToSPD;
+        postcondition { unit2.navPad.outColor == NavColor::Red; }
+    }
+
+    // =========================================================
+    // RETURN TO BASE SCENES (PA)
+    // =========================================================
+    Scene def SCN_ReturnToPA_Unit1 {
+        start returnJourney;
+        finish arriveAtPA;
+        postcondition { unit1.standbyPos.outColor == NavColor::Black; }
+    }
+
+    Scene def SCN_ReturnToPA_Unit2 {
+        start returnJourney;
+        finish arriveAtPA;
+        postcondition { unit2.standbyPos.outColor == NavColor::Black; }
+    }
+}
+
+ScenarioDefinitions ValidationPlan_RobAFIS to RobAFISScenes {
+
+    // =========================================================
+    // ASR 1.6: OBSTACLE HANDLING VALIDATION
+    // (The system should stop when encountering an obstacle and resume afterwards)
+    // =========================================================
+    Scenario def Scenario_ObstacleHandling_Unit1 {
+        SCN_ObstacleStop_Unit1;
+        SCN_ObstacleResume_Unit1;
+    }
+
+    Scenario def Scenario_ObstacleHandling_Unit2 {
+        SCN_ObstacleStop_Unit2;
+        SCN_ObstacleResume_Unit2;
+    }
+
+    // =========================================================
+    // ASRs 1.5 and 2.4: PRIORITY RESOLUTION VALIDATION (SPE)
+    // (The system should prioritize parts in the shared inbound inventory)
+    // =========================================================
+    Scenario def Scenario_PriorityResolution_Unit1 {
+        SCN_SPEArrival_Unit1;
+    }
+
+    Scenario def Scenario_PriorityResolution_Unit2 {
+        SCN_SPEArrival_Unit2;
+    }
+
+
+    // =========================================================
+    // ASRs 1.1 and 1.4: VALIDATION OF DECISION LOGIC AND TRIAGE
+    // (The system must allocate the part correctly based on the P0/P1 parameter)
+    // =========================================================
+    Scenario def Scenario_RoutingLogic_P0_Unit1 { 
+        SCN_MatrixDecision_SA_Unit1;
+        SCN_MatrixDecision_SPD_Unit1;
+    }
+
+    Scenario def Scenario_RoutingLogic_P1_Unit1 {
+        SCN_MatrixDecision_SA_P1_Unit1;
+        SCN_MatrixDecision_SPD_P1_Unit1;
+    }
+
+    Scenario def Scenario_RoutingLogic_P0_Unit2 { 
+        SCN_MatrixDecision_SA_Unit2;
+        SCN_MatrixDecision_SPD_Unit2;
+    }
+
+    Scenario def Scenario_RoutingLogic_P1_Unit2 {
+        SCN_MatrixDecision_SA_P1_Unit2;
+        SCN_MatrixDecision_SPD_P1_Unit2;
+    }
+
+    // =========================================================
+    // ASR 1.7: VALIDATION OF RETURN TO HOLD POSITION (HIP)
+    // (The system should automatically return to HIP at the end of the cycle)
+    // =========================================================
+    Scenario def Scenario_EndMission_Unit1 {
+        SCN_ReturnToPA_Unit1;
+    }
+
+    Scenario def Scenario_EndMission_Unit2 {
+        SCN_ReturnToPA_Unit2;
+    }
+}
+
+ScenarioExecution RobAFIS_Validation_Run_P0 to ValidationPlan_RobAFIS {
+
+    mode: once;
+
+    // Injection of stimulus signals and failures
+    inject StartSimulationSig { mission = MissionParameter::P0 ; } immediate;
+    inject ObstacleDetectedSig after 45;
+    inject ObstacleRemovedSig after 50;
+
+    // INVENTORY ORCHESTRATION - UNIT 1
+    unit1.transElevator.pieces[ 0 ].outPresence = true;
+    unit1.transElevator.pieces[ 0 ].outColor = PieceType::P1;
+    unit1.transElevator.pieces[ 1 ].outPresence = true;
+    unit1.transElevator.pieces[ 1 ].outColor = PieceType::P2;
+    unit1.transElevator.pieces[ 2 ].outPresence = true;
+    unit1.transElevator.pieces[ 2 ].outColor = PieceType::P1;
+
+    unit1.entryStock.pieces[ 0 ].outPresence = true;
+    unit1.entryStock.pieces[ 0 ].outColor = PieceType::P2;
+
+    // INVENTORY ORCHESTRATION - UNIT 2
+    unit2.transElevator.pieces[ 0 ].outPresence = true;
+    unit2.transElevator.pieces[ 0 ].outColor = PieceType::P1;
+    unit2.transElevator.pieces[ 1 ].outPresence = true;
+    unit2.transElevator.pieces[ 1 ].outColor = PieceType::P2;
+
+    unit2.entryStock.pieces[ 0 ].outPresence = true;
+    unit2.entryStock.pieces[ 0 ].outColor = PieceType::P1;
+
+    // CONCURRENT EXECUTION
+    parallel {
+        Scenario_RoutingLogic_P0_Unit1;
+        Scenario_ObstacleHandling_Unit1;
+        Scenario_PriorityResolution_Unit1;
+        Scenario_EndMission_Unit1;
+
+        Scenario_RoutingLogic_P0_Unit2;
+        Scenario_ObstacleHandling_Unit2;
+        Scenario_PriorityResolution_Unit2;
+        Scenario_EndMission_Unit2;
+    }
+}
+
+// =========================================================
+// Execution 2: P1 mission validation
+// =========================================================
+ScenarioExecution RobAFIS_Validation_Run_P1 to ValidationPlan_RobAFIS {
+
+    mode: once;
+
+    // Injection of stimulus signals and failures
+    inject StartSimulationSig { mission = MissionParameter::P1 ; } immediate;
+    inject ObstacleDetectedSig after 45;
+    inject ObstacleRemovedSig after 50;
+
+    // INVENTORY ORCHESTRATION - UNIT 1
+    unit1.transElevator.pieces[ 0 ].outPresence = true;
+    unit1.transElevator.pieces[ 0 ].outColor = PieceType::P2;
+    unit1.transElevator.pieces[ 1 ].outPresence = true;
+    unit1.transElevator.pieces[ 1 ].outColor = PieceType::P1;
+    unit1.transElevator.pieces[ 2 ].outPresence = true;
+    unit1.transElevator.pieces[ 2 ].outColor = PieceType::P2;
+
+    unit1.entryStock.pieces[ 0 ].outPresence = true;
+    unit1.entryStock.pieces[ 0 ].outColor = PieceType::P1;
+
+    // INVENTORY ORCHESTRATION - UNIT 2
+    unit2.transElevator.pieces[ 0 ].outPresence = true;
+    unit2.transElevator.pieces[ 0 ].outColor = PieceType::P2;
+    unit2.transElevator.pieces[ 1 ].outPresence = true;
+    unit2.transElevator.pieces[ 1 ].outColor = PieceType::P1;
+
+    unit2.entryStock.pieces[ 0 ].outPresence = true;
+    unit2.entryStock.pieces[ 0 ].outColor = PieceType::P2;
+
+    // CONCURRENT EXECUTION
+    parallel {
+        Scenario_RoutingLogic_P1_Unit1;
+        Scenario_ObstacleHandling_Unit1;
+        Scenario_PriorityResolution_Unit1;
+        Scenario_EndMission_Unit1;
+
+        Scenario_RoutingLogic_P1_Unit2;
+        Scenario_ObstacleHandling_Unit2;
+        Scenario_PriorityResolution_Unit2;
+        Scenario_EndMission_Unit2;
+    }
+}
+
+allocations {
+    // system
+    activity RobAFISControllerAC to RobAFISControllerCP
+    executable DecideCommandEX to DecideCommandAN
+    executable ExtractDirEX to ExtractDirAN
+    executable ExtractGrabEX to ExtractGrabAN
+
+    // boundary
+    activity ParameterInputAC to ParameterInputCP
+    activity ColorSensorAC to ColorSensorCP
+    activity PresenceSensorAC to PresenceSensorCP
+    activity DriveSystemAC to DriveSystemCP
+    activity GrabberAC to GrabberCP
+
+    executable PassParameterEX to PassParameterAN
+    executable PassPieceTypeEX to PassPieceTypeAN
+    executable PassPresenceEX to PassPresenceAN
+    executable PassMotorCommandEX to PassMotorCommandAN
+    executable TranslateDirectionToColorEX to TranslateDirectionToColorAN
+
+    // environment and scenarios
+    envActivity OperatorEA to HumanOperatorEnvCP
+    envActivity UnitEA to ProductionUnitEnvCP
+    
+    executable PassMissionParameterEX to PassMissionParameterAN
+    executable PassNavColorEX to PassNavColorAN
+    executable PassPieceTypeEX to PassPieceTypeAN
+    
+}

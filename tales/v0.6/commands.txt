@@ -1,0 +1,18 @@
+node transformer.js AGV-completo.sysadl
+
+node environment-simulator.js generated/AGV-completo-env-scen.js --scenario=MyScenariosExecution
+
+//log detalhado do sistema modelado.
+node environment-simulator.js generated/AGV-completo-env-scen.js --log
+
+----- Éder
+ cd ../../eder/v1/v1.2
+node server-node.js  
+
+
+---- novo simulador
+
+node SysADLSimulator.js AGV-completo.sysadl
+
+----- regerar o parser Peggy
+npx peggy --format es sysadl.peg -o sysadl-parser.js

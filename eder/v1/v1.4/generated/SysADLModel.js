@@ -58,6 +58,11 @@ class PT_Ports_CTemperatureOPT extends SimplePort {
     super(name, "out", { ...{ expectedType: "CelsiusTemperature" }, ...opts });
   }
 }
+class PT_Ports_FTemperatureIPT extends SimplePort {
+  constructor(name, opts = {}) {
+    super(name, "in", { ...{ expectedType: "FahrenheitTemperature" }, ...opts });
+  }
+}
 
 // Connectors
 class CN_Connectors_FahrenheitToCelsiusCN extends Connector {
@@ -173,33 +178,67 @@ class CN_Connectors_CTemperatureCN extends Connector {
     });
   }
 }
+class CN_Connectors_FTemperatureCN extends Connector {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      participantSchema: {
+        ftOut: {
+          portClass: 'PT_Ports_FTemperatureOPT',
+          direction: 'out',
+          dataType: 'FahrenheitTemperature',
+          role: 'source'
+        },
+        ftIn: {
+          portClass: 'PT_Ports_FTemperatureIPT',
+          direction: 'out',
+          dataType: 'FahrenheitTemperature',
+          role: 'target'
+        }
+      },
+      flowSchema: [
+        {
+          from: 'ftOut',
+          to: 'ftIn',
+          dataType: 'FahrenheitTemperature'
+        }
+      ]
+    });
+  }
+}
 
 // Components
 class CP_Components_TemperatureSensorCP extends Component {
   constructor(name, opts={}) {
-      super(name, { ...opts, isBoundary: true });
+      super(name, { ...opts, isBoundary: true, activityName: "EVENTTemperatureSensorAC" });
       // Add ports from component definition
       const portAliases = opts.portAliases || {};
       const portName_current = portAliases["current"] || "current";
       this.addPort(new PT_Ports_FTemperatureOPT(portName_current, { owner: name, originalName: "current" }));
+      const portName_inCurrent = portAliases["inCurrent"] || "inCurrent";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_inCurrent, { owner: name, originalName: "inCurrent" }));
     }
 }
 class CP_Components_PresenceSensorCP extends Component {
   constructor(name, opts={}) {
-      super(name, { ...opts, isBoundary: true });
+      super(name, { ...opts, isBoundary: true, activityName: "EVENTPresenceSensorAC" });
       // Add ports from component definition
       const portAliases = opts.portAliases || {};
       const portName_detected = portAliases["detected"] || "detected";
       this.addPort(new PT_Ports_PresenceOPT(portName_detected, { owner: name, originalName: "detected" }));
+      const portName_inDetect = portAliases["inDetect"] || "inDetect";
+      this.addPort(new PT_Ports_PresenceIPT(portName_inDetect, { owner: name, originalName: "inDetect" }));
     }
 }
 class CP_Components_UserInterfaceCP extends Component {
   constructor(name, opts={}) {
-      super(name, { ...opts, isBoundary: true });
+      super(name, { ...opts, isBoundary: true, activityName: "EVENTUserInterfaceAC" });
       // Add ports from component definition
       const portAliases = opts.portAliases || {};
       const portName_desired = portAliases["desired"] || "desired";
       this.addPort(new PT_Ports_CTemperatureOPT(portName_desired, { owner: name, originalName: "desired" }));
+      const portName_inDesired = portAliases["inDesired"] || "inDesired";
+      this.addPort(new PT_Ports_CTemperatureIPT(portName_inDesired, { owner: name, originalName: "inDesired" }));
     }
 }
 class CP_Components_CoolerCP extends Component {
@@ -209,6 +248,8 @@ class CP_Components_CoolerCP extends Component {
       const portAliases = opts.portAliases || {};
       const portName_controllerC = portAliases["controllerC"] || "controllerC";
       this.addPort(new PT_Ports_CommandIPT(portName_controllerC, { owner: name, originalName: "controllerC" }));
+      const portName_coolerF = portAliases["coolerF"] || "coolerF";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_coolerF, { owner: name, originalName: "coolerF" }));
     }
 }
 class CP_Components_HeaterCP extends Component {
@@ -218,6 +259,8 @@ class CP_Components_HeaterCP extends Component {
       const portAliases = opts.portAliases || {};
       const portName_controllerH = portAliases["controllerH"] || "controllerH";
       this.addPort(new PT_Ports_CommandIPT(portName_controllerH, { owner: name, originalName: "controllerH" }));
+      const portName_heaterF = portAliases["heaterF"] || "heaterF";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_heaterF, { owner: name, originalName: "heaterF" }));
     }
 }
 class CP_Components_RoomTemperatureControllerCP extends Component {
@@ -237,6 +280,44 @@ class CP_Components_RoomTemperatureControllerCP extends Component {
       this.addPort(new PT_Ports_CommandOPT(portName_heatingRTC, { owner: name, originalName: "heatingRTC" }));
       const portName_coolingRTC = portAliases["coolingRTC"] || "coolingRTC";
       this.addPort(new PT_Ports_CommandOPT(portName_coolingRTC, { owner: name, originalName: "coolingRTC" }));
+      const portName_localTemp3 = portAliases["localTemp3"] || "localTemp3";
+      this.addPort(new PT_Ports_CTemperatureIPT(portName_localTemp3, { owner: name, originalName: "localTemp3" }));
+      const portName_localTemp4 = portAliases["localTemp4"] || "localTemp4";
+      this.addPort(new PT_Ports_CTemperatureIPT(portName_localTemp4, { owner: name, originalName: "localTemp4" }));
+    }
+}
+class CP_Components_PersonENV extends Component {
+  constructor(name, opts={}) {
+      super(name, { ...opts, isBoundary: true });
+      // Add ports from component definition
+      const portAliases = opts.portAliases || {};
+      const portName_outDesired = portAliases["outDesired"] || "outDesired";
+      this.addPort(new PT_Ports_CTemperatureOPT(portName_outDesired, { owner: name, originalName: "outDesired" }));
+      const portName_outPresence = portAliases["outPresence"] || "outPresence";
+      this.addPort(new PT_Ports_PresenceOPT(portName_outPresence, { owner: name, originalName: "outPresence" }));
+    }
+}
+class CP_Components_RoomTemperatureENV extends Component {
+  constructor(name, opts={}) {
+      super(name, opts);
+      // Add ports from component definition
+      const portAliases = opts.portAliases || {};
+      const portName_rtIn1 = portAliases["rtIn1"] || "rtIn1";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_rtIn1, { owner: name, originalName: "rtIn1" }));
+      const portName_rtOut1 = portAliases["rtOut1"] || "rtOut1";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_rtOut1, { owner: name, originalName: "rtOut1" }));
+      const portName_rtIn2 = portAliases["rtIn2"] || "rtIn2";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_rtIn2, { owner: name, originalName: "rtIn2" }));
+      const portName_rtOut2 = portAliases["rtOut2"] || "rtOut2";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_rtOut2, { owner: name, originalName: "rtOut2" }));
+      const portName_rtIn3 = portAliases["rtIn3"] || "rtIn3";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_rtIn3, { owner: name, originalName: "rtIn3" }));
+      const portName_rtOut3 = portAliases["rtOut3"] || "rtOut3";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_rtOut3, { owner: name, originalName: "rtOut3" }));
+      const portName_rtIn4 = portAliases["rtIn4"] || "rtIn4";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_rtIn4, { owner: name, originalName: "rtIn4" }));
+      const portName_rtOut4 = portAliases["rtOut4"] || "rtOut4";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_rtOut4, { owner: name, originalName: "rtOut4" }));
     }
 }
 class CP_Components_SensorsMonitorCP extends Component {
@@ -248,6 +329,10 @@ class CP_Components_SensorsMonitorCP extends Component {
       this.addPort(new PT_Ports_CTemperatureIPT(portName_s1, { owner: name, originalName: "s1" }));
       const portName_s2 = portAliases["s2"] || "s2";
       this.addPort(new PT_Ports_CTemperatureIPT(portName_s2, { owner: name, originalName: "s2" }));
+      const portName_s3 = portAliases["s3"] || "s3";
+      this.addPort(new PT_Ports_CTemperatureIPT(portName_s3, { owner: name, originalName: "s3" }));
+      const portName_s4 = portAliases["s4"] || "s4";
+      this.addPort(new PT_Ports_CTemperatureIPT(portName_s4, { owner: name, originalName: "s4" }));
       const portName_average = portAliases["average"] || "average";
       this.addPort(new PT_Ports_CTemperatureOPT(portName_average, { owner: name, originalName: "average" }));
     }
@@ -280,6 +365,17 @@ class CP_Components_PresenceCheckerCP extends Component {
       this.addPort(new PT_Ports_CTemperatureOPT(portName_target, { owner: name, originalName: "target" }));
     }
 }
+class CP_Components_AirTemperatureENV extends Component {
+  constructor(name, opts={}) {
+      super(name, { ...opts, isBoundary: true, activityName: "EVENTAirTemperatureAC" });
+      // Add ports from component definition
+      const portAliases = opts.portAliases || {};
+      const portName_inTempF = portAliases["inTempF"] || "inTempF";
+      this.addPort(new PT_Ports_FTemperatureIPT(portName_inTempF, { owner: name, originalName: "inTempF" }));
+      const portName_outTempF = portAliases["outTempF"] || "outTempF";
+      this.addPort(new PT_Ports_FTemperatureOPT(portName_outTempF, { owner: name, originalName: "outTempF" }));
+    }
+}
 class CP_Components_RTCSystemCFD extends Component { }
 
 // ===== Behavioral Element Classes =====
@@ -288,7 +384,7 @@ class AC_Components_CalculateAverageTemperatureAC extends Activity {
   constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
     super(name, component, inputPorts, delegates, {
       ...opts,
-      inParameters: [{"name":"s1","type":"CelsiusTemperature","direction":"in"},{"name":"s2","type":"CelsiusTemperature","direction":"in"}],
+      inParameters: [{"name":"s1","type":"CelsiusTemperature","direction":"in"},{"name":"s2","type":"CelsiusTemperature","direction":"in"},{"name":"s3","type":"CelsiusTemperature","direction":"in"},{"name":"s4","type":"CelsiusTemperature","direction":"in"}],
       outParameters: [{"name":"average","type":"CelsiusTemperature","direction":"out"}]
     });
   }
@@ -322,7 +418,51 @@ class AC_Components_FahrenheitToCelsiusAC extends Activity {
     super(name, component, inputPorts, delegates, {
       ...opts,
       inParameters: [{"name":"current1","type":"FahrenheitTemperature","direction":"in"}],
-      outParameters: [{"name":"localTemp1","type":"CelsiusTemperature","direction":"out"}]
+      outParameters: [{"name":"loalTemp1","type":"CelsiusTemperature","direction":"out"}]
+    });
+  }
+}
+
+// Activity class: EVENTPresenceSensorAC
+class AC_Components_EVENTPresenceSensorAC extends Activity {
+  constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
+    super(name, component, inputPorts, delegates, {
+      ...opts,
+      inParameters: [{"name":"inDetect","type":"Boolean","direction":"in"}],
+      outParameters: [{"name":"detected","type":"Boolean","direction":"out"}]
+    });
+  }
+}
+
+// Activity class: EVENTTemperatureSensorAC
+class AC_Components_EVENTTemperatureSensorAC extends Activity {
+  constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
+    super(name, component, inputPorts, delegates, {
+      ...opts,
+      inParameters: [{"name":"inCurrent","type":"FahrenheitTemperature","direction":"in"}],
+      outParameters: [{"name":"current","type":"FahrenheitTemperature","direction":"out"}]
+    });
+  }
+}
+
+// Activity class: EVENTUserInterfaceAC
+class AC_Components_EVENTUserInterfaceAC extends Activity {
+  constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
+    super(name, component, inputPorts, delegates, {
+      ...opts,
+      inParameters: [{"name":"inDesired","type":"CelsiusTemperature","direction":"in"}],
+      outParameters: [{"name":"desired","type":"CelsiusTemperature","direction":"out"}]
+    });
+  }
+}
+
+// Activity class: EVENTAirTemperatureAC
+class AC_Components_EVENTAirTemperatureAC extends Activity {
+  constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
+    super(name, component, inputPorts, delegates, {
+      ...opts,
+      inParameters: [{"name":"inTempF","type":"FahrenheitTemperature","direction":"in"}],
+      outParameters: [{"name":"outTempF","type":"FahrenheitTemperature","direction":"out"}]
     });
   }
 }
@@ -332,7 +472,7 @@ class AN_Components_CalculateAverageTemperatureAN extends Action {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"}],
+      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"},{"name":"t3","type":"CelsiusTemperature","direction":"in"},{"name":"t4","type":"CelsiusTemperature","direction":"in"}],
       outParameters: [{"name":"cmds","type":"CelsiusTemperature","direction":"out"}],
       constraints: ["CalculateAverageTemperatureEQ"],
       executables: ["CalculateAverageTemperatureEx"],
@@ -392,8 +532,8 @@ class AN_Components_FahrenheitToCelsiusAN extends Action {
   }
 }
 
-// Action class: CheckPresenceToSetTemperatureAN
-class AN_Components_CheckPresenceToSetTemperatureAN extends Action {
+// Action class: CheckPeresenceToSetTemperatureAN
+class AN_Components_CheckPeresenceToSetTemperatureAN extends Action {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
@@ -405,22 +545,72 @@ class AN_Components_CheckPresenceToSetTemperatureAN extends Action {
   }
 }
 
+// Action class: PresenceSensorAN
+class AN_Components_PresenceSensorAN extends Action {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inDetect","type":"Boolean","direction":"in"}],
+      outParameters: [{"name":"cmds","type":"Boolean","direction":"out"}],
+      executables: ["PresenceSensorEx"],
+    });
+  }
+}
+
+// Action class: TemperatureSensorAN
+class AN_Components_TemperatureSensorAN extends Action {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inCurrent","type":"FahrenheitTemperature","direction":"in"}],
+      outParameters: [{"name":"cmds","type":"FahrenheitTemperature","direction":"out"}],
+      executables: ["TemperatureSensorEx"],
+    });
+  }
+}
+
+// Action class: UserInterfaceAN
+class AN_Components_UserInterfaceAN extends Action {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inDesired","type":"CelsiusTemperature","direction":"in"}],
+      outParameters: [{"name":"cmds","type":"CelsiusTemperature","direction":"out"}],
+      executables: ["UserInterfaceEx"],
+    });
+  }
+}
+
+// Action class: AirTemperatureAN
+class AN_Components_AirTemperatureAN extends Action {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inTempF","type":"FahrenheitTemperature","direction":"in"}],
+      outParameters: [{"name":"cmds","type":"FahrenheitTemperature","direction":"out"}],
+      executables: ["AirTemperatureEx"],
+    });
+  }
+}
+
 // Constraint class: CalculateAverageTemperatureEQ
 class CT_Components_CalculateAverageTemperatureEQ extends Constraint {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"}],
+      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"},{"name":"t3","type":"CelsiusTemperature","direction":"in"},{"name":"t4","type":"CelsiusTemperature","direction":"in"}],
       outParameters: [{"name":"av","type":"CelsiusTemperature","direction":"out"}],
-      equation: "(av == ((t1 + t2) / 2))",
-      constraintFunction: function(params) {// Constraint equation: (av == ((t1 + t2) / 2))
-          const { t1, t2, av } = params;
+      equation: "(av == ((((t1 + t2) + t3) + t4) / 4))",
+      constraintFunction: function(params) {// Constraint equation: (av == ((((t1 + t2) + t3) + t4) / 4))
+          const { t1, t2, t3, t4, av } = params;
           
           // Type validation
           // Type validation for t1: CelsiusTemperature (no validation implemented)
           // Type validation for t2: CelsiusTemperature (no validation implemented)
+          // Type validation for t3: CelsiusTemperature (no validation implemented)
+          // Type validation for t4: CelsiusTemperature (no validation implemented)
           // Type validation for av: CelsiusTemperature (no validation implemented)
-          return av == ((t1 + t2) / 2);
+          return av == ((((t1 + t2) + t3) + t4) / 4);
         }
     });
   }
@@ -431,19 +621,19 @@ class CT_Components_CompareTemperatureEQ extends Constraint {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"target2","type":"CelsiusTemperature","direction":"in"},{"name":"average2","type":"CelsiusTemperature","direction":"in"}],
+      inParameters: [{"name":"target","type":"CelsiusTemperature","direction":"in"},{"name":"average","type":"CelsiusTemperature","direction":"in"}],
       outParameters: [{"name":"cmds","type":"Commands","direction":"out"}],
-      equation: "((average2 > target2) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off)))",
-      constraintFunction: function(params) {// Conditional constraint: ((average2 > target2) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off)))
-          const { target2, average2, cmds, heater, cooler } = params;
+      equation: "((average > target) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off)))",
+      constraintFunction: function(params) {// Conditional constraint: ((average > target) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off)))
+          const { target, average, cmds, heater, cooler } = params;
           
           // Type validation
-          // Type validation for target2: CelsiusTemperature (no validation implemented)
-          // Type validation for average2: CelsiusTemperature (no validation implemented)
+          // Type validation for target: CelsiusTemperature (no validation implemented)
+          // Type validation for average: CelsiusTemperature (no validation implemented)
           // Type validation for cmds: Commands (no validation implemented)
           if (typeof heater !== 'number') throw new Error('Parameter heater must be a Real (number)');
           if (typeof cooler !== 'number') throw new Error('Parameter cooler must be a Real (number)');
-          return (average2 > target2) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off));
+          return (average > target) ? ((cmds == types.Commands.heater.Off) && types.Commands.cooler.On) : (types.Commands.heater.On && (cmds == types.Commands.cooler.Off));
         }
     });
   }
@@ -594,18 +784,24 @@ class EX_Components_CalculateAverageTemperatureEx extends Executable {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"}],
-      body: "executable def CalculateAverageTemperatureEx(in temp1:CelsiusTemperature,in temp2:CelsiusTemperature):out CelsiusTemperature{return (temp1 + temp2)/2 ; }",
+      inParameters: [{"name":"t1","type":"CelsiusTemperature","direction":"in"},{"name":"t2","type":"CelsiusTemperature","direction":"in"},{"name":"t3","type":"CelsiusTemperature","direction":"in"},{"name":"t4","type":"CelsiusTemperature","direction":"in"}],
+      body: "executable def CalculateAverageTemperatureEx(in temp1:CelsiusTemperature,in temp2:CelsiusTemperature,in temp3:CelsiusTemperature,in temp4:CelsiusTemperature):out CelsiusTemperature{return (temp1 + temp2 + temp3 + temp4)/4 ; }",
       executableFunction: function(params) {
           // Type validation
           // Type validation for temp1: (auto-detected from usage)
           // Type validation for temp2: (auto-detected from usage)
+          // Type validation for temp3: (auto-detected from usage)
+          // Type validation for temp4: (auto-detected from usage)
           // Mapped temp1 -> t1 (Positional Fallback)
           // Mapped temp2 -> t2 (Positional Fallback)
-          const { t1, t2 } = params;
+          // Mapped temp3 -> t3 (Positional Fallback)
+          // Mapped temp4 -> t4 (Positional Fallback)
+          const { t1, t2, t3, t4 } = params;
           const temp1 = t1;
           const temp2 = t2;
-          return (temp1 + temp2)/2;
+          const temp3 = t3;
+          const temp4 = t4;
+          return (temp1 + temp2 + temp3 + temp4)/4;
         }
     });
   }
@@ -655,6 +851,82 @@ return {heater: heater, cooler: cooler};
   }
 }
 
+// Executable class: PresenceSensorEx
+class EX_Components_PresenceSensorEx extends Executable {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inDetect","type":"Boolean","direction":"in"}],
+      body: "executable def PresenceSensorEx(in inDetect:Boolean):out CelsiusTemperature{return inDetect; }",
+      executableFunction: function(params) {
+          // Type validation
+          // Type validation for inDetect: (auto-detected from usage)
+          // Mapped inDetect -> inDetect (Exact Match)
+          const { inDetect } = params;
+          
+          return inDetect;
+        }
+    });
+  }
+}
+
+// Executable class: TemperatureSensorEx
+class EX_Components_TemperatureSensorEx extends Executable {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inCurrent","type":"FahrenheitTemperature","direction":"in"}],
+      body: "executable def TemperatureSensorEx(in inCurrent:FahrenheitTemperature):out FahrenheitTemperature{return inCurrent; }",
+      executableFunction: function(params) {
+          // Type validation
+          // Type validation for inCurrent: (auto-detected from usage)
+          // Mapped inCurrent -> inCurrent (Exact Match)
+          const { inCurrent } = params;
+          
+          return inCurrent;
+        }
+    });
+  }
+}
+
+// Executable class: UserInterfaceEx
+class EX_Components_UserInterfaceEx extends Executable {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inDesired","type":"CelsiusTemperature","direction":"in"}],
+      body: "executable def UserInterfaceEx(in inDesired : CelsiusTemperature):out CelsiusTemperature{return inDesired; }",
+      executableFunction: function(params) {
+          // Type validation
+          // Type validation for inDesired: (auto-detected from usage)
+          // Mapped inDesired -> inDesired (Exact Match)
+          const { inDesired } = params;
+          
+          return inDesired;
+        }
+    });
+  }
+}
+
+// Executable class: AirTemperatureEx
+class EX_Components_AirTemperatureEx extends Executable {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"inTempF","type":"FahrenheitTemperature","direction":"in"}],
+      body: "executable def AirTemperatureEx(in inTempF : FahrenheitTemperature):out FahrenheitTemperature{return inTempF; }",
+      executableFunction: function(params) {
+          // Type validation
+          // Type validation for inTempF: (auto-detected from usage)
+          // Mapped inTempF -> inTempF (Exact Match)
+          const { inTempF } = params;
+          
+          return inTempF;
+        }
+    });
+  }
+}
+
 // ===== End Behavioral Element Classes =====
 
 class SysADLModel extends Model {
@@ -662,20 +934,40 @@ class SysADLModel extends Model {
     super("SysADLModel");
     this.RTCSystemCFD = new CP_Components_RTCSystemCFD("RTCSystemCFD", { sysadlDefinition: "RTCSystemCFD" });
     this.addComponent(this.RTCSystemCFD);
-    this.RTCSystemCFD.a1 = new CP_Components_HeaterCP("a1", { isBoundary: true, sysadlDefinition: "HeaterCP", portAliases: {"controllerH":"controllerH"} });
-    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.a1);
-    this.RTCSystemCFD.a2 = new CP_Components_CoolerCP("a2", { isBoundary: true, sysadlDefinition: "CoolerCP", portAliases: {"controllerC":"controllerC"} });
-    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.a2);
+    this.RTCSystemCFD.ac1 = new CP_Components_CoolerCP("ac1", { isBoundary: true, sysadlDefinition: "CoolerCP", portAliases: {"controllerC":"controllerC1","coolerF":"cooler1F"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ac1);
+    this.RTCSystemCFD.ac2 = new CP_Components_CoolerCP("ac2", { isBoundary: true, sysadlDefinition: "CoolerCP", portAliases: {"controllerC":"controllerC2","coolerF":"cooler2F"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ac2);
+    this.RTCSystemCFD.ah1 = new CP_Components_HeaterCP("ah1", { isBoundary: true, sysadlDefinition: "HeaterCP", portAliases: {"controllerH":"controllerH1","heaterF":"heater1F"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ah1);
+    this.RTCSystemCFD.ah2 = new CP_Components_HeaterCP("ah2", { isBoundary: true, sysadlDefinition: "HeaterCP", portAliases: {"controllerH":"controllerH2","heaterF":"heater2F"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ah2);
+    this.RTCSystemCFD.pENV = new CP_Components_PersonENV("pENV", { isBoundary: true, sysadlDefinition: "PersonENV", portAliases: {"outDesired":"outDesired","outPresence":"outPresence"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.pENV);
     this.RTCSystemCFD.rtc = new CP_Components_RoomTemperatureControllerCP("rtc", { sysadlDefinition: "RoomTemperatureControllerCP", portAliases: {"detectedRTC":"detected"} });
     this.RTCSystemCFD.addComponent(this.RTCSystemCFD.rtc);
-    this.RTCSystemCFD.s1 = new CP_Components_TemperatureSensorCP("s1", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current1"} });
-    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.s1);
-    this.RTCSystemCFD.s2 = new CP_Components_TemperatureSensorCP("s2", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current2"} });
-    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.s2);
-    this.RTCSystemCFD.s3 = new CP_Components_PresenceSensorCP("s3", { isBoundary: true, sysadlDefinition: "PresenceSensorCP", portAliases: {"detected":"detectedS"} });
+    this.RTCSystemCFD.rtENV = new CP_Components_RoomTemperatureENV("rtENV", { sysadlDefinition: "RoomTemperatureENV", portAliases: {} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.rtENV);
+    this.RTCSystemCFD.s3 = new CP_Components_PresenceSensorCP("s3", { isBoundary: true, sysadlDefinition: "PresenceSensorCP", portAliases: {} });
     this.RTCSystemCFD.addComponent(this.RTCSystemCFD.s3);
-    this.RTCSystemCFD.ui = new CP_Components_UserInterfaceCP("ui", { isBoundary: true, sysadlDefinition: "UserInterfaceCP", portAliases: {"desired":"desired"} });
+    this.RTCSystemCFD.ts1 = new CP_Components_TemperatureSensorCP("ts1", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current1","inCurrent":"inCurrent1"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ts1);
+    this.RTCSystemCFD.ts2 = new CP_Components_TemperatureSensorCP("ts2", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current2","inCurrent":"inCurrent2"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ts2);
+    this.RTCSystemCFD.ts3 = new CP_Components_TemperatureSensorCP("ts3", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current3","inCurrent":"inCurrent3"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ts3);
+    this.RTCSystemCFD.ts4 = new CP_Components_TemperatureSensorCP("ts4", { isBoundary: true, sysadlDefinition: "TemperatureSensorCP", portAliases: {"current":"current4","inCurrent":"inCurrent4"} });
+    this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ts4);
+    this.RTCSystemCFD.ui = new CP_Components_UserInterfaceCP("ui", { isBoundary: true, sysadlDefinition: "UserInterfaceCP", portAliases: {"desired":"desired","inDesired":"inDesired"} });
     this.RTCSystemCFD.addComponent(this.RTCSystemCFD.ui);
+    this.RTCSystemCFD.rtENV.at1 = new CP_Components_AirTemperatureENV("at1", { isBoundary: true, sysadlDefinition: "AirTemperatureENV", portAliases: {"inTempF":"inTempF1","outTempF":"outTempF1"} });
+    this.RTCSystemCFD.rtENV.addComponent(this.RTCSystemCFD.rtENV.at1);
+    this.RTCSystemCFD.rtENV.at2 = new CP_Components_AirTemperatureENV("at2", { isBoundary: true, sysadlDefinition: "AirTemperatureENV", portAliases: {"inTempF":"inTempF2","outTempF":"outTempF2"} });
+    this.RTCSystemCFD.rtENV.addComponent(this.RTCSystemCFD.rtENV.at2);
+    this.RTCSystemCFD.rtENV.at3 = new CP_Components_AirTemperatureENV("at3", { isBoundary: true, sysadlDefinition: "AirTemperatureENV", portAliases: {"inTempF":"inTempF3","outTempF":"outTempF3"} });
+    this.RTCSystemCFD.rtENV.addComponent(this.RTCSystemCFD.rtENV.at3);
+    this.RTCSystemCFD.rtENV.at4 = new CP_Components_AirTemperatureENV("at4", { isBoundary: true, sysadlDefinition: "AirTemperatureENV", portAliases: {"inTempF":"inTempF4","outTempF":"outTempF4"} });
+    this.RTCSystemCFD.rtENV.addComponent(this.RTCSystemCFD.rtENV.at4);
     this.RTCSystemCFD.rtc.cm = new CP_Components_CommanderCP("cm", { sysadlDefinition: "CommanderCP", portAliases: {} });
     this.RTCSystemCFD.rtc.addComponent(this.RTCSystemCFD.rtc.cm);
     this.RTCSystemCFD.rtc.pc = new CP_Components_PresenceCheckerCP("pc", { sysadlDefinition: "PresenceCheckerCP", portAliases: {"detected":"detected","userTemp":"userTemp","target":"target"} });
@@ -691,39 +983,113 @@ class SysADLModel extends Model {
     const average = this.RTCSystemCFD.rtc.connectors["average"];
     average.bind(this.RTCSystemCFD.rtc.sm.getPort("average"), this.RTCSystemCFD.rtc.cm.getPort("average2"));
     try { (function(){ const _binds = [{"source":"average","destination":"average2","left":"average","right":"average2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
-    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c1"));
-    const c1 = this.RTCSystemCFD.connectors["c1"];
-    c1.bind(this.RTCSystemCFD.s1.getPort("current1"), this.RTCSystemCFD.rtc.getPort("localTemp1"));
-    try { (function(){ const _binds = [{"source":"current1","destination":"localTemp1","left":"current1","right":"localTemp1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RTCSystemCFD.addConnector(new CN_Connectors_CTemperatureCN("uc"));
     const uc = this.RTCSystemCFD.connectors["uc"];
     uc.bind(this.RTCSystemCFD.ui.getPort("desired"), this.RTCSystemCFD.rtc.pc.getPort("userTemp"));
     try { (function(){ const _binds = [{"source":"desired","destination":"userTemp","left":"desired","right":"userTemp"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
-    this.RTCSystemCFD.addConnector(new CN_Connectors_CommandCN("cc2"));
-    try { this.RTCSystemCFD.connectors["cc2"].activityName = "DecideCommandAC"; } catch(e) {}
-    const cc2 = this.RTCSystemCFD.connectors["cc2"];
-    cc2.bind(this.RTCSystemCFD.rtc.cm.getPort("cooling"), this.RTCSystemCFD.a2.getPort("controllerC"));
-    try { (function(){ const _binds = [{"source":"cooling","destination":"controllerC","left":"cooling","right":"controllerC"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
-    this.RTCSystemCFD.addConnector(new CN_Connectors_PresenceCN("pc"));
-    const pc = this.RTCSystemCFD.connectors["pc"];
-    pc.bind(this.RTCSystemCFD.s3.getPort("detectedS"), this.RTCSystemCFD.rtc.getPort("detected"));
-    try { (function(){ const _binds = [{"source":"detectedS","destination":"detected","left":"detectedS","right":"detected"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
-    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c2"));
-    const c2 = this.RTCSystemCFD.connectors["c2"];
-    c2.bind(this.RTCSystemCFD.s2.getPort("current2"), this.RTCSystemCFD.rtc.getPort("localTemp2"));
-    try { (function(){ const _binds = [{"source":"current2","destination":"localTemp2","left":"current2","right":"localTemp2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RTCSystemCFD.addConnector(new CN_Connectors_CommandCN("cc1"));
     try { this.RTCSystemCFD.connectors["cc1"].activityName = "DecideCommandAC"; } catch(e) {}
     const cc1 = this.RTCSystemCFD.connectors["cc1"];
-    cc1.bind(this.RTCSystemCFD.rtc.cm.getPort("heating"), this.RTCSystemCFD.a1.getPort("controllerH"));
-    try { (function(){ const _binds = [{"source":"heating","destination":"controllerH","left":"heating","right":"controllerH"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    cc1.bind(this.getPort("cooling1"), this.RTCSystemCFD.ac1.getPort("controllerC1"));
+    try { (function(){ const _binds = [{"source":"cooling1","destination":"controllerC1","left":"cooling1","right":"controllerC1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_PresenceCN("pc"));
+    const pc = this.RTCSystemCFD.connectors["pc"];
+    pc.bind(this.RTCSystemCFD.rtc.getPort("detected"), this.RTCSystemCFD.rtc.getPort("detected"));
+    try { (function(){ const _binds = [{"source":"detected","destination":"detected","left":"detected","right":"detected"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c1"));
+    const c1 = this.RTCSystemCFD.connectors["c1"];
+    c1.bind(this.RTCSystemCFD.ts1.getPort("current1"), this.RTCSystemCFD.rtc.getPort("localTemp1"));
+    try { (function(){ const _binds = [{"source":"current1","destination":"localTemp1","left":"current1","right":"localTemp1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c2"));
+    const c2 = this.RTCSystemCFD.connectors["c2"];
+    c2.bind(this.RTCSystemCFD.ts2.getPort("current2"), this.RTCSystemCFD.rtc.getPort("localTemp2"));
+    try { (function(){ const _binds = [{"source":"current2","destination":"localTemp2","left":"current2","right":"localTemp2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c3"));
+    const c3 = this.RTCSystemCFD.connectors["c3"];
+    c3.bind(this.RTCSystemCFD.ts3.getPort("current3"), this.RTCSystemCFD.rtc.getPort("localTemp3"));
+    try { (function(){ const _binds = [{"source":"current3","destination":"localTemp3","left":"current3","right":"localTemp3"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FahrenheitToCelsiusCN("c4"));
+    const c4 = this.RTCSystemCFD.connectors["c4"];
+    c4.bind(this.RTCSystemCFD.ts4.getPort("current4"), this.RTCSystemCFD.rtc.getPort("localTemp4"));
+    try { (function(){ const _binds = [{"source":"current4","destination":"localTemp4","left":"current4","right":"localTemp4"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_CommandCN("ch1"));
+    try { this.RTCSystemCFD.connectors["ch1"].activityName = "DecideCommandAC"; } catch(e) {}
+    const ch1 = this.RTCSystemCFD.connectors["ch1"];
+    ch1.bind(this.getPort("heating1"), this.RTCSystemCFD.ah1.getPort("controllerH1"));
+    try { (function(){ const _binds = [{"source":"heating1","destination":"controllerH1","left":"heating1","right":"controllerH1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_CTemperatureCN("pui"));
+    const pui = this.RTCSystemCFD.connectors["pui"];
+    pui.bind(this.RTCSystemCFD.pENV.getPort("outDesired"), this.RTCSystemCFD.ui.getPort("inDesired"));
+    try { (function(){ const _binds = [{"source":"outDesired","destination":"inDesired","left":"outDesired","right":"inDesired"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_PresenceCN("pp"));
+    const pp = this.RTCSystemCFD.connectors["pp"];
+    pp.bind(this.RTCSystemCFD.pENV.getPort("outPresence"), this.RTCSystemCFD.s3.getPort("inDetect"));
+    try { (function(){ const _binds = [{"source":"outPresence","destination":"inDetect","left":"outPresence","right":"inDetect"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("rtt1"));
+    const rtt1 = this.RTCSystemCFD.connectors["rtt1"];
+    rtt1.bind(this.RTCSystemCFD.rtENV.getPort("rtOut1"), this.RTCSystemCFD.ts1.getPort("inCurrent1"));
+    try { (function(){ const _binds = [{"source":"rtOut1","destination":"inCurrent1","left":"rtOut1","right":"inCurrent1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("rtt2"));
+    const rtt2 = this.RTCSystemCFD.connectors["rtt2"];
+    rtt2.bind(this.RTCSystemCFD.rtENV.getPort("rtOut2"), this.RTCSystemCFD.ts2.getPort("inCurrent2"));
+    try { (function(){ const _binds = [{"source":"rtOut2","destination":"inCurrent2","left":"rtOut2","right":"inCurrent2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("rtt3"));
+    const rtt3 = this.RTCSystemCFD.connectors["rtt3"];
+    rtt3.bind(this.RTCSystemCFD.rtENV.getPort("rtOut3"), this.RTCSystemCFD.ts3.getPort("inCurrent3"));
+    try { (function(){ const _binds = [{"source":"rtOut3","destination":"inCurrent3","left":"rtOut3","right":"inCurrent3"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("rtt4"));
+    const rtt4 = this.RTCSystemCFD.connectors["rtt4"];
+    rtt4.bind(this.RTCSystemCFD.rtENV.getPort("rtOut4"), this.RTCSystemCFD.ts4.getPort("inCurrent4"));
+    try { (function(){ const _binds = [{"source":"rtOut4","destination":"inCurrent4","left":"rtOut4","right":"inCurrent4"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("crt1"));
+    const crt1 = this.RTCSystemCFD.connectors["crt1"];
+    crt1.bind(this.RTCSystemCFD.ac1.getPort("cooler1F"), this.RTCSystemCFD.rtENV.getPort("rtIn1"));
+    try { (function(){ const _binds = [{"source":"cooler1F","destination":"rtIn1","left":"cooler1F","right":"rtIn1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("hrt1"));
+    const hrt1 = this.RTCSystemCFD.connectors["hrt1"];
+    hrt1.bind(this.RTCSystemCFD.ah1.getPort("heater1F"), this.RTCSystemCFD.rtENV.getPort("rtIn1"));
+    try { (function(){ const _binds = [{"source":"heater1F","destination":"rtIn1","left":"heater1F","right":"rtIn1"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("crt2"));
+    const crt2 = this.RTCSystemCFD.connectors["crt2"];
+    crt2.bind(this.RTCSystemCFD.ac1.getPort("cooler1F"), this.RTCSystemCFD.rtENV.getPort("rtIn2"));
+    try { (function(){ const _binds = [{"source":"cooler1F","destination":"rtIn2","left":"cooler1F","right":"rtIn2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_CommandCN("cc2"));
+    try { this.RTCSystemCFD.connectors["cc2"].activityName = "DecideCommandAC"; } catch(e) {}
+    const cc2 = this.RTCSystemCFD.connectors["cc2"];
+    cc2.bind(this.getPort("cooling1"), this.RTCSystemCFD.ac2.getPort("controllerC2"));
+    try { (function(){ const _binds = [{"source":"cooling1","destination":"controllerC2","left":"cooling1","right":"controllerC2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_CommandCN("ch2"));
+    try { this.RTCSystemCFD.connectors["ch2"].activityName = "DecideCommandAC"; } catch(e) {}
+    const ch2 = this.RTCSystemCFD.connectors["ch2"];
+    ch2.bind(this.getPort("heating1"), this.RTCSystemCFD.ah2.getPort("controllerH2"));
+    try { (function(){ const _binds = [{"source":"heating1","destination":"controllerH2","left":"heating1","right":"controllerH2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("ht2"));
+    const ht2 = this.RTCSystemCFD.connectors["ht2"];
+    ht2.bind(this.RTCSystemCFD.ah1.getPort("heater1F"), this.RTCSystemCFD.rtENV.getPort("rtIn2"));
+    try { (function(){ const _binds = [{"source":"heater1F","destination":"rtIn2","left":"heater1F","right":"rtIn2"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("ht3"));
+    const ht3 = this.RTCSystemCFD.connectors["ht3"];
+    ht3.bind(this.RTCSystemCFD.ah2.getPort("heater2F"), this.RTCSystemCFD.rtENV.getPort("rtIn3"));
+    try { (function(){ const _binds = [{"source":"heater2F","destination":"rtIn3","left":"heater2F","right":"rtIn3"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("ht4"));
+    const ht4 = this.RTCSystemCFD.connectors["ht4"];
+    ht4.bind(this.RTCSystemCFD.ah2.getPort("heater2F"), this.RTCSystemCFD.rtENV.getPort("rtIn4"));
+    try { (function(){ const _binds = [{"source":"heater2F","destination":"rtIn4","left":"heater2F","right":"rtIn4"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("crt3"));
+    const crt3 = this.RTCSystemCFD.connectors["crt3"];
+    crt3.bind(this.RTCSystemCFD.ac2.getPort("cooler2F"), this.RTCSystemCFD.rtENV.getPort("rtIn3"));
+    try { (function(){ const _binds = [{"source":"cooler2F","destination":"rtIn3","left":"cooler2F","right":"rtIn3"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
+    this.RTCSystemCFD.addConnector(new CN_Connectors_FTemperatureCN("crt4"));
+    const crt4 = this.RTCSystemCFD.connectors["crt4"];
+    crt4.bind(this.RTCSystemCFD.ac2.getPort("cooler2F"), this.RTCSystemCFD.rtENV.getPort("rtIn4"));
+    try { (function(){ const _binds = [{"source":"cooler2F","destination":"rtIn4","left":"cooler2F","right":"rtIn4"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
 
     const ac_SensorsMonitorCP = new AC_Components_CalculateAverageTemperatureAC(
       "CalculateAverageTemperatureAC",
       "RTCSystemCFD.rtc.sm",
       [],
-      [{"from":"s1","to":"s1"},{"from":"s2","to":"s2"},{"from":"average","to":"CalcAvTemp"}],
-      {"outParameters":[{"name":"s1","type":"Real","direction":"out"},{"name":"s2","type":"Real","direction":"out"},{"name":"average","type":"Real","direction":"out"}]}
+      [{"from":"s1","to":"s1"},{"from":"s2","to":"s2"},{"from":"s3","to":"s3"},{"from":"s4","to":"s4"},{"from":"average","to":"CalcAvTemp"}],
+      {"outParameters":[{"name":"s1","type":"Real","direction":"out"},{"name":"s2","type":"Real","direction":"out"},{"name":"s3","type":"Real","direction":"out"},{"name":"s4","type":"Real","direction":"out"},{"name":"average","type":"Real","direction":"out"}]}
     );
     const CalcAvTemp = new AN_Components_CalculateAverageTemperatureAN("CalcAvTemp");
     ac_SensorsMonitorCP.registerAction(CalcAvTemp);
@@ -735,6 +1101,14 @@ class SysADLModel extends Model {
     try { ac_SensorsMonitorCP.portToPinMapping["s2"] = "s2"; } catch(e) {}
     try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s2"; } catch(e) {}
     try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s2"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s3"] = "s3"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s3"] = "s3"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s3"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s3"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s4"] = "s4"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s4"] = "s4"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s4"; } catch(e) {}
+    try { ac_SensorsMonitorCP.portToPinMapping["s"] = "s4"; } catch(e) {}
     try { ac_SensorsMonitorCP.portToPinMapping["CalcAvTemp"] = "average"; } catch(e) {}
     try { ac_SensorsMonitorCP.portToPinMapping["calcavtemp"] = "average"; } catch(e) {}
     this.registerActivity("CalculateAverageTemperatureAC", ac_SensorsMonitorCP);
@@ -746,15 +1120,13 @@ class SysADLModel extends Model {
       "CheckPresenceToSetTemperatureAC",
       "RTCSystemCFD.rtc.pc",
       [],
-      [{"from":"detected","to":"detected"},{"from":"userTemp","to":"userTemp"},{"from":"target","to":"CheckPresenceToSetTemperatureAN"}],
+      [{"from":"detected","to":"detected"},{"from":"userTemp","to":"userTemp"},{"from":"target","to":"CheckPeresenceToSetTemperatureAN"}],
       {"outParameters":[{"name":"detected","type":"Real","direction":"out"},{"name":"userTemp","type":"Real","direction":"out"},{"name":"target","type":"Real","direction":"out"}]}
     );
-    const CheckPresenceToSetTemperatureAN_inst = new AN_Components_CheckPresenceToSetTemperatureAN("CheckPresenceToSetTemperatureAN");
-    ac_PresenceCheckerCP.registerAction(CheckPresenceToSetTemperatureAN_inst);
+    const CheckPeresenceToSetTemperatureAN_inst = new AN_Components_CheckPeresenceToSetTemperatureAN("CheckPeresenceToSetTemperatureAN");
+    ac_PresenceCheckerCP.registerAction(CheckPeresenceToSetTemperatureAN_inst);
     try { ac_PresenceCheckerCP.portToPinMapping["detected"] = "detected"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["detected"] = "detected"; } catch(e) {}
-    try { ac_PresenceCheckerCP.portToPinMapping["detectedS"] = "detected"; } catch(e) {}
-    try { ac_PresenceCheckerCP.portToPinMapping["detecteds"] = "detected"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["detectedRTC"] = "detected"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["detectedrtc"] = "detected"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["detected"] = "detected"; } catch(e) {}
@@ -767,8 +1139,8 @@ class SysADLModel extends Model {
     try { ac_PresenceCheckerCP.portToPinMapping["usertemp"] = "userTemp"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["userTemp"] = "userTemp"; } catch(e) {}
     try { ac_PresenceCheckerCP.portToPinMapping["usertemp"] = "userTemp"; } catch(e) {}
-    try { ac_PresenceCheckerCP.portToPinMapping["CheckPresenceToSetTemperatureAN"] = "target"; } catch(e) {}
-    try { ac_PresenceCheckerCP.portToPinMapping["checkpresencetosettemperaturean"] = "target"; } catch(e) {}
+    try { ac_PresenceCheckerCP.portToPinMapping["CheckPeresenceToSetTemperatureAN"] = "target"; } catch(e) {}
+    try { ac_PresenceCheckerCP.portToPinMapping["checkperesencetosettemperaturean"] = "target"; } catch(e) {}
     this.registerActivity("CheckPresenceToSetTemperatureAC", ac_PresenceCheckerCP);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RTCSystemCFD.rtc.pc"] = ac_PresenceCheckerCP; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtcsystemcfd.rtc.pc"] = ac_PresenceCheckerCP; } catch(e) {}
@@ -808,18 +1180,108 @@ class SysADLModel extends Model {
       "FahrenheitToCelsiusAC",
       "FahrenheitToCelsiusCN",
       [],
-      [{"from":"current1","to":"Ft"},{"from":"localTemp1","to":"Ct"}],
-      {"outParameters":[{"name":"current1","type":"Real","direction":"out"},{"name":"localTemp1","type":"Real","direction":"out"}]}
+      [{"from":"current1","to":"Ft"},{"from":"loalTemp1","to":"Ct"}],
+      {"outParameters":[{"name":"current1","type":"Real","direction":"out"},{"name":"loalTemp1","type":"Real","direction":"out"}]}
     );
     const FtC = new AN_Components_FahrenheitToCelsiusAN("FtC");
     ac_FahrenheitToCelsiusCN.registerAction(FtC);
     try { ac_FahrenheitToCelsiusCN.portToPinMapping["Ft"] = "current1"; } catch(e) {}
     try { ac_FahrenheitToCelsiusCN.portToPinMapping["ft"] = "current1"; } catch(e) {}
-    try { ac_FahrenheitToCelsiusCN.portToPinMapping["Ct"] = "localTemp1"; } catch(e) {}
-    try { ac_FahrenheitToCelsiusCN.portToPinMapping["ct"] = "localTemp1"; } catch(e) {}
+    try { ac_FahrenheitToCelsiusCN.portToPinMapping["Ct"] = "loalTemp1"; } catch(e) {}
+    try { ac_FahrenheitToCelsiusCN.portToPinMapping["ct"] = "loalTemp1"; } catch(e) {}
     this.registerActivity("FahrenheitToCelsiusAC", ac_FahrenheitToCelsiusCN);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["FahrenheitToCelsiusCN"] = ac_FahrenheitToCelsiusCN; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["fahrenheittocelsiuscn"] = ac_FahrenheitToCelsiusCN; } catch(e) {}
+    const ac_PresenceSensorCP = new AC_Components_EVENTPresenceSensorAC(
+      "EVENTPresenceSensorAC",
+      "RTCSystemCFD.s3",
+      [],
+      [{"from":"inDetect","to":"inDetect"},{"from":"detected","to":"PresenceSensorAN"}],
+      {"outParameters":[{"name":"inDetect","type":"Real","direction":"out"},{"name":"detected","type":"Real","direction":"out"}]}
+    );
+    const PresenceSensorAN_inst = new AN_Components_PresenceSensorAN("PresenceSensorAN");
+    ac_PresenceSensorCP.registerAction(PresenceSensorAN_inst);
+    try { ac_PresenceSensorCP.portToPinMapping["inDetect"] = "inDetect"; } catch(e) {}
+    try { ac_PresenceSensorCP.portToPinMapping["indetect"] = "inDetect"; } catch(e) {}
+    try { ac_PresenceSensorCP.portToPinMapping["PresenceSensorAN"] = "detected"; } catch(e) {}
+    try { ac_PresenceSensorCP.portToPinMapping["presencesensoran"] = "detected"; } catch(e) {}
+    this.registerActivity("EVENTPresenceSensorAC", ac_PresenceSensorCP);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RTCSystemCFD.s3"] = ac_PresenceSensorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtcsystemcfd.s3"] = ac_PresenceSensorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["s3"] = ac_PresenceSensorCP; } catch(e) {}
+    const ac_TemperatureSensorCP = new AC_Components_EVENTTemperatureSensorAC(
+      "EVENTTemperatureSensorAC",
+      "RTCSystemCFD.ts1",
+      [],
+      [{"from":"inCurrent","to":"inCurrent"},{"from":"current","to":"TemperatureSensorAN"}],
+      {"outParameters":[{"name":"inCurrent","type":"Real","direction":"out"},{"name":"current","type":"Real","direction":"out"}]}
+    );
+    const TemperatureSensorAN_inst = new AN_Components_TemperatureSensorAN("TemperatureSensorAN");
+    ac_TemperatureSensorCP.registerAction(TemperatureSensorAN_inst);
+    try { ac_TemperatureSensorCP.portToPinMapping["inCurrent"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["incurrent"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["inCurrent1"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["incurrent1"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["inCurrent2"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["incurrent2"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["inCurrent3"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["incurrent3"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["inCurrent4"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["incurrent4"] = "inCurrent"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["TemperatureSensorAN"] = "current"; } catch(e) {}
+    try { ac_TemperatureSensorCP.portToPinMapping["temperaturesensoran"] = "current"; } catch(e) {}
+    this.registerActivity("EVENTTemperatureSensorAC", ac_TemperatureSensorCP);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RTCSystemCFD.ts1"] = ac_TemperatureSensorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtcsystemcfd.ts1"] = ac_TemperatureSensorCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["ts1"] = ac_TemperatureSensorCP; } catch(e) {}
+    const ac_UserInterfaceCP = new AC_Components_EVENTUserInterfaceAC(
+      "EVENTUserInterfaceAC",
+      "RTCSystemCFD.ui",
+      [],
+      [{"from":"inDesired","to":"inDesired"},{"from":"desired","to":"UserInterfaceAN"}],
+      {"outParameters":[{"name":"inDesired","type":"Real","direction":"out"},{"name":"desired","type":"Real","direction":"out"}]}
+    );
+    const UserInterfaceAN_inst = new AN_Components_UserInterfaceAN("UserInterfaceAN");
+    ac_UserInterfaceCP.registerAction(UserInterfaceAN_inst);
+    try { ac_UserInterfaceCP.portToPinMapping["inDesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["indesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["inDesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["indesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["inDesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["indesired"] = "inDesired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["UserInterfaceAN"] = "desired"; } catch(e) {}
+    try { ac_UserInterfaceCP.portToPinMapping["userinterfacean"] = "desired"; } catch(e) {}
+    this.registerActivity("EVENTUserInterfaceAC", ac_UserInterfaceCP);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RTCSystemCFD.ui"] = ac_UserInterfaceCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtcsystemcfd.ui"] = ac_UserInterfaceCP; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["ui"] = ac_UserInterfaceCP; } catch(e) {}
+    const ac_AirTemperatureENV = new AC_Components_EVENTAirTemperatureAC(
+      "EVENTAirTemperatureAC",
+      "RTCSystemCFD.rtENV.at1",
+      [],
+      [{"from":"inTempF","to":"inTempF"},{"from":"outTempF","to":"AirTemperatureAN"}],
+      {"outParameters":[{"name":"inTempF","type":"Real","direction":"out"},{"name":"outTempF","type":"Real","direction":"out"}]}
+    );
+    const AirTemperatureAN_inst = new AN_Components_AirTemperatureAN("AirTemperatureAN");
+    ac_AirTemperatureENV.registerAction(AirTemperatureAN_inst);
+    try { ac_AirTemperatureENV.portToPinMapping["inTempF"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["intempf"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["inTempF1"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["intempf1"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["inTempF2"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["intempf2"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["inTempF3"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["intempf3"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["inTempF4"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["intempf4"] = "inTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["AirTemperatureAN"] = "outTempF"; } catch(e) {}
+    try { ac_AirTemperatureENV.portToPinMapping["airtemperaturean"] = "outTempF"; } catch(e) {}
+    this.registerActivity("EVENTAirTemperatureAC", ac_AirTemperatureENV);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RTCSystemCFD.rtENV.at1"] = ac_AirTemperatureENV; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtcsystemcfd.rtenv.at1"] = ac_AirTemperatureENV; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtENV.at1"] = ac_AirTemperatureENV; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["at1"] = ac_AirTemperatureENV; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["rtenv.at1"] = ac_AirTemperatureENV; } catch(e) {}
   }
 
 }
@@ -843,10 +1305,12 @@ function createModel(){
     PT_Ports_CommandIPT,
     PT_Ports_CommandOPT,
     PT_Ports_CTemperatureOPT,
+    PT_Ports_FTemperatureIPT,
     CN_Connectors_FahrenheitToCelsiusCN,
     CN_Connectors_PresenceCN,
     CN_Connectors_CommandCN,
     CN_Connectors_CTemperatureCN,
+    CN_Connectors_FTemperatureCN,
     CT_Components_CalculateAverageTemperatureEQ,
     CT_Components_CompareTemperatureEQ,
     CT_Components_FahrenheitToCelsiusEQ,
@@ -859,6 +1323,10 @@ function createModel(){
     EX_Components_CalculateAverageTemperatureEx,
     EX_Components_CheckPresenceToSetTemperature,
     EX_Components_CompareTemperatureEx,
+    EX_Components_PresenceSensorEx,
+    EX_Components_TemperatureSensorEx,
+    EX_Components_UserInterfaceEx,
+    EX_Components_AirTemperatureEx,
     EN_types_Command,
     DT_types_Commands,
     VT_types_temperature,
@@ -888,4 +1356,4 @@ function createModel(){
   return model;
 }
 
-module.exports = { createModel, SysADLModel, VT_types_temperature, VT_types_FahrenheitTemperature, VT_types_CelsiusTemperature, EN_types_Command, DT_types_Commands, DM_types_Temperature, UN_types_Celsius, UN_types_Fahrenheit, PT_Ports_FTemperatureOPT, PT_Ports_PresenceIPT, PT_Ports_PresenceOPT, PT_Ports_CTemperatureIPT, PT_Ports_CommandIPT, PT_Ports_CommandOPT, PT_Ports_CTemperatureOPT };
+module.exports = { createModel, SysADLModel, VT_types_temperature, VT_types_FahrenheitTemperature, VT_types_CelsiusTemperature, EN_types_Command, DT_types_Commands, DM_types_Temperature, UN_types_Celsius, UN_types_Fahrenheit, PT_Ports_FTemperatureOPT, PT_Ports_PresenceIPT, PT_Ports_PresenceOPT, PT_Ports_CTemperatureIPT, PT_Ports_CommandIPT, PT_Ports_CommandOPT, PT_Ports_CTemperatureOPT, PT_Ports_FTemperatureIPT };

@@ -1,3 +1,33 @@
+node SysADLSimulator.js <arquivo.sysadl> [opções]
+
+Parâmetrosacho que 
+
+Parâmetro	Descrição
+<arquivo.sysadl>	(obrigatório) Caminho para o arquivo .sysadl a simular
+--mode=<modo>	Modo de simulação. Padrão: strict
+--timeout=<ms>	Timeout de cada cena em milissegundos. Padrão: 30000 (30s)
+--skip-transform	Pula a geração de código e usa os arquivos .js já existentes em ./generated/
+--verbose	Mostra logs detalhados de execução
+--help, -h	Mostra a mensagem de ajuda
+
+Modos de simulação (--mode)
+
+Modo	Comportamento
+strict	- Falha no timeout, aborta após retentativas. É o padrão.
+permissive - Auto-recupera de eventos faltantes e continua a simulação. No final, mostra um resumo das auto-recuperações.
+
+Exemplos:
+# Simulação básica (modo strict)
+node SysADLSimulator.js AGV-completo.sysadl
+# Modo permissivo (continua mesmo com timeouts)
+node SysADLSimulator.js AGV-completo.sysadl --mode=permissive
+# Pular transformação + timeout customizado de 60s
+node SysADLSimulator.js AGV-completo.sysadl --skip-transform --timeout=60000
+# Verbose para debug
+node SysADLSimulator.js AGV-completo.sysadl --verbose --mode=permissive
+
+***************
+
 ./transform_all.sh
 
 node simulator.js generated/Simple.js --trace --payload '{"s1":20,"s2":30}'

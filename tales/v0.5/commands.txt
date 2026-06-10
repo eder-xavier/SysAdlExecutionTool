@@ -14,3 +14,5 @@ node server-node.js
 
 node SysADLSimulator.js AGV-completo.sysadl
 
+----- regerar o parser Peggy
+npx peggy --format es sysadl.peg -o sysadl-parser.js

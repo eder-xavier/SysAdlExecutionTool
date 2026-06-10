@@ -419,40 +419,57 @@
     = connectors:(_ &(!("delegations" _ / "}")) c:ConnectorUse { return c; })*
       { return connectors; }
 
-  ComponentUse
-    = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
-      body:("{" _
-        ports:
-          ("using" _ "ports" _ ":" _
-            head:PortUse
-            tail:(_ PortUse)*
-          {
-            return [head, ...tail.map(t => t[1])];
-          }
-          )?
-        properties:Property*
-      _ "}" / ";")
-      {
-        return { type: "ComponentUse", name, definition, bounds, body, location: location() };
-      }
+  ComponentUse 
+    = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _ 
+      body:("{" _ 
+        ports: 
+          ("using" _ "ports" _ ":" _ 
+            head:PortUse 
+            tail:(_ PortUse)* 
+          { 
+            return [head, ...tail.map(t => t[1])]; 
+          } 
+          )? 
+        properties:(_ p:Property { return p; })* _ "}" / ";") { return { type: "ComponentUse", name, definition, bounds, body, location: location() }; }
 
-  ConnectorUse
-    = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
-      bindings:("bindings" _ b:ConnectorBindingList)? _
-      body:("{" _
-        _ "ports" _ ":" _ ports:PortUse_Reverse*
-        properties:Property*
-      _ "}" / ";")
-      {
-        return { type: "ConnectorUse", name, definition, bounds, bindings, body, location: location() };
-      }
+  //ComponentUse
+  //  = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
+  //    body:("{" _
+  //      ports:
+  //        ("using" _ "ports" _ ":" _
+  //          head:PortUse
+  //          tail:(_ PortUse)*
+  //        {
+  //          return [head, ...tail.map(t => t[1])];
+  //        }
+  //        )?
+   //     properties:Property*
+    //  _ "}" / ";")
+    //  {
+    //    return { type: "ComponentUse", name, definition, bounds, body, location: location() };
+    //  }
 
-  PortUse
-    = name:ID _ ":" _ definition:QualifiedName _ concrete:("concrete" _ c:QualifiedName { return c; })? _ bounds:Bounds? _
-      body:("{" _ properties:Property* _ "}" / ";")
-      {
-        return { type: "PortUse", name, definition, concrete: concrete || null, bounds, body, location: location() };
-      }
+  ConnectorUse = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _ bindings:("bindings" _ b:ConnectorBindingList { return b; })? _ body:("{" _ "ports" _ ":" _ ports:(_ p:PortUse_Reverse { return p; })* properties:(_ p:Property { return p; })* _ "}" / ";") { return { type: "ConnectorUse", name, definition, bounds, bindings, body, location: location() }; }
+
+  //ConnectorUse
+  //  = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
+  //    bindings:("bindings" _ b:ConnectorBindingList)? _
+  //    body:("{" _
+  //      _ "ports" _ ":" _ ports:PortUse_Reverse*
+  //      properties:Property*
+  //    _ "}" / ";")
+  //    {
+  //      return { type: "ConnectorUse", name, definition, bounds, bindings, body, location: location() };
+  //    }
+
+  PortUse = name:ID _ ":" _ definition:QualifiedName _ concrete:("concrete" _ c:QualifiedName { return c; })? _ bounds:Bounds? _ body:("{" _ properties:(_ p:Property { return p; })* _ "}" / ";") { return { type: "PortUse", name, definition, concrete: concrete || null, bounds, body, location: location() }; }
+
+  //PortUse
+  //  = name:ID _ ":" _ definition:QualifiedName _ concrete:("concrete" _ c:QualifiedName { return c; })? _ bounds:Bounds? _
+  //    body:("{" _ properties:Property* _ "}" / ";")
+  //    {
+  //      return { type: "PortUse", name, definition, concrete: concrete || null, bounds, body, location: location() };
+  //    }
 
   PortUse_Reverse
     = "~" _ port:PortUse { return { ...port, isReverse: true }; }
@@ -1196,13 +1213,14 @@ DataTypeDef
       {
         return { type: "Pin", name, isFlow: !!isFlow, definition, arrayIndex, location: location() };
       }
+  TypeUse = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _ body:("{" _ properties:(_ p:Property { return p; })* _ "}" / ";") { return { type: "TypeUse", name, definition, arrayIndex, body, location: location() }; }
 
-  TypeUse
-    = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _
-      body:("{" _ properties:Property* _ "}" / ";")
-      {
-        return { type: "TypeUse", name, definition, arrayIndex, body, location: location() };
-      }
+  //TypeUse
+  //  = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _
+  //    body:("{" _ properties:Property* _ "}" / ";")
+  //    {
+  //      return { type: "TypeUse", name, definition, arrayIndex, body, location: location() };
+  //    }
 
   TypeUse_NoSemicolon
     = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _
