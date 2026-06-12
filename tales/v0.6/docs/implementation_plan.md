@@ -41,9 +41,9 @@ O modelo de referência para a nova gramática e execução é `sysadl-models/Ro
 
 ---
 
-## Fase 3: Refatorar SysADLSimulator.js e Transformer.js para Arquitetura Genérica — 🟡 EM PROGRESSO
+## Fase 3: Refatorar SysADLSimulator.js e Transformer.js para Arquitetura Genérica — ✅ CONCLUÍDA
 
-O simulador, o transformador e o framework base devem ser completamente genéricos e livres de referências específicas ao modelo RobAFIS.
+O simulador, o transformador e o framework base são completamente genéricos e livres de referências específicas ao modelo RobAFIS.
 
 ### 3.1. Metadados de Delegação no Transformer.js
 Para evitar o mapeamento manual de ações para portas do ambiente no simulador, o `transformer.js` passará a exportar as delegações de atividades (`ActivityDelegation`) normalizadas diretamente no módulo de ambiente gerado (`*-env-scen.js`).
@@ -54,7 +54,7 @@ Para evitar o mapeamento manual de ações para portas do ambiente no simulador,
 ### 3.2. Resolução Genérica de Propagação de Ações no Simulador
 No proxy de contexto do simulador, a interceptação de atribuições de variáveis de ações (como `colorIn`, `pieceIn`, etc.) será feita de forma genérica:
 - Quando uma propriedade é alterada via proxy `set`:
-  1. Identificar se há uma ação ativa (`c.activeAction`) e atividade ativa (`c.activeActivity`).
+  1. Identificar se há uma ação ativa (`c.activeAction`) e atividade activa (`c.activeActivity`).
   2. Buscar nas delegações da atividade ativa o mapeamento correspondente à ação ativa (`to === activeAction`).
   3. Encontrar a porta pai correspondente (`from`).
   4. Resolver a porta no componente ativo (`target.activeInstance`).
@@ -90,23 +90,24 @@ Para simular a continuidade da cadeia de execução de múltiplos ciclos sem dep
 
 ---
 
-## Fase 4: Formato de Logs — ⬜ NÃO INICIADA
+## Fase 4: Formato de Logs — ✅ CONCLUÍDA
 
 ### Log JSON Estruturado (novo formato para SysADLSimulator)
 Gerar logs detalhados na pasta `./logs` com estatísticas de execução de cenários e cenas, incluindo validações de pre/postconditions.
 
 ---
 
-## Fase 5: Atualizar Framework (SysADLBase) se necessário — ⬜ NÃO INICIADA
+## Fase 5: Atualizar Framework (SysADLBase) se necessário — ✅ CONCLUÍDA
 
 - Ajustar `ScenarioExecution` / `SceneExecutor` para reportar resultados de pre/post conditions de forma estruturada.
 - Garantir que `EnvConnector` ao ser acionado dispare o fluxo na porta do sistema correspondente.
 
 ---
 
-## Fase 6: Manter Aplicação Web Funcionando — ⬜ NÃO INICIADA
+## Fase 6: Manter Aplicação Web Funcionando — ✅ CONCLUÍDA
 
 - Garantir que o `simulator.js` e `visualizer.js` na interface web continuam executando sem erros.
+- Assegurar que a geração de `Model.js` pelo transformer antigo para a web não sofreu regressões.Garantir que o `simulator.js` e `visualizer.js` na interface web continuam executando sem erros.
 - Assegurar que a geração de `Model.js` pelo transformer antigo para a web não sofreu regressões.
 
 ---

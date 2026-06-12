@@ -196,6 +196,54 @@ function getTopLevelBranch(comp, root) {
   return current;
 }
 
+function findReplicatedAncestor(comp) {
+  let current = comp;
+  while (current) {
+    if (current.parent && current.parent.pieces && Array.isArray(current.parent.pieces)) {
+      if (current.parent.pieces.includes(current)) {
+        return current.parent;
+      }
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
+function resolveActiveBranches(target) {
+  const activeBranches = [];
+  if (target.activeInstance) {
+    activeBranches.push(target.activeInstance);
+  }
+  const name = (target.activeSceneName || target.activeScenarioName || '').toLowerCase();
+  if (name && target.rootComponent) {
+    for (const key of Object.keys(target.rootComponent)) {
+      if (SKIP_KEYS.has(key)) continue;
+      const child = target.rootComponent[key];
+      if (child && child.envComponentType) {
+        if (name.includes(key.toLowerCase())) {
+          if (!activeBranches.includes(child)) activeBranches.push(child);
+        } else {
+          const childMatch = key.toLowerCase().match(/\d+/);
+          const nameMatch = name.match(/\d+/);
+          if (childMatch && nameMatch && childMatch[0] === nameMatch[0]) {
+            if (!activeBranches.includes(child)) activeBranches.push(child);
+          }
+        }
+      }
+    }
+  }
+  if (activeBranches.length === 0 && target.rootComponent) {
+    for (const key of Object.keys(target.rootComponent)) {
+      if (SKIP_KEYS.has(key)) continue;
+      const child = target.rootComponent[key];
+      if (child && child.envComponentType) {
+        activeBranches.push(child);
+      }
+    }
+  }
+  return activeBranches;
+}
+
 function isInstanceCompatible(sourceInst, targetInst, root) {
   if (!sourceInst || !targetInst) return true;
   if (sourceInst === targetInst) return true;
@@ -213,6 +261,82 @@ function isInstanceCompatible(sourceInst, targetInst, root) {
   }
   return true;
 }
+
+function hasMoreReplicatedPieces(comp, ctx) {
+  let hasMore = false;
+  
+  const traverse = (node) => {
+    if (!node) return;
+    if (node.pieces && Array.isArray(node.pieces) && node.envPath) {
+      const idx = ctx.replicatedIndices.current[node.envPath] || 0;
+      if (idx < node.pieces.length) {
+        const nextPiece = node.pieces[idx];
+        if (nextPiece && nextPiece.envPorts) {
+          for (const port of Object.values(nextPiece.envPorts)) {
+            if (port.name.toLowerCase().includes('presence') && port.getValue() === true) {
+              hasMore = true;
+              return;
+            }
+          }
+        }
+      }
+    }
+    for (const key of Object.keys(node)) {
+      if (SKIP_KEYS.has(key)) continue;
+      const val = node[key];
+      if (val && val.envComponentType) {
+        traverse(val);
+      } else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (item && item.envComponentType) traverse(item);
+        }
+      }
+    }
+  };
+  
+  traverse(comp);
+  return hasMore;
+}
+
+function triggerGenericRestart(instance, c) {
+  const allocations = c.envModel.envActivityAllocations || [];
+  const activities = c.envModel.envActivities?.activities || {};
+  
+  const compType = instance.envComponentType;
+  const allocs = allocations.filter(a => a.component === compType);
+  
+  for (const alloc of allocs) {
+    const activity = activities[alloc.activity];
+    if (!activity) continue;
+    
+    const sentSignals = new Set(activity.onClauses.map(on => on.sendSignal).filter(Boolean));
+    const entryClauses = activity.onClauses.filter(on => on.signal && !sentSignals.has(on.signal));
+    
+    for (const clause of entryClauses) {
+      const entrySignal = clause.signal;
+      const sigDef = c.envModel.envActivities.signals[entrySignal];
+      const signalData = {};
+      
+      if (sigDef && sigDef.attributes) {
+        for (const attrName of Object.keys(sigDef.attributes)) {
+          const port = findCompPortFuzzy(instance, attrName);
+          if (port) {
+            signalData[attrName] = port.getValue();
+          } else if (instance.properties && attrName in instance.properties) {
+            signalData[attrName] = instance.getProperty(attrName);
+          }
+        }
+      }
+      
+      console.log(`♻️  [Simulator] Terminal action finished on '${instance.name}'. Triggering next cycle with signal '${entrySignal}'...`);
+      
+      setTimeout(() => {
+        c.envActivities.handleSignal(entrySignal, signalData, c, instance);
+      }, 0);
+    }
+  }
+}
+
 
 function resolveSignalAttributeFallback(signalName, attributeName, activeComp) {
   if (!activeComp || !activeComp.envPorts) return undefined;
@@ -472,55 +596,13 @@ function findInstancesOfType(comp, type) {
   return results;
 }
 
-function getActiveInstanceByName(c, envComponentType) {
-  if (c.activeInstance && c.activeInstance.envComponentType === envComponentType) {
-    return c.activeInstance;
-  }
-  
-  const name = (c.activeSceneName || c.activeScenarioName || '').toLowerCase();
-  
-  if (c.rootComponent) {
-    for (const key of Object.keys(c.rootComponent)) {
-      if (SKIP_KEYS.has(key)) continue;
-      const child = c.rootComponent[key];
-      if (child && child.envComponentType && child.envComponentType === envComponentType) {
-        const childNameLower = key.toLowerCase();
-        if (name.includes(childNameLower)) {
-          return child;
-        }
-        const childMatch = childNameLower.match(/\d+/);
-        const nameMatch = name.match(/\d+/);
-        if (childMatch && nameMatch && childMatch[0] === nameMatch[0]) {
-          return child;
-        }
-      }
-    }
-  }
-  
-  if (c.rootComponent) {
-    for (const key of Object.keys(c.rootComponent)) {
-      if (SKIP_KEYS.has(key)) continue;
-      const child = c.rootComponent[key];
-      if (child && child.envComponentType && child.envComponentType === envComponentType) {
-        return child;
-      }
-    }
-  }
-  return null;
-}
 
-function getActiveUnit(ctxProxy) {
-  return getActiveInstanceByName(ctxProxy, 'ProductionUnitEnvCP');
-}
 
-function getActiveOperator(ctxProxy) {
-  return getActiveInstanceByName(ctxProxy, 'HumanOperatorEnvCP');
-}
-
-function checkPassiveScenes(c, eventName, eventType, activeUnit) {
+function checkPassiveScenes(c, eventName, eventType, sourceInstance) {
   if (!c.activeScenarios) return;
   
-  const activeName = activeUnit ? (activeUnit.name || '').toLowerCase() : '';
+  const activeBranch = sourceInstance ? getTopLevelBranch(sourceInstance, c.rootComponent) : null;
+  const activeName = activeBranch ? (activeBranch.name || '').toLowerCase() : '';
   
   for (const scen of c.activeScenarios) {
     if (scen.status !== 'running') continue;
@@ -533,7 +615,7 @@ function checkPassiveScenes(c, eventName, eventType, activeUnit) {
         const child = c.rootComponent[key];
         if (child && child.envComponentType) {
           const childNameLower = key.toLowerCase();
-          if (child.envComponentType === activeUnit.envComponentType &&
+          if (child.envComponentType === activeBranch.envComponentType &&
               scenNameLower.includes(childNameLower) &&
               childNameLower !== activeName) {
             isCompat = false;
@@ -866,6 +948,8 @@ function createExecutionContext(envModel) {
                 if (on.sendSignal) {
                   const sendData = on.buildSendData(c, wrappedSignalData);
                   results.push({ signal: on.sendSignal, data: sendData, action: on.actionName, sourceInstance: instance });
+                } else if (instance && hasMoreReplicatedPieces(instance, c)) {
+                  triggerGenericRestart(instance, c);
                 }
                 results.push({ executed: on.actionName, signal: signalName, sourceInstance: instance });
               }
@@ -889,8 +973,9 @@ function createExecutionContext(envModel) {
         console.log(`📡 [SIGNAL] Handling signal: '${current.signal}' from ${current.sourceInstance ? current.sourceInstance.name : 'global'}`);
         
         // Detect cycle restart
-        if (seenSignals.has(current.signal)) {
-          console.log(`♻️  [Simulator] Loop detected on signal '${current.signal}'. Committing pending replication increments.`);
+        const loopKey = `${current.sourceInstance ? current.sourceInstance.name : 'global'}:${current.signal}`;
+        if (seenSignals.has(loopKey)) {
+          console.log(`♻️  [Simulator] Loop detected on signal '${current.signal}' for ${current.sourceInstance ? current.sourceInstance.name : 'global'}. Committing pending replication increments.`);
           Object.keys(c.replicatedIndices.pending).forEach(compPath => {
             const pending = c.replicatedIndices.pending[compPath] || 0;
             if (pending > 0) {
@@ -899,9 +984,14 @@ function createExecutionContext(envModel) {
               console.log(`   [COUNT] Incremented index for '${compPath}' to ${c.replicatedIndices.current[compPath]}`);
             }
           });
-          seenSignals.clear();
+          const prefix = `${current.sourceInstance ? current.sourceInstance.name : 'global'}:`;
+          for (const key of seenSignals) {
+            if (key.startsWith(prefix)) {
+              seenSignals.delete(key);
+            }
+          }
         }
-        seenSignals.add(current.signal);
+        seenSignals.add(loopKey);
         
         // Check passive scenes on signal start
         checkPassiveScenes(c, current.signal, 'signal', current.sourceInstance);
@@ -940,14 +1030,6 @@ function createExecutionContext(envModel) {
         return class WrappedScene extends SceneClass {
           validatePreConditions(c) {
             const res = super.validatePreConditions(c);
-            if (this.name.includes('Obstacle') || this.name.includes('ReturnToPA') || this.name.includes('MatrixDecision')) {
-              const isUnit2 = this.name.includes('Unit2');
-              const unit = isUnit2 ? c.unit2 : c.unit1;
-              const op = isUnit2 ? c.operator2 : c.operator1;
-              const unitName = isUnit2 ? 'unit2' : 'unit1';
-              const opName = isUnit2 ? 'operator2' : 'operator1';
-              console.log(`[DEBUG PRE] ${this.name}: ${unitName}.navLine.outColor = ${unit?.navLine?.outColor}, NavColor.Black = ${c.NavColor?.Black}, ${unitName}.transElevator.outPieceColor = ${unit?.transElevator?.outPieceColor}, ${opName}.outParam = ${op?.outParam}`);
-            }
             c.recordPrecondition(this.name, this.preconditionExprs || [], res);
             return res;
           }
@@ -959,12 +1041,6 @@ function createExecutionContext(envModel) {
               return res;
             }
             const res = super.validatePostConditions(c);
-            if (this.name.includes('Obstacle') || this.name.includes('ReturnToPA') || this.name.includes('MatrixDecision')) {
-              const isUnit2 = this.name.includes('Unit2');
-              const unit = isUnit2 ? c.unit2 : c.unit1;
-              const unitName = isUnit2 ? 'unit2' : 'unit1';
-              console.log(`[DEBUG POST] ${this.name}: ${unitName}.navLine.outColor = ${unit?.navLine?.outColor}, NavColor.None = ${c.NavColor?.None}, ${unitName}.navPad.outColor = ${unit?.navPad?.outColor}, NavColor.Green = ${c.NavColor?.Green}`);
-            }
             c.recordPostcondition(this.name, this.postconditionExprs || [], res);
             return res;
           }
@@ -1050,15 +1126,13 @@ function createExecutionContext(envModel) {
         c.activeSignal = on.signal;
         c.activeActivity = actName;
         
-        const activeUnit = getActiveUnit(c);
-        
         // Hook: check passive scenes on start of action
-        checkPassiveScenes(c, on.actionName, 'action_start', activeUnit);
+        checkPassiveScenes(c, on.actionName, 'action_start', c.activeInstance);
         
         const res = origApply.call(this, c, signalData);
         
         // Hook: check passive scenes on finish of action
-        checkPassiveScenes(c, on.actionName, 'action_finish', activeUnit);
+        checkPassiveScenes(c, on.actionName, 'action_finish', c.activeInstance);
         
         return res;
       };
@@ -1102,20 +1176,14 @@ function createExecutionContext(envModel) {
           }
         }
         
-        const activeUnit = getActiveUnit(receiver);
-        if (activeUnit && activeUnit.envPorts && prop in activeUnit.envPorts) {
-          return resolveInputPortValue(activeUnit.envPorts[prop], activeUnit);
-        }
-        if (activeUnit && activeUnit.properties && prop in activeUnit.properties) {
-          return activeUnit.getProperty(prop);
-        }
-        
-        const activeOperator = getActiveOperator(receiver);
-        if (activeOperator && activeOperator.envPorts && prop in activeOperator.envPorts) {
-          return resolveInputPortValue(activeOperator.envPorts[prop], activeOperator);
-        }
-        if (activeOperator && activeOperator.properties && prop in activeOperator.properties) {
-          return activeOperator.getProperty(prop);
+        const activeBranches = resolveActiveBranches(target);
+        for (const inst of activeBranches) {
+          if (inst.envPorts && prop in inst.envPorts) {
+            return resolveInputPortValue(inst.envPorts[prop], inst);
+          }
+          if (inst.properties && prop in inst.properties) {
+            return inst.getProperty(prop);
+          }
         }
       }
       return Reflect.get(target, prop, receiver);
@@ -1148,64 +1216,55 @@ function createExecutionContext(envModel) {
           }
         }
         
-        const activeUnit = getActiveUnit(receiver);
-        const activeOperator = getActiveOperator(receiver);
-        const activeComp = target.activeInstance || activeUnit || activeOperator;
-        
+        const activeBranches = resolveActiveBranches(target);
         const activeActName = target.activeActivity;
         const activeAction = target.activeAction;
+        
         if (activeActName && activeAction) {
           const activityDef = target.envModel.envActivities?.activities?.[activeActName];
           if (activityDef && activityDef.delegates) {
             const delegate = activityDef.delegates.find(d => d.to === activeAction);
-            if (prop === 'colorIn') {
-              console.log(`[DEBUG SET] colorIn: activeComp=${activeComp?.name}, activeActName=${activeActName}, activeAction=${activeAction}, delegate=${JSON.stringify(delegate)}`);
-            }
-            if (delegate && delegate.from && activeComp) {
-              const port = findCompPortFuzzy(activeComp, delegate.from);
-              if (prop === 'colorIn') {
-                console.log(`[DEBUG SET] colorIn: found port=${port?.name}, owner=${port?.owner?.name}`);
-              }
-              if (port) {
-                port.setValue(value);
-                const leaves = resolveLeafBindingPorts(port);
-                if (prop === 'colorIn') {
-                  console.log(`[DEBUG SET] colorIn: leaves found=${leaves.map(l => `${l.owner?.name}.${l.name}`).join(', ')}`);
-                }
-                leaves.forEach(leafPort => {
-                  const leafOwner = leafPort.owner;
-                  if (leafOwner && leafOwner.pieces && Array.isArray(leafOwner.pieces)) {
-                    if (leafPort.direction === 'in') {
-                      leafPort.setValue(value);
+            if (delegate && delegate.from) {
+              for (const activeComp of activeBranches) {
+                const port = findCompPortFuzzy(activeComp, delegate.from);
+                if (port) {
+                  port.setValue(value);
+                  const leaves = resolveLeafBindingPorts(port);
+                  leaves.forEach(leafPort => {
+                    const leafOwner = leafPort.owner;
+                    const replicatedAncestor = findReplicatedAncestor(leafOwner);
+                    if (replicatedAncestor) {
+                      if (leafPort.direction === 'in') {
+                        leafPort.setValue(value);
+                      } else {
+                        target[prop] = value;
+                      }
+                      if (replicatedAncestor.envPath) {
+                        target.replicatedIndices.pending[replicatedAncestor.envPath] = 1;
+                        console.log(`[COUNT] Recorded pending increment for replicated component: ${replicatedAncestor.envPath}`);
+                      }
                     } else {
-                      target[prop] = value;
+                      leafPort.setValue(value);
                     }
-                    if (leafOwner.envPath) {
-                      target.replicatedIndices.pending[leafOwner.envPath] = 1;
-                      console.log(`[COUNT] Recorded pending increment for replicated component: ${leafOwner.envPath}`);
-                    }
-                  } else {
-                    leafPort.setValue(value);
-                    if (prop === 'colorIn') {
-                      console.log(`[DEBUG SET] colorIn: set leafPort ${leafPort.owner?.name}.${leafPort.name} to ${value}, now value=${leafPort.getValue()}`);
-                    }
-                  }
-                });
-                return true;
+                  });
+                  return true;
+                }
               }
             }
           }
         }
         
-        if (activeUnit && activeUnit.envPorts && prop in activeUnit.envPorts) {
-          const port = activeUnit.envPorts[prop];
-          const leaves = resolveLeafBindingPorts(port);
-          leaves.forEach(p => p.setValue(value));
-          return true;
-        }
-        if (activeUnit && activeUnit.properties && prop in activeUnit.properties) {
-          activeUnit.setProperty(prop, value);
-          return true;
+        for (const activeComp of activeBranches) {
+          if (activeComp.envPorts && prop in activeComp.envPorts) {
+            const port = activeComp.envPorts[prop];
+            const leaves = resolveLeafBindingPorts(port);
+            leaves.forEach(p => p.setValue(value));
+            return true;
+          }
+          if (activeComp.properties && prop in activeComp.properties) {
+            activeComp.setProperty(prop, value);
+            return true;
+          }
         }
       }
       return Reflect.set(target, prop, value, receiver);
@@ -1368,6 +1427,10 @@ class SysADLSimulator {
             const generatedFiles = await this.transform(sysadlFile);
 
             // 2. Load Environment Scenarios Module
+            if (!generatedFiles.envScen) {
+                console.log('\n[INFO] Model generated successfully. No environment or scenarios defined.');
+                process.exit(0);
+            }
             console.log('\n📦 Loading environment scenario module...');
             delete require.cache[require.resolve(path.resolve(generatedFiles.envScen))];
             const envModule = require(path.resolve(generatedFiles.envScen));

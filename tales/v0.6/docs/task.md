@@ -25,7 +25,7 @@
 
 ---
 
-## Fase 3: Refatorar para Arquitetura Genérica (Correção das Diretivas) — 🟡 EM PROGRESSO
+## Fase 3: Refatorar para Arquitetura Genérica (Correção das Diretivas) — ✅ CONCLUÍDA
 
 ### Transformer.js
 - [x] Atualizar `generateEnvironmentModule` para aceitar `activitiesToRegister`.
@@ -38,23 +38,23 @@
 - [x] Implementar filtro de cenários genérico por branches sob a raiz do ambiente em `checkPassiveScenes`.
 - [x] Implementar proxy `set` genérico que consome as delegações de atividades para atribuições de pinos.
 - [x] Implementar commit e detecção de reinício de ciclo genéricos via rastreamento de sinais repetidos em `handleSignal`.
-- [/] Atribuir `parent` na árvore em `instantiateEnvironment` para permitir caminhamento genérico de ancestrais.
-- [/] Ajustar proxy `set` para caminhar até o componente replicado ancestral (corrigindo a verificação de `pieces` para ports como `pieces[i].outColor`).
-- [/] Implementar `triggerGenericRestart` e `hasMoreReplicatedPieces` para reiniciar o ciclo ao término de ações terminais.
-- [ ] Remover todos os logs debug específicos de `unit1`, `unit2` de `WrappedScene` em `SysADLSimulator.js`.
+- [x] Atribuir `parent` na árvore em `instantiateEnvironment` para permitir caminhamento genérico de ancestrais.
+- [x] Ajustar proxy `set` para caminhar até o componente replicado ancestral (corrigindo a verificação de `pieces` para ports como `pieces[i].outColor`).
+- [x] Implementar `triggerGenericRestart` e `hasMoreReplicatedPieces` para reiniciar o ciclo ao término de ações terminais.
+- [x] Remover todos os logs debug específicos de `unit1`, `unit2` de `WrappedScene` em `SysADLSimulator.js`.
 
 ---
 
-## Fase 4: Formato de Logs — ⬜ NÃO INICIADA
-- [ ] Implementar log JSON estruturado (formato definido no plano)
-- [ ] Implementar JUnit-style console output
-- [ ] Validar output com simulação bem-sucedida
+## Fase 4: Formato de Logs — ✅ CONCLUÍDA
+- [x] Implementar log JSON estruturado (formato definido no plano)
+- [x] Implementar JUnit-style console output
+- [x] Validar output com simulação bem-sucedida
 
-## Fase 5: Atualizar Framework (SysADLBase) — ⬜ NÃO INICIADA
-- [ ] Ajustar `ScenarioExecution` / `SceneExecutor` para reportar resultados de pre/post conditions de forma estruturada
-- [ ] Garantir que `EnvConnector` ao ser acionado dispare o fluxo na porta correspondente
+## Fase 5: Atualizar Framework (SysADLBase) — ✅ CONCLUÍDA
+- [x] Ajustar `ScenarioExecution` / `SceneExecutor` para reportar resultados de pre/post conditions de forma estruturada
+- [x] Garantir que `EnvConnector` ao ser acionado dispare o fluxo na porta correspondente
 
-## Fase 6: Validar Web App — ⬜ NÃO INICIADA
-- [ ] Testar simulator.js com Simple.sysadl (transform + simulate)
-- [ ] Verificar que nada quebrou na interface web
-- [ ] Validar que server-node.js + transformer.js continuam gerando Model.js corretamente
+## Fase 6: Validar Web App — ✅ CONCLUÍDA
+- [x] Testar simulator.js com Simple.sysadl (transform + simulate)
+- [x] Verificar que nada quebrou na interface web
+- [x] Validar que server-node.js + transformer.js continuam gerando Model.js corretamente
