@@ -1188,9 +1188,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.pInput",
       ["pOut"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_pInput_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_pInput_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_pInput_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.pInput"] = ac_pInput_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.pinput"] = ac_pInput_2; } catch(e) {}
@@ -1200,9 +1202,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.colorSens",
       ["colorOut"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_colorSens_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_colorSens_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_colorSens_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.colorSens"] = ac_colorSens_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.colorsens"] = ac_colorSens_2; } catch(e) {}
@@ -1212,9 +1216,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.speSens",
       ["presenceOut"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_speSens_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_speSens_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_speSens_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.speSens"] = ac_speSens_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.spesens"] = ac_speSens_2; } catch(e) {}
@@ -1224,9 +1230,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.tSens",
       ["presenceOut"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_tSens_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_tSens_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_tSens_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.tSens"] = ac_tSens_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.tsens"] = ac_tSens_2; } catch(e) {}
@@ -1236,9 +1244,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.drive",
       ["dirIn"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_drive_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_drive_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_drive_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.drive"] = ac_drive_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.drive"] = ac_drive_2; } catch(e) {}
@@ -1247,9 +1257,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.grabber",
       ["cmdIn"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_grabber_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_grabber_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_grabber_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.grabber"] = ac_grabber_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.grabber"] = ac_grabber_2; } catch(e) {}
@@ -1258,9 +1270,11 @@ class SysADLModel extends Model {
       "OperatorEA",
       "RobAFISSystemCFD.controller",
       ["pIn"],
-      [{}],
-      {"outParameters":[]}
+      [{"from":"opParamOut","to":"setMissionParametersOp"}],
+      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"}]}
     );
+    try { ac_controller_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_controller_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
     this.registerActivity("OperatorEA", ac_controller_2);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.controller"] = ac_controller_2; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.controller"] = ac_controller_2; } catch(e) {}
@@ -1269,9 +1283,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.pInput",
       ["pOut"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_pInput_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_pInput_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_pInput_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.pInput"] = ac_pInput_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.pinput"] = ac_pInput_3; } catch(e) {}
@@ -1281,9 +1329,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.colorSens",
       ["colorOut"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_colorSens_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_colorSens_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_colorSens_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.colorSens"] = ac_colorSens_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.colorsens"] = ac_colorSens_3; } catch(e) {}
@@ -1293,9 +1375,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.speSens",
       ["presenceOut"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_speSens_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_speSens_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_speSens_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.speSens"] = ac_speSens_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.spesens"] = ac_speSens_3; } catch(e) {}
@@ -1305,9 +1421,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.tSens",
       ["presenceOut"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_tSens_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_tSens_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_tSens_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.tSens"] = ac_tSens_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.tsens"] = ac_tSens_3; } catch(e) {}
@@ -1317,9 +1467,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.drive",
       ["dirIn"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_drive_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_drive_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_drive_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.drive"] = ac_drive_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.drive"] = ac_drive_3; } catch(e) {}
@@ -1328,9 +1512,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.grabber",
       ["cmdIn"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_grabber_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_grabber_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_grabber_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.grabber"] = ac_grabber_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.grabber"] = ac_grabber_3; } catch(e) {}
@@ -1339,9 +1557,43 @@ class SysADLModel extends Model {
       "UnitEA",
       "RobAFISSystemCFD.controller",
       ["pIn"],
-      [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}],
-      {"outParameters":[]}
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
+    try { ac_controller_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["obstacleDetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["obstacledetected"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["obstacleRemoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["obstacleremoved"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["extractPieceSPE"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["extractpiecespe"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_controller_3.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
     this.registerActivity("UnitEA", ac_controller_3);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCFD.controller"] = ac_controller_3; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcfd.controller"] = ac_controller_3; } catch(e) {}

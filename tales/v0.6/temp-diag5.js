@@ -62,7 +62,18 @@ function findCompPortFuzzy(comp, portName) {
       return port;
     }
   }
-  // 3. Default: return first port if there is only one port
+  
+  // 3. Fallback: search for any port whose name shares a common word
+  for (const [key, port] of Object.entries(comp.envPorts)) {
+    const keyLower = key.toLowerCase();
+    if (keyLower.includes('param') && portNameLower.includes('param')) return port;
+    if (keyLower.includes('color') && portNameLower.includes('color')) return port;
+    if (keyLower.includes('presence') && portNameLower.includes('presence')) return port;
+    if (keyLower.includes('pad') && portNameLower.includes('pad')) return port;
+    if (keyLower.includes('line') && portNameLower.includes('line')) return port;
+  }
+  
+  // 4. Default: return first port if there is only one port
   const keys = Object.keys(comp.envPorts);
   if (keys.length === 1) {
     return comp.envPorts[keys[0]];
@@ -350,12 +361,10 @@ function instantiateEnvironment(component, envModel, rootComponent = null) {
       const val = component[key];
       if (val && typeof val === 'object') {
         if (val.envComponentType) {
-          val.parent = component;
           instantiateEnvironment(val, envModel, rootComponent);
         } else if (Array.isArray(val)) {
           for (const item of val) {
             if (item && item.envComponentType) {
-              item.parent = component;
               instantiateEnvironment(item, envModel, rootComponent);
             }
           }
@@ -687,6 +696,15 @@ function createComponentProxy(comp, ctxProxy) {
       if (prop === '_raw') return target;
       
       if (typeof prop === 'string') {
+        if (target.envPorts) {
+          const port = findCompPortFuzzy(target, prop);
+          if (port) {
+            return port.getValue ? port.getValue() : port.value;
+          }
+        }
+        if (target.properties && prop in target.properties) {
+          return target.getProperty ? target.getProperty(prop) : target.properties[prop];
+        }
         if (prop in target) {
           const val = target[prop];
           if (val && typeof val === 'object') {
@@ -707,24 +725,12 @@ function createComponentProxy(comp, ctxProxy) {
           }
           return val;
         }
-        if (target.envPorts) {
-          const port = findCompPortFuzzy(target, prop);
-          if (port) {
-            return port.getValue ? port.getValue() : port.value;
-          }
-        }
-        if (target.properties && prop in target.properties) {
-          return target.getProperty ? target.getProperty(prop) : target.properties[prop];
-        }
       }
       return Reflect.get(target, prop, receiver);
     },
     
     set(target, prop, value, receiver) {
       if (typeof prop === 'string') {
-        if (prop in target) {
-          return Reflect.set(target, prop, value, receiver);
-        }
         if (target.envPorts) {
           const port = findCompPortFuzzy(target, prop);
           if (port) {
@@ -758,14 +764,6 @@ function createExecutionContext(envModel) {
   const rootTypeName = findRootConfigName(envModel);
   const rootComponent = new envModel.envComponentDefs[rootTypeName]('atelier');
   
-  const CTX_KEYS = new Set([
-    'rootComponent', 'envModel', 'scenarios', 'scenes', 'envActivities',
-    'scheduler', 'activeScenarioName', 'activeSceneName', 'activeAction',
-    'activeSignal', 'activeActivity', 'activeInstance', 'sceneResults',
-    'parallelResults', 'replicatedIndices', 'scenePostconditionResults',
-    'activeScenarios'
-  ]);
-
   envModel.rootComponent = rootComponent;
   instantiateEnvironment(rootComponent, envModel);
   instantiateConnectors(rootComponent, envModel);
@@ -916,16 +914,6 @@ function createExecutionContext(envModel) {
         }
       }
       
-      // Commit pending replication increments at the end of the signal cascade
-      Object.keys(c.replicatedIndices.pending).forEach(compPath => {
-        const pending = c.replicatedIndices.pending[compPath] || 0;
-        if (pending > 0) {
-          c.replicatedIndices.current[compPath] = (c.replicatedIndices.current[compPath] || 0) + pending;
-          c.replicatedIndices.pending[compPath] = 0;
-          console.log(`   [CASCADE COMMIT] Incremented index for '${compPath}' to ${c.replicatedIndices.current[compPath]}`);
-        }
-      });
-
       if (maxIter <= 0) {
         console.warn(`[WARNING] Max signal propagation limit reached! Possible loop.`);
       }
@@ -1124,7 +1112,7 @@ function createExecutionContext(envModel) {
     set(target, prop, value, receiver) {
       if (typeof prop === 'string') {
         console.log(`[SET] ctx.${prop} = ${value} (activeAction: ${target.activeAction})`);
-        if (CTX_KEYS.has(prop)) {
+        if (prop in target) {
           target[prop] = value;
           return true;
         }
@@ -1158,20 +1146,11 @@ function createExecutionContext(envModel) {
           const activityDef = target.envModel.envActivities?.activities?.[activeActName];
           if (activityDef && activityDef.delegates) {
             const delegate = activityDef.delegates.find(d => d.to === activeAction);
-            if (prop === 'colorIn') {
-              console.log(`[DEBUG SET] colorIn: activeComp=${activeComp?.name}, activeActName=${activeActName}, activeAction=${activeAction}, delegate=${JSON.stringify(delegate)}`);
-            }
             if (delegate && delegate.from && activeComp) {
               const port = findCompPortFuzzy(activeComp, delegate.from);
-              if (prop === 'colorIn') {
-                console.log(`[DEBUG SET] colorIn: found port=${port?.name}, owner=${port?.owner?.name}`);
-              }
               if (port) {
                 port.setValue(value);
                 const leaves = resolveLeafBindingPorts(port);
-                if (prop === 'colorIn') {
-                  console.log(`[DEBUG SET] colorIn: leaves found=${leaves.map(l => `${l.owner?.name}.${l.name}`).join(', ')}`);
-                }
                 leaves.forEach(leafPort => {
                   const leafOwner = leafPort.owner;
                   if (leafOwner && leafOwner.pieces && Array.isArray(leafOwner.pieces)) {
@@ -1186,9 +1165,6 @@ function createExecutionContext(envModel) {
                     }
                   } else {
                     leafPort.setValue(value);
-                    if (prop === 'colorIn') {
-                      console.log(`[DEBUG SET] colorIn: set leafPort ${leafPort.owner?.name}.${leafPort.name} to ${value}, now value=${leafPort.getValue()}`);
-                    }
                   }
                 });
                 return true;
@@ -1505,3 +1481,5 @@ Options:
 }
 
 module.exports = SysADLSimulator;
+
+module.exports = { createExecutionContext };

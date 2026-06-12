@@ -215,6 +215,189 @@ function resolveInstanceName(instanceName, className, context = '') {
   return sanitizedName;
 }
 
+function pegExtract(arr) {
+  if (!arr || !Array.isArray(arr)) return [];
+  return arr.map(item => {
+    if (Array.isArray(item) && item.length >= 2) return item[item.length - 1];
+    return item;
+  }).filter(Boolean);
+}
+
+function buildDelegationMappings(ast) {
+  const actionDefs = [];
+  traverse(ast, n => {
+    if (n && (n.type === 'ActionDef' || /ActionDef/i.test(n.type))) {
+      const actualDels = n.delegations ? pegExtract(n.delegations) : [];
+      actionDefs.push({
+        name: n.name || n.id || null,
+        delegations: actualDels || [],
+        body: n.body || null
+      });
+    }
+  });
+
+  const activityDelegations = {};
+  const actionDelegations = {};
+
+  // First, build activity-to-connector allocation map
+  const activityToConnector = {};
+  if (ast && ast.allocation) {
+    if (Array.isArray(ast.allocation.allocations)) {
+      for (const alloc of ast.allocation.allocations) {
+        if (alloc.type === 'ActivityAllocation' && alloc.source && alloc.target) {
+          activityToConnector[alloc.source] = alloc.target;
+        }
+      }
+    }
+  }
+
+  // Build connector port maps
+  const connectorPorts = {};
+  traverse(ast, n => {
+    if (n && (n.type === 'ConnectorDef' || /ConnectorDef/i.test(n.type))) {
+      const connName = n.name || n.id || null;
+      if (!connName) return;
+
+      const ports = [];
+      if (n.ports && Array.isArray(n.ports)) {
+        for (const p of n.ports) {
+          const portName = p.name || p.id || null;
+          if (portName) ports.push(portName);
+        }
+      }
+      connectorPorts[connName] = ports;
+    }
+  });
+
+  traverse(ast, n => {
+    // Extract delegations from ActivityDef (check both delegations and relations)
+    if (n && (n.type === 'ActivityDef' || /ActivityDef/i.test(n.type))) {
+      const activityName = n.name || n.id || null;
+      if (!activityName) return;
+
+      const delegations = [];
+
+      // NEW: If this activity is allocated to a connector, create port-to-parameter mappings
+      const connectorName = activityToConnector[activityName];
+      if (connectorName && connectorPorts[connectorName]) {
+        const ports = connectorPorts[connectorName];
+        const inParams = [];
+        const outParams = [];
+
+        // Extract activity parameters  
+        if (n.inParameters && Array.isArray(n.inParameters)) {
+          const flatInParams = n.inParameters.flat(Infinity);
+          inParams.push(...flatInParams.map(p => {
+            if (typeof p === 'string') return p;
+            if (typeof p === 'object' && p !== null) {
+              return p.name || p.id || String(p);
+            }
+            return String(p);
+          }));
+        }
+        if (n.outParameters && Array.isArray(n.outParameters)) {
+          const flatOutParams = n.outParameters.flat(Infinity);
+          outParams.push(...flatOutParams.map(p => {
+            if (typeof p === 'string') return p;
+            if (typeof p === 'object' && p !== null) {
+              return p.name || p.id || String(p);
+            }
+            return String(p);
+          }));
+        }
+
+        let portIdx = 0;
+        for (let i = 0; i < inParams.length && portIdx < ports.length; i++, portIdx++) {
+          delegations.push({
+            from: inParams[i],
+            to: ports[portIdx]
+          });
+        }
+        for (let i = 0; i < outParams.length && portIdx < ports.length; i++, portIdx++) {
+          delegations.push({
+            from: outParams[i],
+            to: ports[portIdx]
+          });
+        }
+
+        if (delegations.length > 0) {
+          activityDelegations[activityName] = delegations;
+        }
+      } else {
+        if (n.delegations && Array.isArray(n.delegations)) {
+          const rawDels = pegExtract(n.delegations);
+          delegations.push(...rawDels.map(d => ({
+            from: d.source,
+            to: d.target
+          })));
+        }
+
+        if (n.body && n.body.relations && Array.isArray(n.body.relations)) {
+          const rawRels = pegExtract(n.body.relations);
+          delegations.push(...rawRels
+            .filter(r => r.type === 'ActivityDelegation')
+            .map(d => {
+              let targetName = d.target;
+              if (n.body && n.body.elements) {
+                const actionUsages = n.body.elements.filter(e => e.type === 'ActionUsage');
+                for (const usage of actionUsages) {
+                  const actionDefName = usage.actionDefinition ? (usage.actionDefinition.name || usage.actionDefinition) : null;
+                  if (actionDefName && actionDefs) {
+                    const actionDef = actionDefs.find(ad => ad.name === actionDefName);
+                    if (actionDef && actionDef.delegations) {
+                      const matchingDelegation = actionDef.delegations.find(adDel => adDel.target === d.target);
+                      if (matchingDelegation) {
+                        targetName = matchingDelegation.source;
+                        break;
+                      }
+                    }
+                    if (actionDef && actionDef.body && actionDef.body.relations) {
+                      const matchingRel = actionDef.body.relations.find(r => r.type === 'ActionDelegation' && r.target === d.target);
+                      if (matchingRel) {
+                        targetName = matchingRel.source;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+              return {
+                from: d.source,
+                to: targetName
+              };
+            }));
+        }
+
+        if (delegations.length > 0) {
+          activityDelegations[activityName] = delegations;
+        }
+      }
+    }
+
+    // Extract delegations from ActionDef
+    if (n && (n.type === 'ActionDef' || /ActionDef/i.test(n.type))) {
+      const actionName = n.name || n.id || null;
+      if (!actionName) return;
+
+      const delegations = [];
+
+      if (n.delegations && Array.isArray(n.delegations)) {
+        const rawDels = pegExtract(n.delegations);
+        delegations.push(...rawDels.map(d => ({
+          from: d.source,
+          to: d.target
+        })));
+      }
+
+      if (delegations.length > 0) {
+        actionDelegations[actionName] = delegations;
+      }
+    }
+  });
+
+  return { activityDelegations, actionDelegations };
+}
+
 function generateClassModule(modelName, compUses, portUses, connectorBindings, executables, activitiesToRegister, rootDefs, parentMap, compInstanceDef, compDefMapArg, portDefMapArg, embeddedTypes, connectorDefMap = {}, packageMap = {}, ast = null, includeEnvironment = true, sourceCode = null) {
   const lines = [];
 
@@ -3365,198 +3548,8 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     return constraintToAction;
   }
 
-  // Build delegation mappings from AST
-  function buildDelegationMappings(actionDefs = []) {
-    const activityDelegations = {};
-    const actionDelegations = {};
-
-    // First, build activity-to-connector allocation map
-    const activityToConnector = {};
-    if (ast && ast.allocation) {
-      if (Array.isArray(ast.allocation.allocations)) {
-        for (const alloc of ast.allocation.allocations) {
-          // AST uses 'source' and 'target', not 'activity' and 'target'
-          if (alloc.type === 'ActivityAllocation' && alloc.source && alloc.target) {
-            activityToConnector[alloc.source] = alloc.target;
-          }
-        }
-      }
-    }
-
-    // Build connector port maps
-    const connectorPorts = {};
-    traverse(ast, n => {
-      if (n && (n.type === 'ConnectorDef' || /ConnectorDef/i.test(n.type))) {
-        const connName = n.name || n.id || null;
-        if (!connName) return;
-
-        const ports = [];
-        // ConnectorDef uses 'ports' array, not 'participants'
-        if (n.ports && Array.isArray(n.ports)) {
-          for (const p of n.ports) {
-            const portName = p.name || p.id || null;
-            if (portName) ports.push(portName);
-          }
-        }
-        connectorPorts[connName] = ports;
-      }
-    });
-
-    traverse(ast, n => {
-      // Extract delegations from ActivityDef (check both delegations and relations)
-      if (n && (n.type === 'ActivityDef' || /ActivityDef/i.test(n.type))) {
-        const activityName = n.name || n.id || null;
-        if (!activityName) return;
-
-        const delegations = [];
-
-        // NEW: If this activity is allocated to a connector, create port-to-parameter mappings
-        const connectorName = activityToConnector[activityName];
-        if (connectorName && connectorPorts[connectorName]) {
-          const ports = connectorPorts[connectorName];
-          const inParams = [];
-          const outParams = [];
-
-          // Extract activity parameters  
-          if (n.inParameters && Array.isArray(n.inParameters)) {
-            // inParameters can be array of arrays - flatten it first
-            const flatInParams = n.inParameters.flat(Infinity);
-            inParams.push(...flatInParams.map(p => {
-              // Handle both simple strings and parameter objects
-              if (typeof p === 'string') return p;
-              if (typeof p === 'object' && p !== null) {
-                return p.name || p.id || String(p);
-              }
-              return String(p);
-            }));
-          }
-          if (n.outParameters && Array.isArray(n.outParameters)) {
-            // outParameters might also be nested
-            const flatOutParams = n.outParameters.flat(Infinity);
-            outParams.push(...flatOutParams.map(p => {
-              // Handle both simple strings and parameter objects
-              if (typeof p === 'string') return p;
-              if (typeof p === 'object' && p !== null) {
-                return p.name || p.id || String(p);
-              }
-              return String(p);
-            }));
-          }
-
-          // Map connector ports to activity parameters by position
-          // Assume: first ports are inputs, last ports are outputs
-          let portIdx = 0;
-          for (let i = 0; i < inParams.length && portIdx < ports.length; i++, portIdx++) {
-            delegations.push({
-              from: inParams[i],  // activity parameter
-              to: ports[portIdx]  // connector port
-            });
-          }
-          for (let i = 0; i < outParams.length && portIdx < ports.length; i++, portIdx++) {
-            delegations.push({
-              from: outParams[i],  // activity parameter
-              to: ports[portIdx]   // connector port
-            });
-          }
-
-          // Store ONLY external delegates for activities with allocations
-          if (delegations.length > 0) {
-            activityDelegations[activityName] = delegations;
-          }
-        } else {
-          // For activities WITHOUT allocations, keep internal delegates from body
-          // Check delegations array
-          if (n.delegations && Array.isArray(n.delegations)) {
-            delegations.push(...n.delegations.map(d => ({
-              from: d.source,
-              to: d.target
-            })));
-          }
-
-          // Check relations array (often used in activity body)
-          if (n.body && n.body.relations && Array.isArray(n.body.relations)) {
-            delegations.push(...n.body.relations
-              .filter(r => r.type === 'ActivityDelegation')
-              .map(d => {
-                let targetName = d.target;
-                // const fs = require('fs');
-                // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: Activity delegation from=${d.source} to=${d.target}\n`);
-                // Fix for delegation mismatch where target resolves to a Constraint Pin instead of Action Pin
-                // We need to find the Action Usage that owns this target pin
-                if (n.body && n.body.elements) {
-                  // Find all Action Usages in this Activity
-                  const actionUsages = n.body.elements.filter(e => e.type === 'ActionUsage');
-                  // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: Found ${actionUsages.length} action usages\n`);
-                  for (const usage of actionUsages) {
-                    // We don't easily know which usage 'd.target' belongs to without more complex AST analysis
-                    // But we can check if the Action Definition for this usage has a delegation to 'd.target'
-                    const actionDefName = usage.actionDefinition ? (usage.actionDefinition.name || usage.actionDefinition) : null;
-                    // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: Checking usage with actionDefName=${actionDefName}\n`);
-                    if (actionDefName && actionDefs) {
-                      const actionDef = actionDefs.find(ad => ad.name === actionDefName);
-                      // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: Found actionDef=${!!actionDef}, has delegations=${!!actionDef?.delegations}\n`);
-                      if (actionDef && actionDef.delegations) {
-                        // Check if any Action Pin delegates to 'd.target'
-                        const matchingDelegation = actionDef.delegations.find(adDel => adDel.target === d.target);
-                        // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: matchingDelegation=${JSON.stringify(matchingDelegation)}\n`);
-                        if (matchingDelegation) {
-                          // Found it! The Action delegates 'matchingDelegation.source' to 'd.target'
-                          // So the Activity should be delegating to 'matchingDelegation.source' (the Action Pin)
-                          targetName = matchingDelegation.source;
-                          // fs.appendFileSync('/tmp/debug_transformer.log', `DEBUG buildDel: FIXED targetName from ${d.target} to ${targetName}\n`);
-                          break;
-                        }
-                      }
-                      // Also check body relations for Action Delegations
-                      if (actionDef && actionDef.body && actionDef.body.relations) {
-                        const matchingRel = actionDef.body.relations.find(r => r.type === 'ActionDelegation' && r.target === d.target);
-                        if (matchingRel) {
-                          targetName = matchingRel.source;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-                return {
-                  from: d.source,
-                  to: targetName
-                };
-              }));
-          }
-
-          if (delegations.length > 0) {
-            activityDelegations[activityName] = delegations;
-          }
-        }
-      }
-
-      // Extract delegations from ActionDef
-      if (n && (n.type === 'ActionDef' || /ActionDef/i.test(n.type))) {
-        const actionName = n.name || n.id || null;
-        if (!actionName) return;
-
-        const delegations = [];
-
-        // Check delegations array
-        if (n.delegations && Array.isArray(n.delegations)) {
-          delegations.push(...n.delegations.map(d => ({
-            from: d.source,
-            to: d.target
-          })));
-        }
-
-        if (delegations.length > 0) {
-          actionDelegations[actionName] = delegations;
-        }
-      }
-    });
-
-    return { activityDelegations, actionDelegations };
-  }
-
   const constraintToActionMap = buildConstraintToActionMapping();
-  const { activityDelegations, actionDelegations } = buildDelegationMappings();
+  const { activityDelegations, actionDelegations } = buildDelegationMappings(ast);
 
   // Executable registration is handled through class instantiation and action.registerExecutable()
   // No need for addExecutableSafe since executable classes already contain the compiled functions
@@ -4156,7 +4149,7 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
 }
 
 // Generate environment/scenario module
-function generateEnvironmentModule(modelName, environmentElements, traditionalElements, ast, embeddedTypes, packageMap, inputFileName = null) {
+function generateEnvironmentModule(modelName, environmentElements, traditionalElements, ast, embeddedTypes, packageMap, inputFileName = null, activitiesToRegister = []) {
   const lines = [];
 
   // Use filename-based model name if provided
@@ -4271,15 +4264,6 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
   // ========================================================================
   if (isNewGrammar) {
 
-    // --- Helper: extract items from PEG array format [whitespace, value] ---
-    function pegExtract(arr) {
-      if (!arr || !Array.isArray(arr)) return [];
-      return arr.map(item => {
-        if (Array.isArray(item) && item.length >= 2) return item[item.length - 1];
-        return item;
-      }).filter(Boolean);
-    }
-
     // --- Helper: convert AST expression to JS string ---
     function envExprToJS(expr, contextPrefix = 'ctx') {
       if (!expr) return 'null';
@@ -4359,8 +4343,9 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`// EnvPort: ${element.name} (flow ${element.flowProp} ${element.flowType})`);
       lines.push(`class ${className} extends EnvPort {`);
       lines.push(`  constructor(name, opts = {}) {`);
-      lines.push(`    super(name, "${element.flowProp || 'in'}", {`);
+      lines.push(`    super(name, {`);
       lines.push(`      ...opts,`);
+      lines.push(`      direction: "${element.flowProp || 'in'}",`);
       lines.push(`      expectedType: "${element.flowType || 'Object'}"`);
       lines.push(`    });`);
       lines.push(`  }`);
@@ -4610,7 +4595,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       // EnvAction definitions
       lines.push(`    this.actions = {`);
       for (const action of envActions) {
-        lines.push(`      '${action.name}': { inParams: ${JSON.stringify((action.inParameters || []).map(p => p.name))}, outType: '${action.outType || 'Void'}' },`);
+        lines.push(`      '${action.name}': { inParams: ${JSON.stringify((action.inParameters || []).map(p => p.name))}, outType: '${action.returnType || action.outType || 'Void'}' },`);
       }
       lines.push(`    };`);
       lines.push('');
@@ -4620,9 +4605,12 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       for (const activity of envActivities) {
         const actName = activity.name;
         const onClauses = pegExtract(activity.onClauses || []);
+        const reg = Array.isArray(activitiesToRegister) ? activitiesToRegister.find(r => r.activityName === actName) : null;
+        const dels = reg && reg.descriptor && reg.descriptor.delegates ? reg.descriptor.delegates : [];
 
         lines.push(`    this.activities['${actName}'] = {`);
         lines.push(`      name: '${actName}',`);
+        lines.push(`      delegates: ${JSON.stringify(dels)},`);
         lines.push(`      onClauses: [`);
         for (const on of onClauses) {
           const actionAssigns = pegExtract(on.actionAssigns || []);
@@ -4838,64 +4826,100 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push('');
       lines.push(`  async executeAsync(ctx) {`);
 
-      // Process items: assignments, injects, parallel blocks
+      // Partition items by type to execute in the correct logical order:
+      // 1. Initial State Assignments
+      // 2. Delayed Event Injections (scheduled timers)
+      // 3. Immediate Event Injections (starts signal cascades)
+      // 4. Parallel blocks containing Scenario executions
+      const assignments = [];
+      const delayedInjects = [];
+      const immediateInjects = [];
+      const parallelBlocks = [];
+
       for (const item of items) {
         if (!item) continue;
-        switch (item.type) {
-          case 'Assignment': {
-            const lhs = envExprToJS(item.left, 'ctx');
-            const rhs = envExprToJS(item.right, 'ctx');
-            lines.push(`    // Initial assignment`);
-            lines.push(`    ${lhs} = ${rhs};`);
-            break;
+        if (item.type === 'Assignment') {
+          assignments.push(item);
+        } else if (item.type === 'EventInjection') {
+          const timing = item.timing || {};
+          if (timing.type === 'after') {
+            delayedInjects.push(item);
+          } else {
+            immediateInjects.push(item);
           }
-          case 'EventInjection': {
-            const timing = item.timing || {};
-            const assigns = pegExtract(item.assignments || []);
-            lines.push(`    // inject ${item.signal} ${timing.type || 'immediate'}`);
-            lines.push(`    {`);
-            lines.push(`      const injectData = {};`);
-            for (const a of assigns) {
-              if (a && a.type === 'Assignment') {
-                const propName = a.left && a.left.name ? a.left.name : 'unknown';
-                const rhs = envExprToJS(a.right, 'ctx');
-                lines.push(`      injectData.${propName} = ${rhs};`);
-              }
-            }
-            if (timing.type === 'after') {
-              lines.push(`      ctx.scheduler?.scheduleInject('${item.signal}', injectData, ${timing.time || 0});`);
-            } else {
-              lines.push(`      if (ctx.envActivities) ctx.envActivities.handleSignal('${item.signal}', injectData, ctx);`);
-            }
-            lines.push(`    }`);
-            break;
-          }
-          case 'ParallelBlock': {
-            const calls = pegExtract(item.calls || []);
-            lines.push(`    // parallel block`);
-            lines.push(`    {`);
-            lines.push(`      const promises = [];`);
-            for (const call of calls) {
-              if (call && call.type === 'ScenarioCall') {
-                lines.push(`      // ${call.scenarioName}`);
-                lines.push(`      {`);
-                lines.push(`        const ScenClass = ctx.scenarios?.['${call.scenarioName}'];`);
-                lines.push(`        if (ScenClass) {`);
-                lines.push(`          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;`);
-                lines.push(`          promises.push((async () => {`);
-                lines.push(`            const result = await scen.execute(ctx);`);
-                lines.push(`            return { scenario: '${call.scenarioName}', result };`);
-                lines.push(`          })());`);
-                lines.push(`        }`);
-                lines.push(`      }`);
-              }
-            }
-            lines.push(`      const parallelResults = await Promise.all(promises);`);
-            lines.push(`      ctx.parallelResults = parallelResults;`);
-            lines.push(`    }`);
-            break;
+        } else if (item.type === 'ParallelBlock') {
+          parallelBlocks.push(item);
+        }
+      }
+
+      // Generate Assignments
+      for (const item of assignments) {
+        const lhs = envExprToJS(item.left, 'ctx');
+        const rhs = envExprToJS(item.right, 'ctx');
+        lines.push(`    // Initial assignment`);
+        lines.push(`    ${lhs} = ${rhs};`);
+      }
+
+      // Generate Delayed Injects
+      for (const item of delayedInjects) {
+        const timing = item.timing || {};
+        const assigns = pegExtract(item.assignments || []);
+        lines.push(`    // inject ${item.signal} ${timing.type || 'immediate'}`);
+        lines.push(`    {`);
+        lines.push(`      const injectData = {};`);
+        for (const a of assigns) {
+          if (a && a.type === 'Assignment') {
+            const propName = a.left && a.left.name ? a.left.name : 'unknown';
+            const rhs = envExprToJS(a.right, 'ctx');
+            lines.push(`      injectData.${propName} = ${rhs};`);
           }
         }
+        lines.push(`      ctx.scheduler?.scheduleInject('${item.signal}', injectData, ${timing.time || 0});`);
+        lines.push(`    }`);
+      }
+
+      // Generate Immediate Injects
+      for (const item of immediateInjects) {
+        const timing = item.timing || {};
+        const assigns = pegExtract(item.assignments || []);
+        lines.push(`    // inject ${item.signal} ${timing.type || 'immediate'}`);
+        lines.push(`    {`);
+        lines.push(`      const injectData = {};`);
+        for (const a of assigns) {
+          if (a && a.type === 'Assignment') {
+            const propName = a.left && a.left.name ? a.left.name : 'unknown';
+            const rhs = envExprToJS(a.right, 'ctx');
+            lines.push(`      injectData.${propName} = ${rhs};`);
+          }
+        }
+        lines.push(`      if (ctx.envActivities) ctx.envActivities.handleSignal('${item.signal}', injectData, ctx);`);
+        lines.push(`    }`);
+      }
+
+      // Generate Parallel Blocks
+      for (const item of parallelBlocks) {
+        const calls = pegExtract(item.calls || []);
+        lines.push(`    // parallel block`);
+        lines.push(`    {`);
+        lines.push(`      const promises = [];`);
+        for (const call of calls) {
+          if (call && call.type === 'ScenarioCall') {
+            lines.push(`      // ${call.scenarioName}`);
+            lines.push(`      {`);
+            lines.push(`        const ScenClass = ctx.scenarios?.['${call.scenarioName}'];`);
+            lines.push(`        if (ScenClass) {`);
+            lines.push(`          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;`);
+            lines.push(`          promises.push((async () => {`);
+            lines.push(`            const result = await scen.execute(ctx);`);
+            lines.push(`            return { scenario: '${call.scenarioName}', result };`);
+            lines.push(`          })());`);
+            lines.push(`        }`);
+            lines.push(`      }`);
+          }
+        }
+        lines.push(`      const parallelResults = await Promise.all(promises);`);
+        lines.push(`      ctx.parallelResults = parallelResults;`);
+        lines.push(`    }`);
       }
 
       lines.push(`    return { success: true, execution: '${element.name}' };`);
@@ -8777,6 +8801,7 @@ async function main() {
 
   // activities: ported heuristics from v0.2 to map actions->executables and pick input ports
   const activitiesToRegister = [];
+  const { activityDelegations } = buildDelegationMappings(ast);
 
   // helpers ported from v0.2
   function normalizeForMatch(s) { if (!s) return ''; return String(s).toLowerCase().replace(/[^a-z0-9]+/g, ''); }
@@ -9622,7 +9647,7 @@ async function main() {
     let traditionalCode = generateClassModule(outModelName, compUses, portUses, connectorDescriptors, executables, activitiesToRegister, rootDefs, parentMap, compInstanceDef, compDefMap, portDefMap, embeddedTypes, connectorDefMap, packageMap, ast, false, src);
 
     // 2. Generate environment/scenario file  
-    let environmentCode = generateEnvironmentModule(outModelName, environmentElements, traditionalElements, ast, embeddedTypes, packageMap, input);
+    let environmentCode = generateEnvironmentModule(outModelName, environmentElements, traditionalElements, ast, embeddedTypes, packageMap, input, activitiesToRegister);
 
     // Remove JS comments from both files
     try {

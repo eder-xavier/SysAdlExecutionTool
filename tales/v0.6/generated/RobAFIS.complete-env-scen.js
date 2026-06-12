@@ -9,8 +9,9 @@ const { createModel } = require('./RobAFIS.complete');
 // EnvPort: OutPieceColor (flow out PieceType)
 class EP_OutPieceColor extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "out", {
+    super(name, {
       ...opts,
+      direction: "out",
       expectedType: "PieceType"
     });
   }
@@ -19,8 +20,9 @@ class EP_OutPieceColor extends EnvPort {
 // EnvPort: InPieceColor (flow in PieceType)
 class EP_InPieceColor extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "in", {
+    super(name, {
       ...opts,
+      direction: "in",
       expectedType: "PieceType"
     });
   }
@@ -29,8 +31,9 @@ class EP_InPieceColor extends EnvPort {
 // EnvPort: OutNavColor (flow out NavColor)
 class EP_OutNavColor extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "out", {
+    super(name, {
       ...opts,
+      direction: "out",
       expectedType: "NavColor"
     });
   }
@@ -39,8 +42,9 @@ class EP_OutNavColor extends EnvPort {
 // EnvPort: InNavColor (flow in NavColor)
 class EP_InNavColor extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "in", {
+    super(name, {
       ...opts,
+      direction: "in",
       expectedType: "NavColor"
     });
   }
@@ -49,8 +53,9 @@ class EP_InNavColor extends EnvPort {
 // EnvPort: OutPresence (flow out Boolean)
 class EP_OutPresence extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "out", {
+    super(name, {
       ...opts,
+      direction: "out",
       expectedType: "Boolean"
     });
   }
@@ -59,8 +64,9 @@ class EP_OutPresence extends EnvPort {
 // EnvPort: InPresence (flow in Boolean)
 class EP_InPresence extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "in", {
+    super(name, {
       ...opts,
+      direction: "in",
       expectedType: "Boolean"
     });
   }
@@ -69,8 +75,9 @@ class EP_InPresence extends EnvPort {
 // EnvPort: OutParameter (flow out MissionParameter)
 class EP_OutParameter extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "out", {
+    super(name, {
       ...opts,
+      direction: "out",
       expectedType: "MissionParameter"
     });
   }
@@ -79,8 +86,9 @@ class EP_OutParameter extends EnvPort {
 // EnvPort: InParameter (flow in MissionParameter)
 class EP_InParameter extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "in", {
+    super(name, {
       ...opts,
+      direction: "in",
       expectedType: "MissionParameter"
     });
   }
@@ -89,8 +97,9 @@ class EP_InParameter extends EnvPort {
 // EnvPort: OutMotorCommand (flow out MotorCommand)
 class EP_OutMotorCommand extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "out", {
+    super(name, {
       ...opts,
+      direction: "out",
       expectedType: "MotorCommand"
     });
   }
@@ -99,8 +108,9 @@ class EP_OutMotorCommand extends EnvPort {
 // EnvPort: InMotorCommand (flow in MotorCommand)
 class EP_InMotorCommand extends EnvPort {
   constructor(name, opts = {}) {
-    super(name, "in", {
+    super(name, {
       ...opts,
+      direction: "in",
       expectedType: "MotorCommand"
     });
   }
@@ -882,14 +892,15 @@ class ENVACT_RobAFISEnvironmentActivities {
     };
 
     this.actions = {
-      'PassMissionParameterAN': { inParams: ["paramIn"], outType: 'Void' },
-      'PassNavColorAN': { inParams: ["colorIn"], outType: 'Void' },
-      'PassPieceTypeAN': { inParams: ["pieceIn"], outType: 'Void' },
+      'PassMissionParameterAN': { inParams: ["paramIn"], outType: 'MissionParameter' },
+      'PassNavColorAN': { inParams: ["colorIn"], outType: 'NavColor' },
+      'PassPieceTypeAN': { inParams: ["pieceIn"], outType: 'PieceType' },
     };
 
     this.activities = {};
     this.activities['OperatorEA'] = {
       name: 'OperatorEA',
+      delegates: [{"from":"opParamOut","to":"setMissionParametersOp"}],
       onClauses: [
         {
           signal: 'StartSimulationSig',
@@ -909,6 +920,7 @@ class ENVACT_RobAFISEnvironmentActivities {
     };
     this.activities['UnitEA'] = {
       name: 'UnitEA',
+      delegates: [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavLine","to":"obstacleDetected"},{"from":"outUnitNavLine","to":"obstacleRemoved"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outUnitPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
       onClauses: [
         {
           signal: 'SetMissionParamSig',
@@ -2182,22 +2194,6 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
   }
 
   async executeAsync(ctx) {
-    // inject StartSimulationSig immediate
-    {
-      const injectData = {};
-      injectData.mission = ctx.MissionParameter.P0;
-      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
-    }
-    // inject ObstacleDetectedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
-    }
-    // inject ObstacleRemovedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
-    }
     // Initial assignment
     ctx.unit1.transElevator.pieces[0].outPresence = true;
     // Initial assignment
@@ -2226,6 +2222,22 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outPresence = true;
     // Initial assignment
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P1;
+    // inject ObstacleDetectedSig after
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
+    }
+    // inject ObstacleRemovedSig after
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
+    }
+    // inject StartSimulationSig immediate
+    {
+      const injectData = {};
+      injectData.mission = ctx.MissionParameter.P0;
+      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
+    }
     // parallel block
     {
       const promises = [];
@@ -2335,22 +2347,6 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
   }
 
   async executeAsync(ctx) {
-    // inject StartSimulationSig immediate
-    {
-      const injectData = {};
-      injectData.mission = ctx.MissionParameter.P1;
-      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
-    }
-    // inject ObstacleDetectedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
-    }
-    // inject ObstacleRemovedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
-    }
     // Initial assignment
     ctx.unit1.transElevator.pieces[0].outPresence = true;
     // Initial assignment
@@ -2379,6 +2375,22 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outPresence = true;
     // Initial assignment
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P2;
+    // inject ObstacleDetectedSig after
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
+    }
+    // inject ObstacleRemovedSig after
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
+    }
+    // inject StartSimulationSig immediate
+    {
+      const injectData = {};
+      injectData.mission = ctx.MissionParameter.P1;
+      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
+    }
     // parallel block
     {
       const promises = [];

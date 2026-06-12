@@ -5276,10 +5276,10 @@
       return new Proxy(this, {
         get(target, prop, receiver) {
           if (typeof prop === 'string') {
-            if (target.envPorts && prop in target.envPorts) {
+            if (target.envPorts && Object.prototype.hasOwnProperty.call(target.envPorts, prop)) {
               return target.envPorts[prop].getValue();
             }
-            if (target.properties && prop in target.properties) {
+            if (target.properties && Object.prototype.hasOwnProperty.call(target.properties, prop)) {
               return target.getProperty(prop);
             }
           }
@@ -5287,11 +5287,11 @@
         },
         set(target, prop, value, receiver) {
           if (typeof prop === 'string') {
-            if (target.envPorts && prop in target.envPorts) {
+            if (target.envPorts && Object.prototype.hasOwnProperty.call(target.envPorts, prop)) {
               target.envPorts[prop].setValue(value);
               return true;
             }
-            if (target.properties && prop in target.properties) {
+            if (target.properties && Object.prototype.hasOwnProperty.call(target.properties, prop)) {
               target.setProperty(prop, value);
               return true;
             }

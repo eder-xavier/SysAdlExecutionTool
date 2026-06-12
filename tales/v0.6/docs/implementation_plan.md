@@ -5,9 +5,9 @@
 O objetivo é criar um simulador integrado funcional que:
 1. Receba um `.sysadl` (nova gramática) → transforme → execute cenários → gere resultados
 2. Mantenha a aplicação web (simulator.js) funcionando para simulação estrutural
-3. Gere resultados no estilo JUnit (✅/❌ por cenário/cena)
+3. Gere resultados no estilo JUnit (✅/❌ por cenário/cena) e logs estruturados em JSON
 
-O arquivo de referência para a nova gramática é `sysadl-models/RobAFIS.complete.sysadl`.
+O modelo de referência para a nova gramática e execução é `sysadl-models/RobAFIS.complete.sysadl`.
 
 ---
 
@@ -16,285 +16,114 @@ O arquivo de referência para a nova gramática é `sysadl-models/RobAFIS.comple
 | Decisão | Escolha |
 |---|---|
 | Simuladores | Dois complementares: `simulator.js` (web) + `SysADLSimulator.js` (CLI) |
-| Transformer | Adaptação incremental — só reescrita da parte env/scen |
-| Primeiro milestone | RobAFIS.complete.sysadl end-to-end |
-| Composição hierárquica | EnvComponents com composição recursiva (similar a Component) |
-| Execução paralela | Simulada (sequencial com estado compartilhado) no primeiro milestone |
+| Transformer | Adaptação incremental — só reescrita da parte de ambiente e cenários (`*-env-scen.js`) |
+| Resolução de Portas | Dinâmica via metadados de delegação (`delegates`) gerados pelo Transformer |
+| Índices de Replicação | Dinâmicos e indexados via mapa de caminhos relativos de componentes |
+| Ciclos de Simulação | Commit de replicação e reinício disparados por detecção genérica de loop de sinais |
+| Execução Paralela | Simulada (sequencial com estado compartilhado) no primeiro milestone |
 
 ---
 
 ## Fase 1: Validar Parser com RobAFIS.complete.sysadl — ✅ CONCLUÍDA
 
-- Parser valida RobAFIS.complete.sysadl sem erros
-- 18/18 tipos de nós AST reconhecidos
-- AST dump em `sysadl-models/RobAFIS.complete-ast.json`
-- Script de teste em `test/test-parser.js`
+- Parser valida RobAFIS.complete.sysadl sem erros.
+- 18/18 tipos de nós AST reconhecidos.
+- AST dump gerado em `sysadl-models/RobAFIS.complete-ast.json`.
+- Script de teste criado em `test/test-parser.js`.
 
 ---
 
 ## Fase 2: Atualizar Transformer para Nova Gramática — ✅ CONCLUÍDA
 
-### O que foi feito
-
-A função `generateEnvironmentModule()` em `transformer.js` foi completamente reescrita para suportar a nova gramática PEG, mantendo compatibilidade com a gramática antiga.
-
-#### Alterações em `transformer.js`:
-
-1. **`hasEnvironmentElements()` (L7131)** — Detecta nós da gramática nova E antiga
-2. **`separateElements()` (L7165)** — Classifica nós AST para os dois módulos de saída
-3. **`generateEnvironmentModule()` (L4102-5350)** — Reescrita completa:
-   - Coleta de elementos AST via `traverse()` com switch
-   - Detecção automática de gramática (nova vs antiga)
-   - Geração de classes para todos os tipos: EP_, ECN_, ECP_, BEX_, ENVACT_, SCN_, Scenario_, ScenarioExecution
-   - Factory function `createEnvironmentModel()`
-4. **`envExprToJS()` (L4220)** — Novo helper que converte AST expressions para JS válido
-   - Suporta: Identifier, PropertyAccess, ArrayAccess, EnumAccess, QualifiedName, BooleanLiteral, NumberLiteral, StringLiteral, LogicalExpression, BinaryExpression, ComparisonExpression, Assignment
-5. **Deduplicação de classes** (L2826) — `_generatedClassNames` Set previne classes Action duplicadas
-
-#### Resultado da geração:
-
-| Elemento | Esperado | Gerado |
-|---|---|---|
-| EnvPortDefs | 10 | ✅ 10 |
-| EnvConnectorDefs | 8 | ✅ 8 |
-| EnvComponentDefs | 12 | ✅ 12 |
-| BoundaryExtensions | 5 | ✅ 5 |
-| EnvConfigs | 6 | ✅ 6 |
-| EnvActivities | 1 | ✅ 1 |
-| Scenes | 16 | ✅ 16 |
-| Scenarios | 10 | ✅ 10 |
-| ScenarioExecutions | 2 | ✅ 2 |
-
-#### Bugs pendentes da Fase 2:
-- **onClauses vazios**: ✅ CORRIGIDO. Os arrays `onClauses` nas activities geradas (OperatorEA e UnitEA) foram populados corretamente (26 clauses no total).
-- **Constraint equation**: ✅ CORRIGIDO. Corrigida a conversão de `equation = x == y` nas constraints do Model.js, tratando as expressões de PropertyAccess e Identifier corretamente.
+- A função `generateEnvironmentModule()` em `transformer.js` foi reescrita para suportar a nova gramática PEG.
+- Geração automática de classes para `EP_`, `ECN_`, `ECP_`, `BEX_`, `ENVACT_`, `SCN_`, `Scenario_`, `ScenarioExecution`.
+- Correção de guards com expressions (`equation = x == y`, onClauses populados, etc.).
 
 ---
 
-## Fase 3: Refatorar SysADLSimulator.js — ⬜ NÃO INICIADA
+## Fase 3: Refatorar SysADLSimulator.js e Transformer.js para Arquitetura Genérica — 🟡 EM PROGRESSO
 
-### [MODIFY] `SysADLSimulator.js`
+O simulador, o transformador e o framework base devem ser completamente genéricos e livres de referências específicas ao modelo RobAFIS.
 
-Redesenhar completamente a lógica de binding e execução:
+### 3.1. Metadados de Delegação no Transformer.js
+Para evitar o mapeamento manual de ações para portas do ambiente no simulador, o `transformer.js` passará a exportar as delegações de atividades (`ActivityDelegation`) normalizadas diretamente no módulo de ambiente gerado (`*-env-scen.js`).
+- Passar `activitiesToRegister` como argumento para `generateEnvironmentModule()`.
+- Para cada atividade gerada no objeto `this.activities`, injetar a propriedade `delegates` contendo a lista de mapeamentos `{ from: parentPortName, to: actionName }`.
+- Corrigir a leitura de tipo de retorno de `EnvAction` no transformer para ler de `action.returnType` em vez de `action.outType`.
 
-**3.1. Eliminar binding manual (performBinding)**
+### 3.2. Resolução Genérica de Propagação de Ações no Simulador
+No proxy de contexto do simulador, a interceptação de atribuições de variáveis de ações (como `colorIn`, `pieceIn`, etc.) será feita de forma genérica:
+- Quando uma propriedade é alterada via proxy `set`:
+  1. Identificar se há uma ação ativa (`c.activeAction`) e atividade ativa (`c.activeActivity`).
+  2. Buscar nas delegações da atividade ativa o mapeamento correspondente à ação ativa (`to === activeAction`).
+  3. Encontrar a porta pai correspondente (`from`).
+  4. Resolver a porta no componente ativo (`target.activeInstance`).
+  5. Obter as portas folha reais associadas via `resolveLeafBindingPorts(port)`.
+  6. Para cada porta folha, verificar se pertence a um componente replicado (subindo a árvore de `parent` para encontrar se algum ancestral possui a propriedade `pieces` contendo o dono da porta folha):
+     - Se sim, obter o caminho relativo (`envPath`) do componente replicado ancestral.
+     - Se for uma porta de entrada (`direction === 'in'`), propagar o valor (inserção).
+     - Se for uma porta de saída (`direction === 'out'`), guardar no contexto sem propagar para a folha (extração).
+     - Enfileirar incremento pendente de replicação para o componente sob `replicatedIndices.pending[replicatedPath] = 1`.
+     - Caso contrário, propagar o valor chamando `setValue(value)` nas portas folha.
 
-O `performBinding()` atual é frágil. O código gerado pelo transformer (Fase 2) já resolve tudo internamente:
-- `BoundaryComponentExtension` gera bridges entre envPorts e ports do sistema
-- `environmentConfiguration` instancia sub-envComponents e cria envConnectors com bindings
-- `envDelegations` conectam portas entre níveis hierárquicos
-- `envConnectors` com bindings conectam envPorts de EnvComponents a ports de system Components
+### 3.3. Índices de Replicação Genéricos e Estrutura de Parentesco
+Eliminar a estrutura de contagem específica (`extractedCount.unit1.T`, etc.) em favor de um mapa genérico de componentes replicados:
+- **Parentesco na Instanciação**: Em `instantiateEnvironment`, atribuir `val.parent = component` e `item.parent = component` ao percorrer a árvore. Isso permite determinar a ascendência dos componentes.
+- **Estrutura no Contexto**: `ctx.replicatedIndices = { current: {}, pending: {} }`.
+- **Caminhamento de Replicação**:
+  - Varre a hierarquia do ambiente. Para cada componente `comp` que contém um array `pieces`:
+    - Inicializa seu índice atual e pendente em `0`.
+    - Guarda seu caminho relativo (e.g. `'unit1.transElevator'`).
+    - Sobrescreve dinamicamente a leitura (`getValue`) de suas portas de saída para buscar o valor do componente de peça ativo em `pieces[idx]`.
 
-O `SysADLSimulator.js` deve:
-1. Transformar `.sysadl` → `Model.js` + `Model-env-scen.js`  
-2. Carregar **apenas** o `Model-env-scen.js` (que internamente carrega `Model.js`)
-3. Executar cenários diretamente — sem binding manual
-
-**3.2. Resultado no estilo JUnit (adaptado para RobAFIS)**
-
-Implementar um `ScenarioReporter` que gere saída assim:
-
-```
-╔═══════════════════════════════════════════════════════╗
-║      SysADL Scenario Execution: RobAFIS               ║
-║      Mode: once                                       ║
-╚═══════════════════════════════════════════════════════╝
-
-▶ RobAFIS_Validation_Run_P0
-  ├── [PARALLEL]
-  │   ├── Scenario_RoutingLogic_P0_Unit1
-  │   │   ├── SCN_MatrixDecision_SA_Unit1
-  │   │   │   ├── Preconditions:  ✅ PASS
-  │   │   │   │   ├── operator1.outParam == P0    ✅
-  │   │   │   │   └── unit1.transElevator.outPieceColor == P1    ✅
-  │   │   │   ├── Execution:      ✅ PASS (extractPieceT → routeToSA)
-  │   │   │   └── Postconditions: ✅ PASS
-  │   │   │       └── unit1.navPad.outColor == Green    ✅
-  │   │   └── SCN_MatrixDecision_SPD_Unit1
-  │   │       ├── Preconditions:  ✅ PASS
-  │   │       ├── Execution:      ✅ PASS
-  │   │       └── Postconditions: ✅ PASS
-  │   │   Result: ✅ PASS (2/2 scenes)
-  │   │
-  │   ├── Scenario_ObstacleHandling_Unit1
-  │   │   ├── SCN_ObstacleStop_Unit1     ✅ PASS
-  │   │   └── SCN_ObstacleResume_Unit1   ✅ PASS
-  │   │   Result: ✅ PASS (2/2 scenes)
-  │   ...
-  │
-  Result: ✅ PASS (8/8 scenarios in parallel block)
-
-═══════════════════════════════════════════════════════
-Summary: 8 passed, 0 failed (8 total scenarios)
-═══════════════════════════════════════════════════════
-```
-
-**3.3. Novo fluxo de execução**
-
-```
-SysADLSimulator.run(file.sysadl)
-  1. transform(file.sysadl) → Model.js + Model-env-scen.js
-  2. loadModel(Model-env-scen.js) → envModel (internamente carrega Model.js)
-  3. setupLogging(envModel) → ScenarioReporter + JSON logger
-  4. Para cada ScenarioExecution (ex: RobAFIS_Validation_Run_P0):
-     4.1. Aplicar mode (once, etc.)
-     4.2. Aplicar initial assignments (unit1.transElevator.pieces[0].outPresence = true, etc.)
-     4.3. Registrar injects com timing (immediate, after N)
-     4.4. Executar body:
-          - Se ParallelBlock: executar scenarios em paralelo (simulado)
-          - Se ScenarioCall: executar scenario sequencialmente
-          - Para cada Scenario:
-            - Para cada Scene:
-              - Avaliar preconditions → PASS/FAIL
-              - Se PASS: executar cadeia ON/THEN/SEND (start → finish)
-              - Avaliar postconditions → PASS/FAIL
-          - Reportar resultado do Scenario
-     4.5. Reportar resultado geral
-  5. Salvar logs JSON
-```
-
-> [!WARNING]
-> **Desafio: Execução Paralela**
-> O RobAFIS usa `parallel { ... }` para executar 8 cenários concorrentemente. Para o primeiro milestone, sugiro execução **simulada** (sequencial com estado compartilhado). Futuramente pode ser real (async/Promise.all).
+### 3.4. Reinício de Ciclo Genérico e Commits
+Para simular a continuidade da cadeia de execução de múltiplos ciclos sem depender de hardcodes do RobAFIS:
+- **Detecção de Fim de Ciclo**: Ao executar uma cláusula `ON` que não possui `sendSignal` (um "terminal action") em uma instância ativa do componente:
+  - Verificar se existem mais peças replicadas para processar sob a instância (verificação dinâmica nas listas de peças com presença ativa).
+  - Se houver mais peças:
+    - Identificar os sinais de entrada ("entry signals") da atividade associada (sinais das cláusulas `ON` que não são emitidos por nenhuma cláusula `SEND` da própria atividade).
+    - Mapear os atributos do sinal de entrada para portas/propriedades da instância (fuzzy matching).
+    - Agendar o disparo do sinal de entrada na instância ativa no próximo tick (`setTimeout` com 0ms).
+- **Loop de Sinais**: Em `handleSignal`, manter um conjunto `seenSignals` temporário durante a execução da cadeia. Se um sinal se repetir no fluxo, commit dos índices replicados.
+- **Fim da Cadeia**: Ao término de uma cadeia de sinais (fila vazia em `handleSignal`), commit dos índices replicados pendentes.
+- **Limpeza de Hardcodes**: Remover todas as impressões e logs model-specific em `validatePreConditions` e `validatePostConditions`.
 
 ---
 
 ## Fase 4: Formato de Logs — ⬜ NÃO INICIADA
 
 ### Log JSON Estruturado (novo formato para SysADLSimulator)
-
-```json
-{
-  "simulation": {
-    "model": "RobAFIS",
-    "timestamp": "2026-06-10T14:30:00Z",
-    "mode": "once",
-    "duration_ms": 1234
-  },
-  "scenarios": [
-    {
-      "name": "Scenario_RoutingLogic_P0_Unit1",
-      "status": "PASS",
-      "scenes": [
-        {
-          "name": "SCN_MatrixDecision_SA_Unit1",
-          "status": "PASS",
-          "preconditions": {
-            "status": "PASS",
-            "conditions": [
-              { "expression": "operator1.outParam == P0", "result": true }
-            ]
-          },
-          "execution": {
-            "status": "PASS",
-            "start_event": "extractPieceT",
-            "finish_event": "routeToSA",
-            "trace": [
-              { "step": 1, "signal": "ExtractedPieceTSig", "action": "routeToSA" }
-            ]
-          },
-          "postconditions": {
-            "status": "PASS",
-            "conditions": [
-              { "expression": "unit1.navPad.outColor == Green", "result": true }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "summary": {
-    "total_scenarios": 10,
-    "passed": 10,
-    "failed": 0,
-    "total_scenes": 16,
-    "scenes_passed": 16,
-    "scenes_failed": 0,
-    "scenes_skipped": 0
-  }
-}
-```
-
-### Log do simulator.js (manter como está)
-
-O log `[EVENT]` do `simulator.js` continua sendo a base para animação no `visualizer.js`. Nenhuma mudança necessária.
+Gerar logs detalhados na pasta `./logs` com estatísticas de execução de cenários e cenas, incluindo validações de pre/postconditions.
 
 ---
 
 ## Fase 5: Atualizar Framework (SysADLBase) se necessário — ⬜ NÃO INICIADA
 
-### [MODIFY] `sysadl-framework/SysADLBase.js`
-
-Possíveis ajustes:
-- Garantir que `EnvironmentConfiguration` crie instâncias acessíveis (entities como propriedades)
-- Ajustar `ScenarioExecution` / `SceneExecutor` para reportar resultados de pre/post conditions de forma estruturada
-- Garantir que `EnvConnector` ao ser acionado dispare o fluxo na porta do sistema correspondente
-
-> [!NOTE]
-> A extensão do framework depende muito de como o SysADLSimulator.js for implementado na Fase 3. Se o código gerado resolver tudo via `createEnvironmentModel()`, o framework pode precisar de poucas mudanças.
+- Ajustar `ScenarioExecution` / `SceneExecutor` para reportar resultados de pre/post conditions de forma estruturada.
+- Garantir que `EnvConnector` ao ser acionado dispare o fluxo na porta do sistema correspondente.
 
 ---
 
 ## Fase 6: Manter Aplicação Web Funcionando — ⬜ NÃO INICIADA
 
-### Sem mudanças necessárias
-
-- `simulator.js` — continua como está
-- `visualizer.js` — continua como está
-- `app.js` — continua como está
-- `server-node.js` — continua como está
-
-A única interação é que o `server-node.js` chama o `transformer.js`, que foi atualizado na Fase 2. Mas as mudanças no transformer afetam apenas a geração do `*-env-scen.js`, não do `Model.js` principal que a web usa.
+- Garantir que o `simulator.js` e `visualizer.js` na interface web continuam executando sem erros.
+- Assegurar que a geração de `Model.js` pelo transformer antigo para a web não sofreu regressões.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-
 ```bash
-# Fase 1: Parser ✅
-node test/test-parser.js sysadl-models/RobAFIS.complete.sysadl
-
-# Fase 2: Transformer ✅
+# Fase 2: Transformer
 node transformer.js sysadl-models/RobAFIS.complete.sysadl -o generated/
 node --check generated/RobAFIS.complete-env-scen.js
-# (usar mock para testar carga — ver technical_reference.md seção 5)
 
 # Fase 3: Simulador
 node SysADLSimulator.js sysadl-models/RobAFIS.complete.sysadl --verbose
-
-# Fase 6: Web app continua funcionando
-node server-node.js  # abrir browser e testar transform + simulate com Simple.sysadl
 ```
 
 ### Manual Verification
-
-1. Executar `SysADLSimulator.js` com RobAFIS.complete.sysadl
-2. Verificar que o output JUnit-style mostra PASS/FAIL corretamente para os 2 ScenarioExecutions (P0 e P1)
-3. Verificar que os 8 cenários em cada parallel block são reportados
-4. Verificar que o log JSON contém todos os dados esperados
-5. Abrir a aplicação web, carregar Simple.sysadl, transformar, simular — tudo deve continuar funcionando
-
----
-
-## Ordem de Execução
-
-```mermaid
-graph TD
-    F1["Fase 1: Parser ✅"] --> F2
-    F2["Fase 2: Transformer ✅"] --> F3
-    F3["Fase 3: SysADLSimulator.js ⬜"] --> F4
-    F4["Fase 4: Logs JSON ⬜"] --> F5
-    F5["Fase 5: Ajustes SysADLBase ⬜"] --> F6
-    F6["Fase 6: Validar Web App ⬜"]
-    
-    F2 -.-> F5
-    F3 -.-> F5
-```
-
-> [!TIP]
-> As fases 3, 4 e 5 são iterativas — mudanças no simulador podem exigir ajustes no framework e vice-versa. A melhor abordagem é fazer ciclos curtos de: executar → ajustar.
-> 
-> **Milestone 1:** RobAFIS.complete.sysadl funcionando end-to-end
-> **Milestone 2:** Migrar AGV-completo.sysadl para nova gramática e testar
+1. Executar `SysADLSimulator.js` com RobAFIS.complete.sysadl.
+2. Verificar que o output JUnit-style mostra PASS/FAIL corretamente para os 2 ScenarioExecutions (P0 e P1).
+3. Verificar que os logs JSON em `./logs` são estruturados de forma genérica.
