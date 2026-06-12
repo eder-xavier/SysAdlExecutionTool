@@ -318,6 +318,13 @@ class ReactiveStateManager {
   }
 
   /**
+   * Get current state (for compatibility with SceneExecutor)
+   */
+  getCurrentState() {
+    return this.state;
+  }
+
+  /**
    * Bulk update state from object
    */
   updateState(updates) {

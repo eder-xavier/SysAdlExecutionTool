@@ -4810,116 +4810,121 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
 
     // --- 9. New grammar ScenarioExecution classes ---
     for (const { element, className } of scenarioExecutions) {
-      const mode = element.mode || 'once';
       const ref = element.reference || '';
-      const items = pegExtract(element.items || []);
+      const execData = extractScenarioExecutionEnhanced(element);
+      const modeType = execData.mode?.type || 'once';
 
-      lines.push(`// ScenarioExecution: ${element.name} → ${ref} (mode: ${mode})`);
+      lines.push(`// ScenarioExecution: ${element.name} → ${ref} (mode: ${modeType})`);
       lines.push(`class ${className} extends ScenarioExecution {`);
       lines.push(`  constructor(name = '${element.name}', opts = {}) {`);
       lines.push(`    super(name, {`);
       lines.push(`      ...opts,`);
       lines.push(`      targetScenarios: '${ref}',`);
-      lines.push(`      mode: '${mode}'`);
+      lines.push(`      mode: '${modeType}'`);
       lines.push(`    });`);
       lines.push(`  }`);
       lines.push('');
       lines.push(`  async executeAsync(ctx) {`);
 
-      // Partition items by type to execute in the correct logical order:
-      // 1. Initial State Assignments
-      // 2. Delayed Event Injections (scheduled timers)
-      // 3. Immediate Event Injections (starts signal cascades)
-      // 4. Parallel blocks containing Scenario executions
-      const assignments = [];
-      const delayedInjects = [];
-      const immediateInjects = [];
-      const parallelBlocks = [];
+      const indent = '    ';
 
-      for (const item of items) {
-        if (!item) continue;
+      // 1. Loop wrapper opening
+      if (modeType === 'loop') {
+        lines.push(`${indent}while (true) {`);
+      } else if (modeType === 'loop_count') {
+        const loopCount = execData.mode?.count || 1;
+        lines.push(`${indent}const _maxLoops = ${loopCount};`);
+        lines.push(`${indent}for (let _loop = 0; _loop < _maxLoops; _loop++) {`);
+      } else if (modeType === 'loop_while') {
+        const condExpr = envExprToJS(execData.mode?.condition, 'ctx');
+        lines.push(`${indent}while (${condExpr}) {`);
+      }
+
+      const loopIndent = (modeType === 'loop' || modeType === 'loop_count' || modeType === 'loop_while') ? '      ' : '    ';
+
+      // 2. Initial Assignments (state configurations)
+      for (const item of execData.orderedItems) {
         if (item.type === 'Assignment') {
-          assignments.push(item);
-        } else if (item.type === 'EventInjection') {
+          const lhs = envExprToJS(item.left, 'ctx');
+          const rhs = envExprToJS(item.right, 'ctx');
+          lines.push(`${loopIndent}// Initial assignment`);
+          lines.push(`${loopIndent}${lhs} = ${rhs};`);
+        }
+      }
+
+      // 3. Event Injections (register timing schedules/triggers)
+      for (const item of execData.orderedItems) {
+        if (item.type === 'EventInjection') {
           const timing = item.timing || {};
-          if (timing.type === 'after') {
-            delayedInjects.push(item);
-          } else {
-            immediateInjects.push(item);
+          const assigns = pegExtract(item.assignments || []);
+          lines.push(`${loopIndent}// inject ${item.signal} ${timing.type || 'immediate'}`);
+          lines.push(`${loopIndent}{`);
+          lines.push(`${loopIndent}  const injectData = {};`);
+          for (const a of assigns) {
+            if (a && a.type === 'Assignment') {
+              const propName = a.left && a.left.name ? a.left.name : 'unknown';
+              const rhs = envExprToJS(a.right, 'ctx');
+              lines.push(`${loopIndent}  injectData.${propName} = ${rhs};`);
+            }
           }
+
+          if (timing.type === 'immediate') {
+            lines.push(`${loopIndent}  if (ctx.envActivities) ctx.envActivities.handleSignal('${item.signal}', injectData, ctx);`);
+          } else if (timing.type === 'delay') {
+            lines.push(`${loopIndent}  ctx.scheduler?.scheduleInject('${item.signal}', injectData, ${timing.value || 0});`);
+          } else if (timing.type === 'before') {
+            lines.push(`${loopIndent}  ctx.scheduler?.scheduleBeforeScenario('${item.signal}', injectData, '${timing.scenario}');`);
+          } else if (timing.type === 'after') {
+            lines.push(`${loopIndent}  ctx.scheduler?.scheduleAfterScenario('${item.signal}', injectData, '${timing.scenario}');`);
+          } else if (timing.type === 'condition') {
+            const condExpr = envExprToJS(timing.expression, 'ctx');
+            lines.push(`${loopIndent}  ctx.scheduler?.scheduleOnCondition('${item.signal}', injectData, () => ${condExpr}, '${condExpr}');`);
+          }
+          lines.push(`${loopIndent}}`);
+        }
+      }
+
+      // 4. Scenario Calls, Repeat Blocks, Parallel Blocks (executed in order)
+      for (const item of execData.orderedItems) {
+        if (item.type === 'ScenarioCall') {
+          lines.push(`${loopIndent}// Scenario call`);
+          lines.push(`${loopIndent}{`);
+          lines.push(`${loopIndent}  const res = await this.executeScenario('${item.scenarioName}', ctx);`);
+          lines.push(`${loopIndent}  ctx.parallelResults.push({ scenario: '${item.scenarioName}', result: res });`);
+          lines.push(`${loopIndent}}`);
+        } else if (item.type === 'RepeatBlock') {
+          lines.push(`${loopIndent}// Repeat ${item.count} times`);
+          lines.push(`${loopIndent}for (let _rep = 0; _rep < ${item.count}; _rep++) {`);
+          lines.push(`${loopIndent}  const res = await this.executeScenario('${item.scenario}', ctx);`);
+          lines.push(`${loopIndent}  ctx.parallelResults.push({ scenario: '${item.scenario}', result: res });`);
+          lines.push(`${loopIndent}}`);
         } else if (item.type === 'ParallelBlock') {
-          parallelBlocks.push(item);
-        }
-      }
-
-      // Generate Assignments
-      for (const item of assignments) {
-        const lhs = envExprToJS(item.left, 'ctx');
-        const rhs = envExprToJS(item.right, 'ctx');
-        lines.push(`    // Initial assignment`);
-        lines.push(`    ${lhs} = ${rhs};`);
-      }
-
-      // Generate Delayed Injects
-      for (const item of delayedInjects) {
-        const timing = item.timing || {};
-        const assigns = pegExtract(item.assignments || []);
-        lines.push(`    // inject ${item.signal} ${timing.type || 'immediate'}`);
-        lines.push(`    {`);
-        lines.push(`      const injectData = {};`);
-        for (const a of assigns) {
-          if (a && a.type === 'Assignment') {
-            const propName = a.left && a.left.name ? a.left.name : 'unknown';
-            const rhs = envExprToJS(a.right, 'ctx');
-            lines.push(`      injectData.${propName} = ${rhs};`);
+          const calls = pegExtract(item.calls || []);
+          lines.push(`${loopIndent}// Parallel scenarios execution`);
+          lines.push(`${loopIndent}{`);
+          lines.push(`${loopIndent}  const pResults = await Promise.all([`);
+          const callBlocks = [];
+          for (const call of calls) {
+            if (call && call.type === 'ScenarioCall') {
+              const block = [
+                `${loopIndent}    (async () => {`,
+                `${loopIndent}      const res = await this.executeScenario('${call.scenarioName}', ctx);`,
+                `${loopIndent}      return { scenario: '${call.scenarioName}', result: res };`,
+                `${loopIndent}    })()`
+              ].join('\n');
+              callBlocks.push(block);
+            }
           }
+          lines.push(callBlocks.join(',\n'));
+          lines.push(`${loopIndent}  ]);`);
+          lines.push(`${loopIndent}  ctx.parallelResults.push(...pResults);`);
+          lines.push(`${loopIndent}}`);
         }
-        lines.push(`      ctx.scheduler?.scheduleInject('${item.signal}', injectData, ${timing.time || 0});`);
-        lines.push(`    }`);
       }
 
-      // Generate Immediate Injects
-      for (const item of immediateInjects) {
-        const timing = item.timing || {};
-        const assigns = pegExtract(item.assignments || []);
-        lines.push(`    // inject ${item.signal} ${timing.type || 'immediate'}`);
-        lines.push(`    {`);
-        lines.push(`      const injectData = {};`);
-        for (const a of assigns) {
-          if (a && a.type === 'Assignment') {
-            const propName = a.left && a.left.name ? a.left.name : 'unknown';
-            const rhs = envExprToJS(a.right, 'ctx');
-            lines.push(`      injectData.${propName} = ${rhs};`);
-          }
-        }
-        lines.push(`      if (ctx.envActivities) ctx.envActivities.handleSignal('${item.signal}', injectData, ctx);`);
-        lines.push(`    }`);
-      }
-
-      // Generate Parallel Blocks
-      for (const item of parallelBlocks) {
-        const calls = pegExtract(item.calls || []);
-        lines.push(`    // parallel block`);
-        lines.push(`    {`);
-        lines.push(`      const promises = [];`);
-        for (const call of calls) {
-          if (call && call.type === 'ScenarioCall') {
-            lines.push(`      // ${call.scenarioName}`);
-            lines.push(`      {`);
-            lines.push(`        const ScenClass = ctx.scenarios?.['${call.scenarioName}'];`);
-            lines.push(`        if (ScenClass) {`);
-            lines.push(`          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;`);
-            lines.push(`          promises.push((async () => {`);
-            lines.push(`            const result = await scen.execute(ctx);`);
-            lines.push(`            return { scenario: '${call.scenarioName}', result };`);
-            lines.push(`          })());`);
-            lines.push(`        }`);
-            lines.push(`      }`);
-          }
-        }
-        lines.push(`      const parallelResults = await Promise.all(promises);`);
-        lines.push(`      ctx.parallelResults = parallelResults;`);
-        lines.push(`    }`);
+      // 5. Loop wrapper closing
+      if (modeType === 'loop' || modeType === 'loop_count' || modeType === 'loop_while') {
+        lines.push(`${indent}}`);
       }
 
       lines.push(`    return { success: true, execution: '${element.name}' };`);
@@ -5606,6 +5611,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
     lines.push(`  model.scenarioExecutions = {};`);
     for (const { element, className } of scenarioExecutions) {
       lines.push(`  model.scenarioExecutions['${element.name}'] = new ${className}();`);
+      lines.push(`  model.registerScenarioExecution(model.scenarioExecutions['${element.name}']);`);
     }
 
     // Activity allocations
@@ -6813,12 +6819,18 @@ function extractScenarioExecutionEnhanced(element) {
     stateInitializations: [],
     repeatStatements: [],
     eventInjections: [],
-    executionMode: 'sequential'
+    executionMode: 'sequential',
+    mode: element.mode || null,
+    orderedItems: []
   };
 
   if (!element || !element.items) return execution;
 
-  for (const item of element.items) {
+  const items = pegExtract(element.items || []);
+  for (const item of items) {
+    if (!item) continue;
+    execution.orderedItems.push(item);
+
     switch (item.type) {
       case 'Assignment':
         // State initialization like "agv1.location = stationC.ID;"
@@ -6854,20 +6866,22 @@ function extractScenarioExecutionEnhanced(element) {
         });
         break;
 
+      case 'ScenarioCall':
       case 'SceneRef':
         // Scenario execution like "Scenario1;"
         execution.scenarios.push({
           type: 'scenario',
-          name: item.ref,
+          name: item.scenarioName || item.ref,
           mode: 'normal'
         });
         break;
 
+      case 'RepeatBlock':
       case 'ExecutionEntry':
         // Repeat statement like "repeat 5 Scenario1;"
         execution.repeatStatements.push({
           type: 'repeat',
-          count: parseInt(item.repeat) || 1,
+          count: parseInt(item.count) || parseInt(item.repeat) || 1,
           scenario: item.scenario
         });
         break;
@@ -6895,7 +6909,7 @@ function parseEventInjectionStatement(stmt) {
   // Parse event injection: inject eventName [timing]
   return {
     type: 'single',
-    eventName: stmt.eventName || stmt.name,
+    eventName: stmt.eventName || stmt.name || stmt.signal,
     timing: parseEventTiming(stmt.timing),
     parameters: stmt.parameters || {},
     options: stmt.options || {}
@@ -6998,9 +7012,7 @@ function parseEventTiming(timing) {
     case 'delay':
       return { type: 'delay', value: timing.value || 0 };
     case 'condition':
-      // Convert AST expression to JavaScript string
-      const expression = timing.expression ? astExpressionToStringGlobal(timing.expression) : 'true';
-      return { type: 'condition', expression: expression };
+      return { type: 'condition', expression: timing.expression || null };
     case 'before':
       return { type: 'before', scenario: timing.scenario };
     case 'after':

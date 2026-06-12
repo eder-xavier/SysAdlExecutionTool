@@ -1,0 +1,19 @@
+{
+  "simulation": {
+    "model": "RobAFIS",
+    "execution": "RobAFIS_Validation_Run_P1",
+    "timestamp": "2026-06-12T19:26:42.859Z",
+    "mode": "once",
+    "duration_ms": 66
+  },
+  "scenarios": [],
+  "summary": {
+    "total_scenarios": 0,
+    "passed": 0,
+    "failed": 0,
+    "total_scenes": 0,
+    "scenes_passed": 0,
+    "scenes_failed": 0,
+    "scenes_skipped": 0
+  }
+}

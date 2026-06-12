@@ -2222,115 +2222,59 @@ class RobAFIS_Validation_Run_P0 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outPresence = true;
     // Initial assignment
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P1;
-    // inject ObstacleDetectedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
-    }
-    // inject ObstacleRemovedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
-    }
     // inject StartSimulationSig immediate
     {
       const injectData = {};
       injectData.mission = ctx.MissionParameter.P0;
       if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
     }
-    // parallel block
+    // inject ObstacleDetectedSig delay
     {
-      const promises = [];
-      // Scenario_RoutingLogic_P0_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P0_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_RoutingLogic_P0_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_ObstacleHandling_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_ObstacleHandling_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_PriorityResolution_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_PriorityResolution_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_EndMission_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_EndMission_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_RoutingLogic_P0_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P0_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_RoutingLogic_P0_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_ObstacleHandling_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_ObstacleHandling_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_PriorityResolution_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_PriorityResolution_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_EndMission_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_EndMission_Unit2', result };
-          })());
-        }
-      }
-      const parallelResults = await Promise.all(promises);
-      ctx.parallelResults = parallelResults;
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
+    }
+    // inject ObstacleRemovedSig delay
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
+    }
+    // Parallel scenarios execution
+    {
+      const pResults = await Promise.all([
+        (async () => {
+          const res = await this.executeScenario('Scenario_RoutingLogic_P0_Unit1', ctx);
+          return { scenario: 'Scenario_RoutingLogic_P0_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_ObstacleHandling_Unit1', ctx);
+          return { scenario: 'Scenario_ObstacleHandling_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_PriorityResolution_Unit1', ctx);
+          return { scenario: 'Scenario_PriorityResolution_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_EndMission_Unit1', ctx);
+          return { scenario: 'Scenario_EndMission_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_RoutingLogic_P0_Unit2', ctx);
+          return { scenario: 'Scenario_RoutingLogic_P0_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_ObstacleHandling_Unit2', ctx);
+          return { scenario: 'Scenario_ObstacleHandling_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_PriorityResolution_Unit2', ctx);
+          return { scenario: 'Scenario_PriorityResolution_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_EndMission_Unit2', ctx);
+          return { scenario: 'Scenario_EndMission_Unit2', result: res };
+        })()
+      ]);
+      ctx.parallelResults.push(...pResults);
     }
     return { success: true, execution: 'RobAFIS_Validation_Run_P0' };
   }
@@ -2375,115 +2319,59 @@ class RobAFIS_Validation_Run_P1 extends ScenarioExecution {
     ctx.unit2.entryStock.pieces[0].outPresence = true;
     // Initial assignment
     ctx.unit2.entryStock.pieces[0].outColor = ctx.PieceType.P2;
-    // inject ObstacleDetectedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
-    }
-    // inject ObstacleRemovedSig after
-    {
-      const injectData = {};
-      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
-    }
     // inject StartSimulationSig immediate
     {
       const injectData = {};
       injectData.mission = ctx.MissionParameter.P1;
       if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
     }
-    // parallel block
+    // inject ObstacleDetectedSig delay
     {
-      const promises = [];
-      // Scenario_RoutingLogic_P1_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P1_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_RoutingLogic_P1_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_ObstacleHandling_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_ObstacleHandling_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_PriorityResolution_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_PriorityResolution_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_EndMission_Unit1
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit1'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_EndMission_Unit1', result };
-          })());
-        }
-      }
-      // Scenario_RoutingLogic_P1_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_RoutingLogic_P1_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_RoutingLogic_P1_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_ObstacleHandling_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_ObstacleHandling_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_ObstacleHandling_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_PriorityResolution_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_PriorityResolution_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_PriorityResolution_Unit2', result };
-          })());
-        }
-      }
-      // Scenario_EndMission_Unit2
-      {
-        const ScenClass = ctx.scenarios?.['Scenario_EndMission_Unit2'];
-        if (ScenClass) {
-          const scen = typeof ScenClass === 'function' ? new ScenClass() : ScenClass;
-          promises.push((async () => {
-            const result = await scen.execute(ctx);
-            return { scenario: 'Scenario_EndMission_Unit2', result };
-          })());
-        }
-      }
-      const parallelResults = await Promise.all(promises);
-      ctx.parallelResults = parallelResults;
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleDetectedSig', injectData, 45);
+    }
+    // inject ObstacleRemovedSig delay
+    {
+      const injectData = {};
+      ctx.scheduler?.scheduleInject('ObstacleRemovedSig', injectData, 50);
+    }
+    // Parallel scenarios execution
+    {
+      const pResults = await Promise.all([
+        (async () => {
+          const res = await this.executeScenario('Scenario_RoutingLogic_P1_Unit1', ctx);
+          return { scenario: 'Scenario_RoutingLogic_P1_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_ObstacleHandling_Unit1', ctx);
+          return { scenario: 'Scenario_ObstacleHandling_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_PriorityResolution_Unit1', ctx);
+          return { scenario: 'Scenario_PriorityResolution_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_EndMission_Unit1', ctx);
+          return { scenario: 'Scenario_EndMission_Unit1', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_RoutingLogic_P1_Unit2', ctx);
+          return { scenario: 'Scenario_RoutingLogic_P1_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_ObstacleHandling_Unit2', ctx);
+          return { scenario: 'Scenario_ObstacleHandling_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_PriorityResolution_Unit2', ctx);
+          return { scenario: 'Scenario_PriorityResolution_Unit2', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_EndMission_Unit2', ctx);
+          return { scenario: 'Scenario_EndMission_Unit2', result: res };
+        })()
+      ]);
+      ctx.parallelResults.push(...pResults);
     }
     return { success: true, execution: 'RobAFIS_Validation_Run_P1' };
   }
@@ -2584,7 +2472,9 @@ function createEnvironmentModel() {
   
   model.scenarioExecutions = {};
   model.scenarioExecutions['RobAFIS_Validation_Run_P0'] = new RobAFIS_Validation_Run_P0();
+  model.registerScenarioExecution(model.scenarioExecutions['RobAFIS_Validation_Run_P0']);
   model.scenarioExecutions['RobAFIS_Validation_Run_P1'] = new RobAFIS_Validation_Run_P1();
+  model.registerScenarioExecution(model.scenarioExecutions['RobAFIS_Validation_Run_P1']);
   model.envActivityAllocations = ENV_ACTIVITY_ALLOCATIONS;
   return model;
 }

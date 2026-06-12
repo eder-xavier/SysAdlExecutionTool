@@ -22,14 +22,14 @@ start = _ model:Model _ { return model; }
 
 Model = "Model" _ name:ID _ ";" _
     involvedElements:("using" _ el:QualifiedName _ ";" _ { return el; })*
-    members:( _ m:( Property / Package / Requirement / Style / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution ) _ { return m; } )*
+    members:( _ m:( Property / Package / Requirement / Style / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution / EnvironmentConfiguration ) _ { return m; } )*
     allocation:(_ allocation:AllocationTable { return allocation; })?
     { return { type: "Model", name, involvedElements, members, allocation, location: location() }; }
 
 Package = "package" _ name:QualifiedName _ appliedStyle:("uses" _ s:QualifiedNameList)? _ "{" _
     imports:("import" _ i:QualifiedName _ ";" _ { return i; })*
     importedDefinitions:("using" _ d:QualifiedName _ ";" _ { return d; })*
-    definitions:( _ d:(Property / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution) _ { return d; } )*
+    definitions:( _ d:(Property / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution / EnvironmentConfiguration) _ { return d; } )*
     _ "}" { return { type: "Package", name, appliedStyle, imports, importedDefinitions, definitions, location: location() }; }
 
 Style = "style" _ name:QualifiedName _ "{" _
@@ -689,14 +689,19 @@ SceneCall = name:QualifiedName _ ";" {
     return { type: "SceneCall", sceneName: name, location: location() };
 }
 
-ScenarioExecution = "ScenarioExecution" _ name:ID _ "to" _ ref:QualifiedName _ "{" _
-    mode:(_ "mode" _ ":" _ m:ID _ ";" { return m; })? _
+ScenarioExecution = "ScenarioExecution" _ name:(n:ID _ { return n; })? "to" _ ref:QualifiedName _ "{" _
+    mode:(_ "mode" _ ":" _ m:ScenarioMode _ ";" { return m; })? _
     body:(_ ("body" _)? items:(_ ScenarioExecItem)* { return items.map(i=>i); })? _
 "}" {
-    return { type: "ScenarioExecution", name, reference: ref, mode, items: body || [], location: location() };
+    return { type: "ScenarioExecution", name, reference: ref, defs: ref, mode, items: body || [], location: location() };
 }
 
-ScenarioExecItem = item:(EventInjection / ParallelBlock / Statement / ScenarioCall) { return item; }
+ScenarioMode = "once" { return { type: "once" }; }
+             / "loop" _ ":" _ "while" _ cond:Expression { return { type: "loop_while", condition: cond }; }
+             / "loop" _ ":" _ count:INT { return { type: "loop_count", count: parseInt(count, 10) }; }
+             / "loop" { return { type: "loop" }; }
+
+ScenarioExecItem = item:(EventInjection / ParallelBlock / RepeatBlock / Statement / ScenarioCall) { return item; }
 
 EventInjection = "inject" _ signal:QualifiedName _
     assigns:(_ "{" _ as:(_ AssignmentStmt)* _ "}" { return as.map(a=>a); })? _
@@ -705,9 +710,14 @@ EventInjection = "inject" _ signal:QualifiedName _
 }
 
 InjectTiming = "immediate" { return { type: "immediate" }; }
-             / "after" _ time:INT { return { type: "after", time: parseInt(time, 10) }; }
-             / "before" _ ref:QualifiedName { return { type: "before", reference: ref }; }
-             / "when" _ cond:Expression { return { type: "when", condition: cond }; }
+             / "after" _ time:INT { return { type: "delay", value: parseInt(time, 10) }; }
+             / "after" _ ref:QualifiedName { return { type: "after", scenario: ref }; }
+             / "before" _ ref:QualifiedName { return { type: "before", scenario: ref }; }
+             / "when" _ cond:Expression { return { type: "condition", expression: cond }; }
+
+RepeatBlock = "repeat" _ count:INT _ scenario:QualifiedName _ ";" {
+    return { type: "RepeatBlock", count: parseInt(count, 10), scenario, location: location() };
+}
 
 ParallelBlock = "parallel" _ "{" _ calls:(_ ScenarioCall)* _ "}" {
     return { type: "ParallelBlock", calls: calls.map(c=>c), location: location() };
@@ -745,6 +755,8 @@ EFloat "Float" = sign:"-"? intPart:INT? "." decPart:INT exp:(("E"/"e") signExp:"
 
 STRING "String" = '"' chars:( '\\' . / [^"\\] )* '"' { return chars.join('').replace(/\\(.)/g,'$1'); }
                 / "'" chars:( '\\' . / [^'\\] )* "'" { return chars.join('').replace(/\\(.)/g,'$1'); }
+
+
 
 
 // =============================================================================

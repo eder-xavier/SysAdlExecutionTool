@@ -7091,7 +7091,7 @@
 
     // Helper method to execute a scenario by name (used by generated code)
     async executeScenario(scenarioName, context) {
-      const scenarioClass = this.model?.scenarios?.[scenarioName];
+      const scenarioClass = context?.scenarios?.[scenarioName] || this.model?.scenarios?.[scenarioName];
 
       if (!scenarioClass) {
         throw new Error(`Scenario '${scenarioName}' not found in model.scenarios`);
@@ -7118,6 +7118,11 @@
         });
       }
       const scenarioStartTime = Date.now();
+
+      // Notify context scheduler about scenario start
+      if (context && context.scheduler && typeof context.scheduler.notifyScenarioStarted === 'function') {
+        context.scheduler.notifyScenarioStarted(scenarioName);
+      }
 
       // If it's a class, instantiate it
       let scenario;
@@ -7149,6 +7154,11 @@
               executionName: this.name
             }
           });
+        }
+
+        // Notify context scheduler about scenario completion
+        if (context && context.scheduler && typeof context.scheduler.notifyScenarioCompleted === 'function') {
+          context.scheduler.notifyScenarioCompleted(scenarioName);
         }
 
         // Notificar EventScheduler sobre conclusão do cenário

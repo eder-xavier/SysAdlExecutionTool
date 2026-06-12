@@ -4,7 +4,7 @@
  */
 
 // Import all components
-const SysADLBase = require('./SysADLBase');
+const SysADLBase = require('../sysadl-framework/SysADLBase');
 
 async function runCompleteIntegrationTest() {
     console.log('🔬 SysADL Framework Complete Integration Test');

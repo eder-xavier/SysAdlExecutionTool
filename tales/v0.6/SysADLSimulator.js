@@ -76,6 +76,8 @@ class SimulationScheduler {
   constructor(ctx) {
     this.ctx = ctx;
     this.timers = [];
+    this.scenarioListeners = { before: new Map(), after: new Map() };
+    this.conditionWatchers = [];
   }
   
   scheduleInject(signalName, signalData, delayMs) {
@@ -89,11 +91,96 @@ class SimulationScheduler {
     this.timers.push(timer);
   }
   
+  scheduleBeforeScenario(signalName, signalData, scenarioName) {
+    console.log(`⏱️  [SCHEDULER] Scheduled injection ${signalName} BEFORE scenario ${scenarioName}`);
+    if (!this.scenarioListeners.before.has(scenarioName)) {
+      this.scenarioListeners.before.set(scenarioName, []);
+    }
+    this.scenarioListeners.before.get(scenarioName).push({ signalName, signalData });
+  }
+
+  scheduleAfterScenario(signalName, signalData, scenarioName) {
+    console.log(`⏱️  [SCHEDULER] Scheduled injection ${signalName} AFTER scenario ${scenarioName}`);
+    if (!this.scenarioListeners.after.has(scenarioName)) {
+      this.scenarioListeners.after.set(scenarioName, []);
+    }
+    this.scenarioListeners.after.get(scenarioName).push({ signalName, signalData });
+  }
+
+  notifyScenarioStarted(scenarioName) {
+    const list = this.scenarioListeners.before.get(scenarioName);
+    if (list) {
+      for (const { signalName, signalData } of list) {
+        console.log(`⚡ [SCHEDULER] Scenario ${scenarioName} starting. Injecting: ${signalName}`);
+        if (this.ctx.envActivities) {
+          this.ctx.envActivities.handleSignal(signalName, signalData, this.ctx);
+        }
+      }
+    }
+  }
+
+  notifyScenarioCompleted(scenarioName) {
+    const list = this.scenarioListeners.after.get(scenarioName);
+    if (list) {
+      for (const { signalName, signalData } of list) {
+        console.log(`⚡ [SCHEDULER] Scenario ${scenarioName} completed. Injecting: ${signalName}`);
+        if (this.ctx.envActivities) {
+          this.ctx.envActivities.handleSignal(signalName, signalData, this.ctx);
+        }
+      }
+    }
+  }
+
+  scheduleOnCondition(signalName, signalData, conditionFn, conditionExprStr = '') {
+    console.log(`⏱️  [SCHEDULER] Scheduled injection ${signalName} when condition is met: ${conditionExprStr}`);
+    
+    if (this.ctx.reactiveWatcher && conditionExprStr) {
+      try {
+        const conditionId = `inject_${signalName}_cond_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        this.ctx.reactiveWatcher.watchCondition(
+          conditionId,
+          conditionExprStr,
+          () => {
+            console.log(`⚡ [SCHEDULER] Condition met: ${conditionExprStr}. Injecting: ${signalName}`);
+            if (this.ctx.envActivities) {
+              this.ctx.envActivities.handleSignal(signalName, signalData, this.ctx);
+            }
+          },
+          { maxTriggers: 1 }
+        );
+        this.conditionWatchers.push(() => this.ctx.reactiveWatcher.unwatchCondition(conditionId));
+        return;
+      } catch (e) {
+        console.warn(`[SCHEDULER] Polling fallback triggered:`, e.message);
+      }
+    }
+
+    // Polling fallback
+    const interval = setInterval(() => {
+      try {
+        if (conditionFn()) {
+          console.log(`⚡ [SCHEDULER] Condition met (polling). Injecting: ${signalName}`);
+          clearInterval(interval);
+          if (this.ctx.envActivities) {
+            this.ctx.envActivities.handleSignal(signalName, signalData, this.ctx);
+          }
+        }
+      } catch (e) {}
+    }, 100);
+    this.timers.push(interval);
+  }
+
   clearAll() {
     for (const t of this.timers) {
+      clearInterval(t);
       clearTimeout(t);
     }
     this.timers = [];
+    for (const unwatch of this.conditionWatchers) {
+      try { unwatch(); } catch (e) {}
+    }
+    this.conditionWatchers = [];
+    this.scenarioListeners = { before: new Map(), after: new Map() };
   }
 }
 

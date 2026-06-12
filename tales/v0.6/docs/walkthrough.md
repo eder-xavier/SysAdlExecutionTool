@@ -19,14 +19,21 @@ Este documento resume a refatoração realizada no simulador CLI integrado (`Sys
 ### 4. Remoção de Logs Hardcoded
 - Os logs específicos das instâncias `unit1` e `unit2` dentro de `WrappedScene` foram totalmente removidos para preservar o encapsulamento e a generalização do simulador CLI.
 
+### 5. Opções Avançadas de Cenários (Fase 6)
+- **Gramática do Peggy**: Atualizada em `sysadl.peg` e compilada em `sysadl-parser.js` para suportar novas regras de loop de execução (`loop`, `loop: N`, `loop: while <condition>`), blocos `repeat N <scenario>`, blocos paralelos estruturados e comandos de injeção cronológica ou condicional (`inject Sig after X`, `inject Sig when cond`, `inject Sig before/after scenario`).
+- **Transformer**: Ajustado em `transformer.js` para estruturar a geração de loops e blocos de execução paralela de cenários. Corrigido um bug sintático onde vírgulas ilegais eram inseridas no corpo de IIFEs geradas.
+- **SimulationScheduler**: Desenvolvido em `SysADLSimulator.js` para gerenciar as injeções temporizadas e reativas de sinais durante a simulação (`scheduleInject`, `scheduleBeforeScenario`, `scheduleAfterScenario`, `scheduleOnCondition`).
+- **Ganchos no Framework**: Adicionados hooks em `executeScenario` (`SysADLBase.js`) para notificar o scheduler sobre as fronteiras de início e término de cenários, garantindo o disparo de injeções encadeadas.
+
 ## Verificação e Resultados
 
+### 1. Simulação Completa do RobAFIS
 Executou-se a suíte completa de simulações com o comando:
 ```bash
 node SysADLSimulator.js sysadl-models/RobAFIS.complete.sysadl
 ```
 
-### Sumário da Execução de Cenários
+#### Sumário da Execução de Cenários
 
 ```
 ============================================================
@@ -55,3 +62,11 @@ Summary: 8 passed, 0 failed (8 total scenarios)
 ```
 
 **Resultado Final**: 100% de sucesso (16/16 cenários validados e aprovados). O simulador e o transformer estão em conformidade e prontos para qualquer modelo SysADL.
+
+### 2. Testes de Integração
+Todos os testes automatizados da pasta `test/` foram executados com sucesso, incluindo o teste de integração final completo:
+```bash
+node test/test-phase4-integration.js
+node test/test-integration-complete.js
+```
+Os testes cobrem a validação de pré/pós-condições, a injeção em lote de eventos, o monitoramento de estados reativos e o loop e controle do ciclo de simulação. Todos retornaram **`All integration tests PASSED!`**.
