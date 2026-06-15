@@ -31,6 +31,7 @@ environmentConfiguration (instâncias de EnvComponents + BoundaryComponentExtens
 13) Sempre que eu te pedir para transformar um arquivo .sysadl, você deve utilizar o transformer.js com os parâmetros correspondentes, ou o arquivo transform_all.sh, que já faz o trabalho completo.
 14) Sempre que eu te pedir para simular, você deve utilizar o SysADLSimulator.js com os parâmetros necessários.
 15) Todo arquivo de teste deve ser colocado na pasta /tales/v0.6/test
+16) Não utilize agentes ou subagentes de navegador automatizados para realizar testes na interface web. Em vez disso, peça ao usuário para realizar o teste manualmente e copiar os logs do console se necessário.
 
 Documentação de referência:
 - docs/technical_reference.md — Referência técnica completa (arquivos, AST, arquitetura, próximos passos)

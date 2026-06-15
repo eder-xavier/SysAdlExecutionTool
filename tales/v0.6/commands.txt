@@ -5,14 +5,13 @@ node environment-simulator.js generated/AGV-completo-env-scen.js --scenario=MySc
 //log detalhado do sistema modelado.
 node environment-simulator.js generated/AGV-completo-env-scen.js --log
 
------ Éder
- cd ../../eder/v1/v1.2
-node server-node.js  
+----- animador
+ node server-node.js  
 
 
----- novo simulador
+---- novo simulador de ambientes e cenários
 
-node SysADLSimulator.js AGV-completo.sysadl
+node SysADLSimulator.js sysadl-models/RobAFIS.complete.sysadl --verbose
 
 ----- regerar o parser Peggy
 npx peggy --format es sysadl.peg -o sysadl-parser.js

@@ -22,6 +22,8 @@ export function registerSysADLLanguage() {
       'environment', 'environments', 'entity', 'entities', 'scenario', 'scenarios',
       'scene', 'scenes', 'execution', 'executions', 'event', 'events', 'connection',
       'connections', 'when', 'then', 'given', 'and', 'or', 'not', 'if', 'else',
+      'ScenarioExecution', 'repeat', 'parallel', 'inject', 'immediate', 'after', 'before',
+      'mode', 'once', 'loop',
       // Tipos básicos
       'Boolean', 'Integer', 'Real', 'String', 'Void', 'true', 'false'
     ],
@@ -113,7 +115,9 @@ export function registerSysADLLanguage() {
       const keywords = [
         'Model', 'package', 'component', 'connector', 'port', 'configuration',
         'environment', 'scenario', 'entity', 'event', 'scene', 'execution',
-        'import', 'from', 'to', 'delegate', 'bind', 'equation'
+        'import', 'from', 'to', 'delegate', 'bind', 'equation',
+        'ScenarioExecution', 'repeat', 'parallel', 'inject', 'immediate',
+        'after', 'before', 'mode', 'once', 'loop'
       ];
 
       keywords.forEach(keyword => {

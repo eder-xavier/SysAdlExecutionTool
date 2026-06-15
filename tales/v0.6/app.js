@@ -1,7 +1,6 @@
 // Simplified app that relies on the Node.js server
 // Removes browser wrapper requirements
 
-import { parse as sysadlParse, SyntaxError as SysADLSyntaxError } from './sysadl-parser.js';
 import { registerSysADLLanguage } from './sysadl-monaco.js';
 import { renderVisualization } from './visualizer.js';
 

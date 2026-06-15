@@ -440,16 +440,25 @@ function setupReactiveMonitoring(model, options) {
       }
       
       // Setup automatic logging of condition triggers
-      const originalEmitChange = model.conditionWatcher.emit.bind(model.conditionWatcher);
-      model.conditionWatcher.emit = function(event, ...args) {
-        if (event === 'conditionTriggered' && args.length > 0) {
-          const conditionData = args[0];
-          console.log(`🔥 [REACTIVE] Condition triggered: ${conditionData.conditionId}`);
-          console.log(`    Expression: "${conditionData.expression}"`);
-          console.log(`    Result: ${conditionData.result}`);
-        }
-        return originalEmitChange(event, ...args);
-      };
+      if (typeof model.conditionWatcher.emit === 'function') {
+        const originalEmitChange = model.conditionWatcher.emit.bind(model.conditionWatcher);
+        model.conditionWatcher.emit = function(event, ...args) {
+          if (event === 'conditionTriggered' && args.length > 0) {
+            const conditionData = args[0];
+            console.log(`🔥 [REACTIVE] Condition triggered: ${conditionData.conditionId}`);
+            console.log(`    Expression: "${conditionData.expression}"`);
+            console.log(`    Result: ${conditionData.result}`);
+          }
+          return originalEmitChange(event, ...args);
+        };
+      } else if (typeof model.conditionWatcher.triggerCondition === 'function') {
+        const originalTrigger = model.conditionWatcher.triggerCondition.bind(model.conditionWatcher);
+        model.conditionWatcher.triggerCondition = function(conditionId, condition, currentState) {
+          console.log(`🔥 [REACTIVE] Condition triggered: ${conditionId}`);
+          console.log(`    Expression: "${condition.expression}"`);
+          return originalTrigger(conditionId, condition, currentState);
+        };
+      }
       
     } else if (model.state && typeof model.state === 'object') {
       console.log('ℹ️  Basic state monitoring available');
