@@ -1,0 +1,768 @@
+/*
+  * =============================================================================
+  * Complete SysADL Grammar (with Environment and Scenario Viewpoints)
+  * Converted from Xtext to Peggy.js (Definitive and Complete Version)
+  * =============================================================================
+  * This grammar translates the complete structure of the SysADL language, including
+  * the Structural, Behavioral, Executable viewpoints and the new
+  * Environment and Scenario viewpoints.
+  *
+  * NOTE: Reference resolution (scoping), which in Xtext is done with `[Type|ID]`,
+  * is represented here by capturing the name (e.g., `QualifiedName`). The logic to
+  * bind this name to its corresponding definition object must be
+  * implemented in a post-processing phase (semantic analysis) after parsing.
+  * =============================================================================
+  */
+
+start = _ model:Model _ { return model; }
+
+// =============================================================================
+// --- Main Model Structure ---
+// =============================================================================
+
+Model = "Model" _ name:ID _ ";" _
+    involvedElements:("using" _ el:QualifiedName _ ";" _ { return el; })*
+    members:( _ m:( Property / Package / Requirement / Style / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution / EnvironmentConfiguration ) _ { return m; } )*
+    allocation:(_ allocation:AllocationTable { return allocation; })?
+    { return { type: "Model", name, involvedElements, members, allocation, location: location() }; }
+
+Package = "package" _ name:QualifiedName _ appliedStyle:("uses" _ s:QualifiedNameList)? _ "{" _
+    imports:("import" _ i:QualifiedName _ ";" _ { return i; })*
+    importedDefinitions:("using" _ d:QualifiedName _ ";" _ { return d; })*
+    definitions:( _ d:(Property / ElementDef / ArchitectureDef / BoundaryComponentExtension / EnvActivitiesDefinitions / SceneDefinitions / ScenarioDefinitions / ScenarioExecution / EnvironmentConfiguration) _ { return d; } )*
+    _ "}" { return { type: "Package", name, appliedStyle, imports, importedDefinitions, definitions, location: location() }; }
+
+Style = "style" _ name:QualifiedName _ "{" _
+    members:( _ m:(Invariant / AbstractDef / Function) _ { return m; } )*
+    _ "}" { return { type: "Style", name, members, location: location() }; }
+
+Function = "function" _ name:ID _ def:("=" _ d:STRING { return d; })? 
+    { return { type: "Function", name, def: def || null, location: location() }; }
+
+Invariant = "invariant" _ name:ID _ expr:("=" _ e:STRING { return e; })? 
+    { return { type: "Invariant", name, expr: expr || null, location: location() }; }
+
+// =============================================================================
+// --- Abstract Definitions ---
+// =============================================================================
+
+AbstractDef = def:(AbstractComponentDef / AbstractConnectorDef / AbstractActivityDef / AbstractProtocol) { return def; }
+
+AbstractActivityDef = "abstract" _ "activity" _ "def" _ name:ID
+    signature: (
+        inParams:( _ "(" _ PinList? _ ")" )+
+        outParams:( _ ":" _ "(" _ PinList? _ ")" )?
+        _ "{" _ body:ActivityBody _ "}" _
+    )? {
+    if (!signature) {
+        return { type: "AbstractActivityDef", name, inParameters: [], outParameters: [], body: null, location: location() };
+    }
+    const [, inParams, outParams, body] = signature;
+    return {
+        type: "AbstractActivityDef", name,
+        inParameters: inParams.map(p => p || []),
+        outParameters: outParams ? outParams || [] : [],
+        body, location: location()
+    };
+}
+
+AbstractComponentDef = "abstract" _ "component" _ "def" _ name:ID _ bounds:Bounds? _ "{" _
+    ports: ( _ "ports" _ ":" _ ps:(_ AbstractPortUse)* { return ps.map(item => item); } )?
+    composition: (_ "compose" _ "{" _ c:QualifiedNameList _ "}" { return c; } )?
+    _ "}" { return { type: "AbstractComponentDef", name, bounds, ports: ports || [], composition, location: location() }; }
+
+AbstractPortUse = name:ID _ ":" _ flowProperty:FlowProperty _ "any" _ bounds:Bounds? 
+    { return { type: "AbstractPortUse", name, flowProperty, bounds, location: location() }; }
+
+AbstractConnectorDef = "abstract" _ "connector" _ "def" _ name:ID _ "{" _
+    ports: ( _ "participants" _ ":" _ ps:(_ AbstractPortUse_Reverse)* { return ps.map(item => item); } )?
+    flows: ( _ "flows" _ ":" _ fs:(_ AbstractFlow)* { return fs.map(item => item); } )?
+    _ "}" { return { type: "AbstractConnectorDef", name, ports: ports || [], flows: flows || [], location: location() }; }
+
+AbstractFlow = "flow" _ source:ID _ "to" _ target:ID 
+    { return { type: "AbstractFlow", source, target, location: location() }; }
+
+AbstractPortUse_Reverse = "~" _ name:ID _ ":" _ flowProperty:FlowProperty _ "any" 
+    { return { type: "AbstractPortUse", isReverse: true, name, flowProperty, location: location() }; }
+
+AbstractProtocol = "activity" _ "protocol" _ name:ID _ "{" _ body:AbstractProtocolBody _ "}" 
+    { return { type: "AbstractProtocol", name, body, location: location() }; }
+
+AbstractProtocolBody = recControl:ProtocolControl _ body:AbstractProtocolBodyInternal _ 
+    recursive:(recType:ProtocolAlternativeType _ r:AbstractProtocolBody { return { recType, recursive: r }; })?
+    { return { type: "AbstractProtocolBody", recControl, body, recursive, location: location() }; }
+
+AbstractProtocolBodyInternal = "(" _ b:AbstractProtocolBody _ ")" { return b; } / AbstractActionSend / AbstractActionReceive
+
+AbstractActionSend = "send" _ "any" _ "via" _ flowTo:QualifiedName 
+    { return { type: "AbstractActionSend", flowTo, location: location() }; }
+
+AbstractActionReceive = "receive" _ "any" _ "from" _ flowTo:QualifiedName 
+    { return { type: "AbstractActionReceive", flowTo, location: location() }; }
+
+// =============================================================================
+// --- Requirements ---
+// =============================================================================
+
+Requirement = "Requirement" _ name:ID _ "(" _ id:ReqNumber _ ")" _ "{" _
+    text:("text" _ "=" _ t:EString _ { return t; })?
+    satisfyVerify:(
+        s:("satisfied" _ "by" _ sb:QualifiedNameList _ { return sb; })
+        v:("verified" _ "by" _ "[" _ vb:QualifiedNameList _ "]" _ { return vb; })?
+        ";" _
+        { return { satisfiedBy: s, verifiedBy: v || [] }; }
+        /
+        v:("verified" _ "by" _ "[" _ vb:QualifiedNameList _ "]" _ { return vb; })
+        ";" _
+        { return { satisfiedBy: [], verifiedBy: v }; }
+    )?
+    derive:("derive" _ d:QualifiedNameList _ ";" _ { return d; })?
+    members:(_ m:(Property / Requirement) _ { return m; })*
+    _ "}" { 
+        return { 
+            type: "Requirement", 
+            name, 
+            id, 
+            text: text || null, 
+            satisfiedBy: satisfyVerify ? satisfyVerify.satisfiedBy : [], 
+            verifiedBy: satisfyVerify ? satisfyVerify.verifiedBy : [],
+            derive: derive || [], 
+            members, 
+            location: location() 
+        }; 
+    }
+
+ReqNumber = head:INT tail:("." i:INT { return i; })* { return [head, ...tail].join('.'); }
+
+// =============================================================================
+// --- Definitions of Main Elements ---
+// =============================================================================
+
+ElementDef = def:( DataTypeDef / DimensionDef / UnitDef / ValueTypeDef / Enumeration / 
+                   ComponentDef / ConnectorDef / PortDef / ActionDef / ActivityDef / 
+                   Protocol / ConstraintDef / Executable /
+                   EnvPortDef / EnvConnectorDef / EnvComponentDef / SignalDef / EnvActionDef / EnvActivityDef ) { return def; }
+
+TypeDef = def:(DataTypeDef / ValueTypeDef / Enumeration) { return def; }
+StructuralDef = def:(ComponentDef / ConnectorDef / PortDef) { return def; }
+DataDef = def:(DataTypeDef / DimensionDef / UnitDef / ValueTypeDef / Enumeration) { return def; }
+BehaviorDef = def:(ActivityDef / Protocol / ConstraintDef / ActionDef) { return def; }
+
+ArchitectureDef = "architecture" _ "def" _ name:ID _ appliedStyle:("styles" _ s:QualifiedNameList)? _ "{" _
+    _ "ports" _ ":" _ ports:PortUse*
+    properties:(_ p:Property { return p; })*
+    composite:(_ c:Configuration { return c; })
+    _ "}" { return { type: "ArchitectureDef", name, appliedStyle, ports, properties, composite, location: location() }; }
+
+// =============================================================================
+// --- Structural Viewpoint ---
+// =============================================================================
+
+ComponentDef = isBoundary:("boundary" _)? "component" _ "def" _ name:ID _
+    appliedStyle:("styles" _ s:QualifiedNameList)? _
+    abstractComponent:("implements" _ ac:QualifiedName { return ac; })? _
+    "{" _
+    ports: ( _ "ports" _ ":" _ ps:(_ p:PortUse { return p; })* { return ps; } )?
+    members: ( _ m:(Property / StructuralDef / DataDef) { return m; } )*
+    composite: ( _ c:Configuration { return c; } )?
+    _ "}" { return { type: "ComponentDef", isBoundary: !!isBoundary, name, appliedStyle, abstractComponent: abstractComponent || null, ports: ports || [], members, composite, location: location() }; }
+
+ConnectorDef = "connector" _ "def" _ name:ID _ abstractConnector:("implements" _ ac:QualifiedName { return ac; })? _ "{" _
+    ports: ( _ "participants" _ ":" _ ps:(_ p:PortUse_Reverse { return p; })* { return ps; } )?
+    composite:( _ Configuration)?
+    flows:(_ "flows" _ ":" _ fs:(_ f:Flow { return f; })* { return fs; })?
+    members:(_ m:(Property / StructuralDef / DataDef) { return m; })*
+    _ "}" { return { type: "ConnectorDef", name, abstractConnector: abstractConnector || null, ports: ports || [], composite, flows: flows || [], members, location: location() }; }
+
+PortDef = def:(CompositePortDef / SimplePortDef) { return def; }
+
+CompositePortDef = "port" _ "def" _ name:ID _ "{" _
+    ports: ( _ "ports" _ ":" _ ps:(_ p:PortUse { return p; })* { return ps; } )?
+    members:(_ m:(Property / StructuralDef / DataDef) { return m; })*
+    _ "}" { return { type: "CompositePortDef", name, ports: ports || [], members, location: location() }; }
+
+SimplePortDef = "port" _ "def" _ name:ID _ "{" _
+    _ "flow" _ flowProperties:FlowProperty _ flowType:QualifiedName _ arrayIndex:Index?
+    members:(_ m:(Property / StructuralDef / DataDef) { return m; })*
+    _ "}" { return { type: "SimplePortDef", name, flowProperties, flowType, arrayIndex, members, location: location() }; }
+
+Configuration = "configuration" _ "{" _
+    components:(_ "components" _ ":" _ c:ComponentUse_List { return c; })?
+    connectors:(_ "connectors" _ ":" _ n:ConnectorUse_List { return n; })?
+    delegations:(_ "delegations" _ ":" _ d:Delegation* { return d; })?
+    _ "}" { return { type: "Configuration", components: components || [], connectors: connectors || [], delegations: delegations || [], location: location() }; }
+
+ComponentUse_List = components:(_ !("connectors" _ / "delegations" _ / "}") c:ComponentUse { return c; })* { return components; }
+ConnectorUse_List = connectors:(_ !("delegations" _ / "}") c:ConnectorUse { return c; })* { return connectors; }
+
+ComponentUse = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
+    body:("{" _ ports:("using" _ "ports" _ ":" _ head:PortUse tail:(_ PortUse)* { return [head, ...tail.map(t=>t)]; })?
+    properties:(_ p:Property { return p; })* _ "}" / ";") 
+    { return { type: "ComponentUse", name, definition, bounds, body, location: location() }; }
+
+ConnectorUse = name:ID _ ":" _ definition:QualifiedName _ bounds:Bounds? _
+    bindings:("bindings" _ b:ConnectorBindingList { return b; })? _
+    body:("{" _ "ports" _ ":" _ ports:(_ p:PortUse_Reverse { return p; })*
+    properties:(_ p:Property { return p; })* _ "}" / ";") 
+    { return { type: "ConnectorUse", name, definition, bounds, bindings, body, location: location() }; }
+
+PortUse = name:ID _ ":" _ definition:QualifiedName _ concrete:("concrete" _ c:QualifiedName { return c; })? _ bounds:Bounds? _ 
+    body:("{" _ properties:(_ p:Property { return p; })* _ "}" / ";") 
+    { return { type: "PortUse", name, definition, concrete: concrete || null, bounds, body, location: location() }; }
+
+PortUse_Reverse = "~" _ port:PortUse { return { ...port, isReverse: true }; }
+
+Delegation = source:QualifiedName _ "to" _ destination:QualifiedName _ ";"? _ 
+    { return { type: "Delegation", source, destination, location: location() }; }
+
+Flow = flowType:QualifiedName _ "from" _ source:QualifiedName _ "to" _ destination:QualifiedName _ ";"? 
+    { return { type: "Flow", flowType, source, destination, location: location() }; }
+
+ConnectorBinding = source:QualifiedName _ "=" _ destination:QualifiedName 
+    { return { type: "ConnectorBinding", source, destination, location: location() }; }
+
+// =============================================================================
+// --- Types ---
+// =============================================================================
+
+DataTypeDef = "datatype" _ name:ID _ superType:("extends" _ s:QualifiedName { return s; })? _ "{" _
+    ("attributes" _ ":" _)? attributes:(_ t:TypeUse { return t; })*
+    properties:(_ p:Property { return p; })*
+    _ "}" { return { type: "DataTypeDef", name, superType: superType || null, attributes: attributes || [], properties: properties || [], location: location() }; }
+
+ValueTypeDef = "value" _ "type" _ name:ID _ extendsOrAssign:(("extends" _ e:QualifiedName { return { extends: e }; }) / ("=" _ v:QualifiedName { return { assign: v }; }))? _ body:("{" _ unit:("unit" _ "=" _ u:QualifiedName _ { return u; })? dimension:("dimension" _ "=" _ d:QualifiedName _ { return d; })? props:(_ p:Property { return p; })* _ "}")? { return { type: "ValueTypeDef", name, extendsOrAssign, unit: body ? body.unit : null, dimension: body ? body.dimension : null, properties: body ? body.props : [], location: location() }; }
+
+Enumeration = "enum" _ name:ID _ "{" _ props:(_ p:Property { return p; })* literals:QualifiedNameList? _ "}" 
+    { return { type: "Enumeration", name, properties: props || [], literals: literals || [], location: location() }; }
+
+DimensionDef = "dimension" _ name:ID _ body:("{" _ props:(_ p:Property { return p; })* _ "}")? 
+    { return { type: "DimensionDef", name, properties: body ? body.props : [], location: location() }; }
+
+UnitDef = "unit" _ name:ID _ dimension:("for" _ d:QualifiedName _ { return d; })? _ body:("{" _ dim:("dimension" _ "=" _ d:QualifiedName _ { return d; })? props:(_ p:Property { return p; })* _ "}")? { return { type: "UnitDef", name, dimension: dimension || (body ? body.dim : null), properties: body ? body.props : [], location: location() }; }
+
+// =============================================================================
+// --- Executable and Behavioral viewpoints ---
+// =============================================================================
+
+ConstraintUse = kind:ConstraintKind _ definition:QualifiedName 
+    { return { type: "ConstraintUse", kind, definition, location: location() }; }
+
+ConstraintKind = kind:("pre-condition" / "post-condition" / "invariant" / "pre" / "post") { return kind; }
+
+ActionDef = "action" _ "def" _ name:ID _ "(" _ inParameters:PinList _ ")" _ ":" _ returnType:QualifiedName _ "{" _
+    stmts:( _ stmt:( Property / BehaviorDef / DataDef / (_ "constraint" _ ":" _ first:ConstraintUse rest:( _ ConstraintUse )* { return [ first, ...rest.map(r => r) ]; } ) / ActivityDelegation ) { return stmt; } )*
+    _ "}" {
+    const properties    = stmts.filter(s => s.type === "Property");
+    const behaviorDefs  = stmts.filter(s => s.type === "BehaviorDef");
+    const dataDefs      = stmts.filter(s => s.type === "DataDef");
+    const constraints   = stmts.filter(Array.isArray).flat();
+    const delegations   = stmts.filter(s => s.type === "ActivityDelegation");
+    return { type: "ActionDef", name, inParameters, returnType, properties, behaviorDefs, dataDefs, constraints, delegations, location: location() };
+}
+
+ActivityDef = "activity" _ "def" _ name:ID 
+    abstractActivity:( _ "implements" _ ac:QualifiedNameList { return ac; } )?
+    _ inParams:( _ "(" _ PinList? _ ")" )*
+    outParams:( _ ":" _ "(" _ PinList? _ ")" )?
+    _ "{" _ body:ActivityBody? _ "}" {
+    return {
+        type: "ActivityDef", name,
+        implements: abstractActivity || [],
+        inParameters: inParams.map(p => p || []),
+        outParameters: outParams ? outParams || [] : [],
+        body: body || null, location: location()
+    };
+}
+
+Protocol = "protocol" _ name:ID _ "(" _ inParameters:PinList? _ ")" _ outParameters:(":" _ "(" _ p:PinList? _ ")")? _ "{" _
+    members:(Property / BehaviorDef / DataDef)*
+    delegations:(_ "delegations" _ ":" _ d:ActivityDelegation*)?
+    body:ProtocolBody
+    _ "}" { return { type: "Protocol", name, inParameters: inParameters || [], outParameters, members, delegations, body, location: location() }; }
+
+ConstraintDef = "constraint" _ name:ID _ inParameters:("(" _ p:PinList? _ ")")? _ outParameters:(":" _ "(" _ p:PinList? _ ")")? _ "{" _
+    members:( _ m:(Property / BehaviorDef / DataDef) { return m; } )*
+    equation:("equation" _ "=" _ e:Expression)? _ "}" { return { type: "ConstraintDef", name, inParameters, outParameters, members, equation, location: location() }; }
+
+Executable = "executable" _ "def" _ name:ID _ "(" _
+    inParams:( "in" _ first:TypeUse_NoSemicolon rest:(_ "," _ "in" _ p:TypeUse_NoSemicolon { return p; })* { return [ first, ...rest ]; } )? _ ")" _ ":" _ "out" _ returnType:QualifiedName _ "{" _
+    properties:( _ Property )*
+    body:( _ NonBlockStatement )+ _ "}" {
+    return { type: "Executable", name, params: inParams||[], returnType, properties: properties.map(p => p), body: body.map(b => b), location: location() };
+}
+
+// =============================================================================
+// --- Behavioral elements ---
+// =============================================================================
+
+ActivityBody = "body" _ "{" _
+    actions: ( _ "actions" _ ":" _ list:ActionUse+ { return list; } )?
+    elements: ( _ e:(ActivityRelation / DataObject) { return e; } )*
+    _ "}" { 
+        const rels = elements.filter(e => e.type === "ActivityDelegation" || e.type === "ActivityFlow");
+        const dataObjs = elements.filter(e => e.type === "DataStore" || e.type === "DataBuffer");
+        return { 
+            type: "ActivityBody", 
+            actions: actions || [], 
+            relations: rels, 
+            dataObjects: dataObjs, 
+            location: location() 
+        }; 
+    }
+
+PinUse = name:ID _ ":" _ type:QualifiedName _ ";" _ { return { name, type, location: location() }; }
+
+ActionUse = name:ID _ ":" _ definition:QualifiedName _ (
+    ";" _ { return { type: "ActionUse", name, definition, using: [], properties: [], location: location() }; }
+    / "{" _ up:("using" _ "pins" _ ":" _ pu:PinUse* { return pu; })? props:(_ p:Property { return p; })* _ "}" _ 
+    { return { type: "ActionUse", name, definition, using: up || [], properties: props, location: location() }; }
+)
+
+ActivityRelation = ActivityDelegation / ActivityFlow
+
+ActivityDelegation = "delegate" _ source:QualifiedName _ "to" _ target:QualifiedName _ ";"? _ 
+    { return { type:"ActivityDelegation", source, target, location:location() }; }
+
+ActivityFlow = "flow" _ "from" _ source:QualifiedName _ "to" _ target:( ActivitySwitch / QualifiedName ) _ ";"? _ 
+    { return { type: "ActivityFlow", source, target, location: location() }; }
+
+ActivitySwitch = "switch" _ "{" _ cases:ActivitySwitchCase* _ "}" 
+    { return { type: "ActivitySwitch", cases, location: location() }; }
+
+ActivitySwitchCase = "case" _ condition:Expression _ ":" _ target:QualifiedName _ ","? _ 
+    { return { type: "ActivitySwitchCase", condition, target, location: location() }; }
+
+DataObject = obj:(DataStore / DataBuffer) { return obj; }
+
+DataStore = "datastore" _ name:ID? _ ":" _ type:QualifiedName _ arrayIndex:Index? _ (
+    "{" _ props:(_ p:Property { return p; })* initVal:("initial" _ "value" _ "=" _ v:Expression _ ";")? _ "}" _ 
+    { return { type: "DataStore", name, dataType: type, arrayIndex, properties: props, initValue: initVal ? initVal : null, location: location() }; }
+    / ";"? _ { return { type: "DataStore", name, dataType: type, arrayIndex, properties: [], initValue: null, location: location() }; }
+)
+
+DataBuffer = "databuffer" _ name:ID? _ ":" _ type:QualifiedName _ arrayIndex:Index? _ (
+    "{" _ props:(_ p:Property { return p; })* initVal:("initial" _ "value" _ "=" _ v:Expression _ ";")? _ "}" _ 
+    { return { type: "DataBuffer", name, dataType: type, arrayIndex, properties: props, initValue: initVal ? initVal : null, location: location() }; }
+    / ";"? _ { return { type: "DataBuffer", name, dataType: type, arrayIndex, properties: [], initValue: null, location: location() }; }
+)
+
+ProtocolBody = recControl:ProtocolControl _ body:ProtocolBodyInternal _ recursive:(recType:ProtocolAlternativeType _ r:ProtocolBody { return { recType, recursive: r }; })?
+    { return { type: "ProtocolBody", recControl, body, recursive, location: location() }; }
+
+ProtocolBodyInternal = "(" _ b:ProtocolBody _ ")" { return b; } / ActionSend / ActionReceive
+
+ActionSend = "send" _ e:Expression { return { type: "ActionSend", expression: e, location: location() }; }
+ActionReceive = "receive" _ v:TypeUse _ "from" _ flowTo:QualifiedName { return { type: "ActionReceive", variable: v, flowTo, location: location() }; } /
+                "receive" _ v:QualifiedName { return { type: "ActionReceive", variable: v, location: location() }; }
+
+// =============================================================================
+// --- Statements ---
+// =============================================================================
+
+Statement = stmt:( NonBlockStatement / BlockStatement ) { return stmt; }
+
+AssignmentStmt = assign:Assignment _ ";" { return assign; }
+
+Invocation = call:(MethodCall / FunctionCall) _ ";" { return call; }
+
+FunctionCall = name:QualifiedName _ "(" _ args:ArgumentList? _ ")" 
+    { return { type: "FunctionCall", name, arguments: args || [], location: location() }; }
+
+IncDecStatement = name:QualifiedName _ op:("++" / "--") _ ";" 
+    { return { type:"IncDec", name, op, location: location() }; }
+
+Assignment = left:LeftHandSide _ "=" _ right:Expression { return { type: "Assignment", left, right, location: location() }; }
+
+LeftHandSide = head:ID tail:( _ "[" _ e:Expression _ "]" { return { index: e }; } / _ "." _ p:ID { return { prop: p }; } / _ "->" _ p:ID { return { prop: p }; } / _ "::" _ p:ID { return { prop: p }; } )* {
+    return tail.reduce((result, element) => {
+        if (element.index) return { type: "ArrayAccess", array: result, index: element.index, location: location() };
+        if (element.prop) return { type: "PropertyAccess", object: result, property: element.prop, location: location() };
+    }, { type: "Identifier", name: head, location: location() });
+}
+
+NonBlockStatement = stmt:( VarDecl / AssignmentStmt / Invocation / IncDecStatement / ReturnStatement / IfStatement / ForStatement / WhileStatement / DoStatement / SwitchStatement ) { return stmt; }
+
+DoStatement = "do" _ body:(BlockStatement / NonBlockStatement) _ "while" _ "(" _ condition:Expression _ ")" _ ";" 
+    { return { type: "DoStatement", body, condition, location: location() }; }
+
+VarDecl = type:TypeUse _ init:("=" _ e:Expression { return e; })? _ ";" 
+    { return { type: "VarDecl", variableType: type, init: init || null, location: location() }; } /
+    "let" _ name:ID _ ":" _ type:QualifiedName _ init:("=" _ e:Expression { return e; })? _ ";" 
+    { return { type: "VarDecl", variableType: { name, type }, init: init || null, location: location() }; }
+
+ReturnStatement = "return" _ expr:Expression? _ ";" 
+    { return { type: "Return", expression: expr || null, location: location() }; }
+
+IfStatement = "if" _ "(" _ condition:Expression _ ")" _ thenBlock:(BlockStatement / NonBlockStatement) _ elseBlock:("else" _ b:(BlockStatement / IfStatement / NonBlockStatement) { return b; })? 
+    { return { type: "IfStatement", condition, thenBlock, elseBlock: elseBlock || null, location: location() }; }
+
+ForStatement = "for" _ "(" _ vars:ForVarList _ ")" _ body:(BlockStatement / NonBlockStatement) 
+    { return { type: "ForStatement", variables: vars, body, location: location() }; }
+
+ForVar = type:TypeUse _ "in" _ collection:Expression _ range:(".." _ e:Expression { return e; })? 
+    { return { type: "ForVar", varType: type, collection, range: range || null, location: location() }; }
+
+WhileStatement = "while" _ "(" _ condition:Expression _ ")" _ body:(BlockStatement / NonBlockStatement) 
+    { return { type: "WhileStatement", condition, body, location: location() }; }
+
+BlockStatement = "{" _ stmts:( _ s:Statement { return s; } )* _ "}" { return { type: "Block", statements: stmts, location: location() }; }
+
+SwitchStatement = "switch" _ "(" _ condition:Expression _ ")" _ "{" _ clauses:SwitchClause* _ defaultClause:DefaultSwitchClause? _ "}" 
+    { return { type: "SwitchStatement", condition, clauses, defaultClause: defaultClause || null, location: location() }; }
+
+SwitchClause = cases:SwitchCase+ _ body:( _ s:Statement { return s; } )* 
+    { return { type: "SwitchClause", cases, body, location: location() }; }
+
+SwitchCase = "case" _ expr:Expression _ ":" { return expr; }
+
+DefaultSwitchClause = "default" _ ":" _ body:( _ s:Statement { return s; } )* 
+    { return { type: "DefaultSwitchClause", body, location: location() }; }
+
+// =============================================================================
+// --- Expressions ---
+// =============================================================================
+
+Expression = ConditionalExpression / AssignmentExpression
+
+AssignmentExpression = left:LeftHandSide _ op:AssignmentOperator _ right:Expression 
+    { return { type: "AssignmentExpression", left, operator: op, right, location: location() }; }
+
+ConditionalExpression = condition:ConditionalImpliesExpression _ "?" _ trueExpr:Expression _ ":" _ falseExpr:Expression 
+    { return { type: "ConditionalExpression", condition, trueExpr, falseExpr, location: location() }; } 
+    / ConditionalImpliesExpression
+
+ConditionalImpliesExpression = head:LogicalOrExpression tail:(_ "implies" _ LogicalOrExpression)* {
+    return tail.reduce((result, element) => ({ type: "LogicalExpression", operator: "implies", left: result, right: element, location: location() }), head);
+}
+
+LogicalOrExpression = head:LogicalAndExpression tail:(_ op:("||" / "OR" / "or") _ expr:LogicalAndExpression { return {op, expr}; })* {
+    return tail.reduce((result, element) => ({ type: "LogicalExpression", operator: element.op, left: result, right: element.expr, location: location() }), head);
+}
+
+LogicalAndExpression = head:BitwiseOrExpression tail:(_ op:("&&" / "AND" / "and") _ expr:BitwiseOrExpression { return {op, expr}; })* {
+    return tail.reduce((result, element) => ({ type: "LogicalExpression", operator: element.op, left: result, right: element.expr, location: location() }), head);
+}
+
+BitwiseOrExpression = head:BitwiseXorExpression tail:(_ "|" _ BitwiseXorExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: "|", left: result, right: element, location: location() }), head);
+}
+
+BitwiseXorExpression = head:BitwiseAndExpression tail:(_ "^" _ BitwiseAndExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: "^", left: result, right: element, location: location() }), head);
+}
+
+BitwiseAndExpression = head:EqualityExpression tail:(_ "&" _ EqualityExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: "&", left: result, right: element, location: location() }), head);
+}
+
+EqualityExpression = head:ClassificationExpression tail:(_ EqualityOperator _ ClassificationExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: element, left: result, right: element, location: location() }), head);
+}
+
+ClassificationExpression = op:RelationalExpression tail:(_ operator:("instanceof" / "hastype") _ typeName:QualifiedName { return {operator, typeName}; })? {
+    return tail ? { type: "ClassificationExpression", expression: op, operator: tail.operator, typeName: tail.typeName, location: location() } : op;
+}
+
+RelationalExpression = head:ShiftExpression tail:(_ RelationalOperator _ ShiftExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: element, left: result, right: element, location: location() }), head);
+}
+
+ShiftExpression = head:AdditiveExpression tail:(_ ShiftOperator _ AdditiveExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: element, left: result, right: element, location: location() }), head);
+}
+
+AdditiveExpression = head:MultiplicativeExpression tail:(_ AdditiveOperator _ MultiplicativeExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: element, left: result, right: element, location: location() }), head);
+}
+
+MultiplicativeExpression = head:UnaryExpression tail:(_ MultiplicativeOperator _ UnaryExpression)* {
+    return tail.reduce((result, element) => ({ type: "BinaryExpression", operator: element, left: result, right: element, location: location() }), head);
+}
+
+UnaryExpression = PrimaryExpression / 
+    operator:("toString" / "toInt") _ "(" _ expr:UnaryExpression _ ")" { return { type: "UnaryExpression", operator, expression: expr, location: location() }; } /
+    op:("!" / "-" / "+" / "not" / "~" / "$") _ expr:UnaryExpression { return { type: "UnaryExpression", operator: op, expression: expr, location: location() }; }
+
+PrimaryExpression = BooleanLiteral / NumberLiteral / StringLiteral / NullLiteral / NewExpression / ObjectLiteral / MethodCall / FunctionCall / VariableReference / "(" _ e:Expression _ ")" { return e; }
+
+BooleanLiteral = value:("true" / "false") { return { type: "BooleanLiteral", value: value === "true", location: location() }; }
+NumberLiteral = value:(EFloat / EInt) { return { type: "NumberLiteral", value, location: location() }; }
+StringLiteral = value:STRING { return { type: "StringLiteral", value, location: location() }; }
+NullLiteral = "null" { return { type: "NullLiteral", location: location() }; }
+
+NewExpression = "new" _ type:QualifiedName _ args:("(" _ a:(PropertyAssignmentList / ArgumentList)? _ ")" { return a; })? 
+    { return { type: "NewExpression", classType: type, arguments: args || [], location: location() }; }
+
+ObjectLiteral = "{" _ props:PropertyAssignmentList? _ "}" 
+    { return { type: "ObjectLiteral", properties: props || [], location: location() }; }
+
+PropertyAssignmentList = head:PropertyAssignment tail:(_ "," _ p:PropertyAssignment { return p; })* 
+    { return [head, ...tail]; }
+
+PropertyAssignment = name:ID _ "=>" _ value:Expression { return { name, value }; }
+
+VariableReference = head:ID tail:( _ "[" _ e:Expression _ "]" { return { index: e }; } / _ "." _ p:ID { return { prop: p }; } / _ "->" _ p:ID { return { prop: p }; } / _ "::" _ p:ID { return { prop: p }; } )* {
+    return tail.reduce((result, element) => {
+        if (element.index) return { type: "ArrayAccess", array: result, index: element.index, location: location() };
+        if (element.prop) return { type: "PropertyAccess", object: result, property: element.prop, location: location() };
+    }, { type: "Identifier", name: head, location: location() });
+}
+
+MethodCall = object:LeftHandSide _ "->" _ method:ID _ "(" _ args:ArgumentList? _ ")" 
+    { return { type: "MethodCall", object, method, arguments: args || [], location: location() }; }
+
+ArgumentList = head:Expression tail:(_ "," _ e:Expression { return e; })* { return [head, ...tail]; }
+
+AssignmentOperator = op:("=" / "+=" / "-=" / "*=" / "%=" / "/=" / "&=" / "|=" / "^=" / "<<=" / ">>=" / ">>>=") { return op; }
+EqualityOperator = op:("==" / "!=") { return op; }
+RelationalOperator = op:("<=" / ">=" / "<" / ">") { return op; }
+ShiftOperator = op:("<<" / ">>>" / ">>") { return op; }
+AdditiveOperator = op:("+" / "-") { return op; }
+MultiplicativeOperator = op:("*" / "/" / "%") { return op; }
+AffixOperator = op:("++" / "--") { return op; }
+
+// =============================================================================
+// --- Basic and Terminal Elements ---
+// =============================================================================
+
+Property = "property" _ name:ID _ type:(":" _ t:QualifiedName)? _ value:("=" _ v:Expression)? _ ";" 
+    { return { type: "Property", name, propertyType: type, value, location: location() }; }
+
+Pin = isFlow:("flow" _)? direction:(d:("inout" / "in" / "out") _ { return d; })? name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? 
+    { return { type: "Pin", name, direction: direction || null, isFlow: !!isFlow, definition, arrayIndex, location: location() }; }
+
+PinList = head:Pin tail:(_ "," _ p:Pin { return p; })* { return [head, ...tail]; }
+
+TypeUse = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _ body:("{" _ properties:(_ p:Property { return p; })* _ "}" / ";") 
+    { return { type: "TypeUse", name, definition, arrayIndex, body, location: location() }; }
+
+TypeUse_NoSemicolon = name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? _ body:("{" _ properties:(_ p:Property { return p; })* _ "}")? 
+    { return { type: "TypeUse", name, definition, arrayIndex, body, location: location() }; }
+
+QualifiedNameList = head:QualifiedName tail:(_ "," _ q:QualifiedName { return q; })* { return [head, ...tail]; }
+Index = "[" _ e:Expression? _ "]" { return e || { type: "ImplicitIndex" }; }
+FlowProperty = prop:("inout" / "in" / "out") { return prop; }
+ProtocolAlternativeType = type:(";" / "|") { return type; }
+ProtocolControl = control:("always" / "several" / "once" / "perhaps") { return control; }
+
+AllocationTable = "allocations" _ "{" _ allocs: ( _ a:Allocation )* _ "}" 
+    { return { type: "AllocationTable", allocations: allocs.map(a => a), location: location() }; }
+
+Allocation = alloc:(ExecutableAllocation / ActivityAllocation) { return alloc; }
+
+ExecutableAllocation = ("Executable" / "executable") _ source:(QualifiedName / "null") _ "to" _ target:(QualifiedName / "null") 
+    { return { type: "ExecutableAllocation", source, target, location: location() }; }
+
+ActivityAllocation = allocType:(t:("EnvActivity" / "envActivity" / "envactivity" / "Activity" / "activity") _ { return t; })? source:(QualifiedName / "null") _ "to" _ target:(QualifiedName / "null") 
+    { 
+        const isEnv = allocType === "EnvActivity" || allocType === "envActivity" || allocType === "envactivity";
+        return { type: isEnv ? "EnvActivityAllocation" : "ActivityAllocation", source, target, location: location() }; 
+    }
+Bounds = "[" _ lower:EInt _ ("," / "..") _ upper:EInt _ "]" { return { lower, upper }; }
+
+// =============================================================================
+// --- NEW ELEMENTS: ENVIRONMENT E SCENARIO VIEWPOINTS ---
+// =============================================================================
+
+EnvPortDef = "EnvPort" _ "def" _ name:ID _ "{" _ "flow" _ flowProp:FlowProperty _ flowType:QualifiedName _ "}" {
+    return { type: "EnvPortDef", name, flowProp, flowType, location: location() };
+}
+
+EnvConnectorDef = "EnvConnector" _ "def" _ name:ID _ "{" _
+    participants:(_ "participants" _ ":" _ ps:(_ p:PortUse_Reverse { return p; })* { return ps; })?
+    flows:(_ "flows" _ ":" _ fs:(_ f:Flow { return f; })* { return fs; })? _
+"}" {
+    return { type: "EnvConnectorDef", name, participants: participants || [], flows: flows || [], location: location() };
+}
+
+EnvComponentDef = "EnvComponent" _ "def" _ name:ID _ "{" _
+    envPorts:(_ "envPorts" _ ":" _ ps:(_ PinUse)* { return ps.map(p=>p); })?
+    properties:(_ "properties" _ ":" _ prs:(_ EnvPropertyDef)* { return prs.map(p=>p); })?
+    envConfig:(_ ec:EnvironmentConfiguration { return ec; })? _
+"}" {
+    if (envConfig) {
+      envConfig.definition = name;
+    }
+    return { type: "EnvComponentDef", name, envPorts: envPorts || [], properties: properties || [], envConfig, location: location() };
+}
+
+EnvPropertyDef = "Property" _ "def" _ name:ID _ ":" _ type:QualifiedName _ ";" {
+    return { type: "EnvPropertyDef", name, propertyType: type, location: location() };
+}
+
+BoundaryComponentExtension = "boundary" _ "component" _ name:QualifiedName _ "{" _
+    "envPorts" _ ":" _ envPorts:(_ PinUse)* _
+"}" {
+    return { type: "BoundaryComponentExtension", name, envPorts: envPorts.map(p=>p), location: location() };
+}
+
+EnvironmentConfiguration = "environmentConfiguration" _ name:ID _ "{" _
+    envComponents:(_ "envComponents" _ ":" _ ecs:(_ ComponentInstance)* { return ecs.map(e=>e); })?
+    components:(_ "components" _ ":" _ cs:(_ ComponentInstance)* { return cs.map(c=>c); })?
+    envDelegations:(_ "envDelegations" _ ":" _ eds:(_ Delegation)* { return eds.map(e=>e); })?
+    envConnectors:(_ "envConnectors" _ ":" _ econs:(_ EnvConnectorUse)* { return econs.map(e=>e); })? _
+"}" {
+    return { type: "EnvironmentConfiguration", name, envComponents: envComponents || [], components: components || [], envDelegations: envDelegations || [], envConnectors: envConnectors || [], location: location() };
+}
+
+ComponentInstance = name:ID _ ":" _ type:QualifiedName _ bounds:Bounds? _ ";" {
+    return { type: "ComponentInstance", name, componentType: type, bounds: bounds || null, location: location() };
+}
+
+EnvConnectorUse = name:ID _ ":" _ type:QualifiedName _ "bindings" _ left:QualifiedName _ "=" _ right:QualifiedName _ ";" {
+    return { type: "EnvConnectorUse", name, connectorType: type, left, right, location: location() };
+}
+
+// SCENARIOS
+
+EnvActivitiesDefinitions = "EnvActivitiesDefinitions" _ name:ID _ "{" _
+    members:(_ m:(SignalDef / EnvActionDef / EnvActivityDef) { return m; })* _
+"}" {
+    return { type: "EnvActivitiesDefinitions", name, members: members.map(m=>m), location: location() };
+}
+
+SignalDef = "signal" _ "def" _ name:ID _ "{" _
+    attributes:(_ "attributes" _ ":" _ attrs:(_ PinUse)* { return attrs.map(a=>a); })? _
+"}" {
+    return { type: "SignalDef", name, attributes: attributes || [], location: location() };
+}
+
+EnvActionDef = "EnvAction" _ "def" _ name:ID _ "(" _ inParams:PinList? _ ")" _ ":" _ returnType:QualifiedName _ "{" _ "}" {
+    return { type: "EnvActionDef", name, inParameters: inParams || [], returnType, location: location() };
+}
+
+EnvActivityDef = "EnvActivity" _ "def" _ name:ID _ "(" _ inParams:PinList? _ ")" _ ":" _ "(" _ outParams:PinList? _ ")" _ "{" _
+    "body" _ "{" _
+        actions:(_ "actions" _ ":" _ acts:(_ ActionUse)+ { return acts.map(a=>a); })?
+        delegations:(_ ActivityDelegation)*
+        onClauses:(_ OnClause)* _
+    "}" _
+"}" {
+    return { type: "EnvActivityDef", name, inParameters: inParams || [], outParameters: outParams || [], actions: actions || [], delegations: delegations.map(d=>d), onClauses: onClauses.map(o=>o), location: location() };
+}
+
+OnClause = "ON" _ signal:QualifiedName _ condition:(_ "[" _ c:Expression _ "]" { return c; })? _
+    "THEN" _ actionName:ID _ "{" _ actionAssigns:(_ AssignmentStmt)* _ "}" _
+    sendPart:(_ "SEND" _ sendSignal:QualifiedName _ "{" _ sendAssigns:(_ AssignmentStmt)* _ "}" { return { sendSignal, sendAssigns }; })? {
+    return { 
+        type: "OnClause", 
+        signal, 
+        condition, 
+        actionName, 
+        actionAssigns: actionAssigns.map(a=>a), 
+        sendSignal: sendPart ? sendPart.sendSignal : null, 
+        sendAssigns: sendPart ? sendPart.sendAssigns.map(s=>s) : [], 
+        location: location() 
+    }; 
+}
+
+SceneDefinitions = "SceneDefinitions" _ name:ID _ "to" _ ref:QualifiedName _ "{" _
+    scenes:(_ SceneDef)* _
+"}" {
+    return { type: "SceneDefinitions", name, reference: ref, scenes: scenes.map(s=>s), location: location() };
+}
+
+SceneDef = "Scene" _ "def" _ name:ID _ "{" _
+    preconds:(_ "precondition" _ "{" _ exprs:(_ ExpressionStmt)* _ "}" { return exprs.map(e=>e); })? _
+    "start" _ start:ID _ ";" _
+    "finish" _ finish:ID _ ";" _
+    postconds:(_ "postcondition" _ "{" _ exprs:(_ ExpressionStmt)* _ "}" { return exprs.map(e=>e); })? _
+"}" {
+    return { type: "SceneDef", name, preconditions: preconds || [], start, finish, postconditions: postconds || [], location: location() };
+}
+
+ExpressionStmt = expr:Expression _ ";" { return expr; }
+
+ScenarioDefinitions = "ScenarioDefinitions" _ name:ID _ "to" _ ref:QualifiedName _ "{" _
+    scenarios:(_ ScenarioDef)* _
+"}" {
+    return { type: "ScenarioDefinitions", name, reference: ref, scenarios: scenarios.map(s=>s), location: location() };
+}
+
+ScenarioDef = "Scenario" _ "def" _ name:ID _ "{" _
+    body:(_ item:(Statement / SceneCall) { return item; })* _
+"}" {
+    return { type: "ScenarioDef", name, body: body.map(i=>i), location: location() };
+}
+
+SceneCall = name:QualifiedName _ ";" {
+    return { type: "SceneCall", sceneName: name, location: location() };
+}
+
+ScenarioExecution = "ScenarioExecution" _ name:(n:ID _ { return n; })? "to" _ ref:QualifiedName _ "{" _
+    mode:(_ "mode" _ ":" _ m:ScenarioMode _ ";" { return m; })? _
+    body:(_ ("body" _)? items:(_ ScenarioExecItem)* { return items.map(i=>i); })? _
+"}" {
+    return { type: "ScenarioExecution", name, reference: ref, defs: ref, mode, items: body || [], location: location() };
+}
+
+ScenarioMode = "once" { return { type: "once" }; }
+             / "loop" _ ":" _ "while" _ cond:Expression { return { type: "loop_while", condition: cond }; }
+             / "loop" _ ":" _ count:INT { return { type: "loop_count", count: parseInt(count, 10) }; }
+             / "loop" { return { type: "loop" }; }
+
+ScenarioExecItem = item:(EventInjection / ParallelBlock / RepeatBlock / Statement / ScenarioCall) { return item; }
+
+EventInjection = "inject" _ signal:QualifiedName _
+    assigns:(_ "{" _ as:(_ AssignmentStmt)* _ "}" { return as.map(a=>a); })? _
+    timing:InjectTiming _ ";" {
+    return { type: "EventInjection", signal, assignments: assigns || [], timing, location: location() };
+}
+
+InjectTiming = "immediate" { return { type: "immediate" }; }
+             / "after" _ time:INT { return { type: "delay", value: parseInt(time, 10) }; }
+             / "after" _ ref:QualifiedName { return { type: "after", scenario: ref }; }
+             / "before" _ ref:QualifiedName { return { type: "before", scenario: ref }; }
+             / "when" _ cond:Expression { return { type: "condition", expression: cond }; }
+
+RepeatBlock = "repeat" _ count:INT _ scenario:QualifiedName _ ";" {
+    return { type: "RepeatBlock", count: parseInt(count, 10), scenario, location: location() };
+}
+
+ParallelBlock = "parallel" _ "{" _ calls:(_ ScenarioCall)* _ "}" {
+    return { type: "ParallelBlock", calls: calls.map(c=>c), location: location() };
+}
+
+ScenarioCall = name:QualifiedName _ ";" {
+    return { type: "ScenarioCall", scenarioName: name, location: location() };
+}
+
+// =============================================================================
+// --- Auxiliary Lists ---
+// =============================================================================
+
+ConnectorBindingList = head:ConnectorBinding tail:(_ "," _ b:ConnectorBinding { return b; })* 
+    { return { type: "ConnectorBindingList", items: [head, ...tail], location: location() }; }
+
+ForVarList = head:ForVar tail:(_ "," _ v:ForVar { return v; })* 
+    { return { type: "ForVarList", items: [head, ...tail], location: location() }; }
+
+// =============================================================================
+// --- Names and Terminals ---
+// =============================================================================
+
+QualifiedName = head:ID tail:(("." / "::") p:ID { return p; })* { return [head, ...tail].join('.'); }
+
+EString = STRING / ID
+
+ID "Identifier" = "^"? [a-zA-Z_] [a-zA-Z0-9_]* { return text().replace('^', ''); }
+
+INT "Integer" = [0-9]+ { return text(); }
+
+EInt "Integer with sign" = sign:"-"? value:INT { return parseInt( (sign || "") + value, 10); }
+
+EFloat "Float" = sign:"-"? intPart:INT? "." decPart:INT exp:(("E"/"e") signExp:"-"? expPart:INT)? { return parseFloat((sign || "") + (intPart || "0") + "." + decPart + (exp ? exp + (exp[2] || "") + exp[3] : "")); }
+
+STRING "String" = '"' chars:( '\\' . / [^"\\] )* '"' { return chars.join('').replace(/\\(.)/g,'$1'); }
+                / "'" chars:( '\\' . / [^'\\] )* "'" { return chars.join('').replace(/\\(.)/g,'$1'); }
+
+
+
+
+// =============================================================================
+// --- Blank Spaces and Comments (Required in PEG) ---
+// =============================================================================
+
+_ "whitespace" = ( [ \t\n\r]+ / SingleLineComment / MultiLineComment )*
+SingleLineComment = "//" [^\n\r]*
+MultiLineComment = ("/*" / "/ *") (!("*/" / "* /") .)* ("*/" / "* /")

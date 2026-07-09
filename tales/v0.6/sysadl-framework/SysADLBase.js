@@ -353,9 +353,17 @@
       if (found) return found;
 
       // Try to find match where system component name is a substring of the requested name
+      const typeNormalized = type.replace(/\./g, '_');
       found = allComps.find(c => {
         const cTypeName = c.constructor.name;
-        const matchesType = cTypeName === type || cTypeName === 'CP_' + type || cTypeName.endsWith('_' + type) || cTypeName.endsWith('::' + type);
+        const matchesType = cTypeName === type || 
+                            cTypeName === typeNormalized || 
+                            cTypeName === 'CP_' + type || 
+                            cTypeName === 'CP_' + typeNormalized || 
+                            cTypeName.endsWith('_' + type) || 
+                            cTypeName.endsWith('_' + typeNormalized) || 
+                            cTypeName.endsWith('::' + type) || 
+                            cTypeName.endsWith('::' + typeNormalized);
         if (matchesType) {
           if (name.includes(c.name) || c.name.includes(name)) {
             return true;
@@ -368,7 +376,14 @@
       // Try to find any component matching the type
       found = allComps.find(c => {
         const cTypeName = c.constructor.name;
-        return cTypeName === type || cTypeName === 'CP_' + type || cTypeName.endsWith('_' + type) || cTypeName.endsWith('::' + type);
+        return cTypeName === type || 
+               cTypeName === typeNormalized || 
+               cTypeName === 'CP_' + type || 
+               cTypeName === 'CP_' + typeNormalized || 
+               cTypeName.endsWith('_' + type) || 
+               cTypeName.endsWith('_' + typeNormalized) || 
+               cTypeName.endsWith('::' + type) || 
+               cTypeName.endsWith('::' + typeNormalized);
       });
       if (found) return found;
 

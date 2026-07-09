@@ -107,14 +107,8 @@ AbstractActionReceive = "receive" _ "any" _ "from" _ flowTo:QualifiedName
 Requirement = "Requirement" _ name:ID _ "(" _ id:ReqNumber _ ")" _ "{" _
     text:("text" _ "=" _ t:EString _ { return t; })?
     satisfyVerify:(
-        s:("satisfied" _ "by" _ sb:QualifiedNameList _ { return sb; })
-        v:("verified" _ "by" _ "[" _ vb:QualifiedNameList _ "]" _ { return vb; })?
-        ";" _
-        { return { satisfiedBy: s, verifiedBy: v || [] }; }
-        /
-        v:("verified" _ "by" _ "[" _ vb:QualifiedNameList _ "]" _ { return vb; })
-        ";" _
-        { return { satisfiedBy: [], verifiedBy: v }; }
+        "satisfied" _ "by" _ list:SatisfiedByList _ ";" _
+        { return { satisfiedBy: list }; }
     )?
     derive:("derive" _ d:QualifiedNameList _ ";" _ { return d; })?
     members:(_ m:(Property / Requirement) _ { return m; })*
@@ -125,12 +119,29 @@ Requirement = "Requirement" _ name:ID _ "(" _ id:ReqNumber _ ")" _ "{" _
             id, 
             text: text || null, 
             satisfiedBy: satisfyVerify ? satisfyVerify.satisfiedBy : [], 
-            verifiedBy: satisfyVerify ? satisfyVerify.verifiedBy : [],
+            verifiedBy: satisfyVerify && satisfyVerify.satisfiedBy
+                ? satisfyVerify.satisfiedBy.reduce((acc, item) => acc.concat(item.verifiedBy || []), [])
+                : [],
             derive: derive || [], 
             members, 
             location: location() 
         }; 
     }
+
+SatisfiedByList
+    = head:SatisfiedByItem tail:(_ "," _ item:SatisfiedByItem { return item; })*
+      { return [head, ...tail]; }
+
+SatisfiedByItem
+    = component:QualifiedName verification:(_ "[" _ ("verified" _ "by" _)? scenarios:QualifiedNameList _ "]" { return scenarios; })?
+      {
+          return {
+              type: "SatisfiedByItem",
+              component: component,
+              verifiedBy: verification || [],
+              location: location()
+          };
+      }
 
 ReqNumber = head:INT tail:("." i:INT { return i; })* { return [head, ...tail].join('.'); }
 
@@ -380,7 +391,7 @@ LeftHandSide = head:ID tail:( _ "[" _ e:Expression _ "]" { return { index: e }; 
     }, { type: "Identifier", name: head, location: location() });
 }
 
-NonBlockStatement = stmt:( VarDecl / AssignmentStmt / Invocation / IncDecStatement / ReturnStatement / IfStatement / ForStatement / WhileStatement / DoStatement / SwitchStatement ) { return stmt; }
+NonBlockStatement = stmt:( VarDecl / AssignmentStmt / Invocation / IncDecStatement / ReturnStatement / IfStatement / ForStatement / WhileStatement / DoStatement / SwitchStatement / SceneCall ) { return stmt; }
 
 DoStatement = "do" _ body:(BlockStatement / NonBlockStatement) _ "while" _ "(" _ condition:Expression _ ")" _ ";" 
     { return { type: "DoStatement", body, condition, location: location() }; }
@@ -553,7 +564,7 @@ Allocation = alloc:(ExecutableAllocation / ActivityAllocation) { return alloc; }
 ExecutableAllocation = ("Executable" / "executable") _ source:(QualifiedName / "null") _ "to" _ target:(QualifiedName / "null") 
     { return { type: "ExecutableAllocation", source, target, location: location() }; }
 
-ActivityAllocation = allocType:(t:("EnvActivity" / "envActivity" / "envactivity" / "Activity" / "activity") _ { return t; })? source:(QualifiedName / "null") _ "to" _ target:(QualifiedName / "null") 
+ActivityAllocation = allocType:(t:("EnvActivity" / "envActivity" / "envactivity" / "Activity" / "activity") _ { return t; }) source:(QualifiedName / "null") _ "to" _ target:(QualifiedName / "null") 
     { 
         const isEnv = allocType === "EnvActivity" || allocType === "envActivity" || allocType === "envactivity";
         return { type: isEnv ? "EnvActivityAllocation" : "ActivityAllocation", source, target, location: location() }; 

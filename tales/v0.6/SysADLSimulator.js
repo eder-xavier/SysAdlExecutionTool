@@ -93,6 +93,13 @@ class SimulationScheduler {
   
   scheduleBeforeScenario(signalName, signalData, scenarioName) {
     console.log(`⏱️  [SCHEDULER] Scheduled injection ${signalName} BEFORE scenario ${scenarioName}`);
+    if (this.ctx && this.ctx.envModel) {
+      const isValid = (this.ctx.envModel.scenarios && this.ctx.envModel.scenarios[scenarioName]) ||
+                      (this.ctx.envModel.scenes && this.ctx.envModel.scenes[scenarioName]);
+      if (!isValid) {
+        console.warn(`\x1b[31m[WARNING] Injection scheduled BEFORE non-existent scene/scenario: '${scenarioName}'. This injection will never fire!\x1b[0m`);
+      }
+    }
     if (!this.scenarioListeners.before.has(scenarioName)) {
       this.scenarioListeners.before.set(scenarioName, []);
     }
@@ -101,6 +108,13 @@ class SimulationScheduler {
 
   scheduleAfterScenario(signalName, signalData, scenarioName) {
     console.log(`⏱️  [SCHEDULER] Scheduled injection ${signalName} AFTER scenario ${scenarioName}`);
+    if (this.ctx && this.ctx.envModel) {
+      const isValid = (this.ctx.envModel.scenarios && this.ctx.envModel.scenarios[scenarioName]) ||
+                      (this.ctx.envModel.scenes && this.ctx.envModel.scenes[scenarioName]);
+      if (!isValid) {
+        console.warn(`\x1b[31m[WARNING] Injection scheduled AFTER non-existent scene/scenario: '${scenarioName}'. This injection will never fire!\x1b[0m`);
+      }
+    }
     if (!this.scenarioListeners.after.has(scenarioName)) {
       this.scenarioListeners.after.set(scenarioName, []);
     }
@@ -397,7 +411,13 @@ function triggerGenericRestart(instance, c) {
     if (!activity) continue;
     
     const sentSignals = new Set(activity.onClauses.map(on => on.sendSignal).filter(Boolean));
-    const entryClauses = activity.onClauses.filter(on => on.signal && !sentSignals.has(on.signal));
+    const entryClauses = activity.onClauses.filter(on => {
+      return on.signal && 
+             !sentSignals.has(on.signal) &&
+             !on.signal.toLowerCase().includes('obstacle') &&
+             !on.signal.toLowerCase().includes('alarm') &&
+             !on.signal.toLowerCase().includes('offset');
+    });
     
     for (const clause of entryClauses) {
       const entrySignal = clause.signal;
@@ -685,7 +705,7 @@ function findInstancesOfType(comp, type) {
 
 
 
-function checkPassiveScenes(c, eventName, eventType, sourceInstance) {
+function checkPassiveScenes(c, eventName, eventType, sourceInstance, checkPhase) {
   if (!c.activeScenarios) return;
   
   const activeBranch = sourceInstance ? getTopLevelBranch(sourceInstance, c.rootComponent) : null;
@@ -713,64 +733,83 @@ function checkPassiveScenes(c, eventName, eventType, sourceInstance) {
       if (!isCompat) continue;
     }
     
-    const sceneName = scen.sceneSequence[scen.currentIndex];
-    if (!sceneName) continue;
-    
-    const SceneClass = c.scenes[sceneName];
-    if (!SceneClass) continue;
-    
-    scen.sceneInstances = scen.sceneInstances || {};
-    if (!scen.sceneInstances[sceneName]) {
-      scen.sceneInstances[sceneName] = new SceneClass();
-    }
-    const sceneInstance = scen.sceneInstances[sceneName];
-    
-    const startEvent = sceneInstance.opts?.startEvent || sceneInstance.startEvent;
-    const finishEvent = sceneInstance.opts?.finishEvent || sceneInstance.finishEvent;
-    
-    const isSignal = c.envModel?.envActivities?.signals && (eventName in c.envModel.envActivities.signals);
-    
-    // Check start event
-    const shouldCheckStart = isSignal ? (eventType === 'signal') : (eventType === 'action_start');
-    if (shouldCheckStart && eventName === startEvent && !sceneInstance.started) {
-      c.activeScenarioName = scen.name;
-      c.activeSceneName = sceneName;
+    let prevIndex = -1;
+    let isCascading = false;
+    while (scen.currentIndex !== prevIndex && scen.status === 'running') {
+      prevIndex = scen.currentIndex;
       
-      const preOk = sceneInstance.validatePreConditions(c);
-      console.log(`🎬 [SCENARIO] [${scen.name}] Precondition validation for scene ${sceneName}: ${preOk ? '✅ PASS' : '❌ FAIL'}`);
+      const sceneName = scen.sceneSequence[scen.currentIndex];
+      if (!sceneName) break;
       
-      c.recordPrecondition(sceneName, sceneInstance.preconditionExprs || [], preOk);
+      const SceneClass = c.scenes[sceneName];
+      if (!SceneClass) break;
       
-      if (preOk) {
-        sceneInstance.started = true;
-        sceneInstance.status = 'started';
-      } else {
-        console.log(`❌ [SCENARIO] [${scen.name}] Precondition failed for scene ${sceneName}`);
-        scen.results.push({ scene: sceneName, status: 'PRECONDITION_FAIL' });
-        scen.currentIndex++;
-        if (scen.currentIndex >= scen.sceneSequence.length) {
-          scen.resolve(scen.results);
+      scen.sceneInstances = scen.sceneInstances || {};
+      if (!scen.sceneInstances[sceneName]) {
+        scen.sceneInstances[sceneName] = new SceneClass();
+      }
+      const sceneInstance = scen.sceneInstances[sceneName];
+      
+      const startEvent = sceneInstance.opts?.startEvent || sceneInstance.startEvent;
+      const finishEvent = sceneInstance.opts?.finishEvent || sceneInstance.finishEvent;
+      
+      const isSignal = c.envModel?.envActivities?.signals && (eventName in c.envModel.envActivities.signals);
+      
+      // Check start event (allowed in start check or if cascading in finish check)
+      const shouldCheckStart = isSignal ? (eventType === 'signal') : (eventType === 'action_start');
+      if ((checkPhase !== 'finish' || isCascading) && shouldCheckStart && eventName === startEvent && !sceneInstance.started) {
+        c.activeScenarioName = scen.name;
+        c.activeSceneName = sceneName;
+        
+        // Evaluate preconditions using the backup index state (pre-commit)
+        const backup = c.replicatedIndices.backup || c.replicatedIndices.current;
+        const currentIndices = c.replicatedIndices.current;
+        c.replicatedIndices.current = backup;
+        
+        console.log(`🔍 [DEBUG] [${scen.name}] scene ${sceneName} start check: current index = ${currentIndices['unit1.transElevator']}, backup index = ${backup['unit1.transElevator']}, outPieceColor = ${c.unit1.transElevator.outPieceColor}`);
+        
+        const preOk = sceneInstance.validatePreConditions(c);
+        c.replicatedIndices.current = currentIndices;
+        
+        console.log(`🎬 [SCENARIO] [${scen.name}] Precondition validation for scene ${sceneName}: ${preOk ? '✅ PASS' : '❌ FAIL'}`);
+        
+        c.recordPrecondition(sceneName, sceneInstance.preconditionExprs || [], preOk);
+        
+        if (preOk) {
+          sceneInstance.started = true;
+          sceneInstance.status = 'started';
+        } else {
+          console.log(`❌ [SCENARIO] [${scen.name}] Precondition failed for scene ${sceneName}`);
+          scen.results.push({ scene: sceneName, status: 'PRECONDITION_FAIL' });
+          scen.currentIndex++;
+          isCascading = true; // Cascade to allow checking start of next scene
+          if (scen.currentIndex >= scen.sceneSequence.length) {
+            scen.resolve(scen.results);
+          }
+          continue;
         }
       }
-    }
-    
-    // Check finish event
-    const shouldCheckFinish = isSignal ? (eventType === 'signal') : (eventType === 'action_finish');
-    if (shouldCheckFinish && eventName === finishEvent && sceneInstance.started) {
-      c.activeScenarioName = scen.name;
-      c.activeSceneName = sceneName;
       
-      const postOk = sceneInstance.validatePostConditions(c);
-      console.log(`🧐 [SCENARIO] [${scen.name}] Postcondition validation result for scene ${sceneName}: ${postOk ? '✅ PASS' : '❌ FAIL'}`);
-      
-      c.recordPostcondition(sceneName, sceneInstance.postconditionExprs || [], postOk);
-      
-      scen.results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
-      scen.currentIndex++;
-      
-      if (scen.currentIndex >= scen.sceneSequence.length) {
-        console.log(`🏁 [SCENARIO] All scenes completed for scenario ${scen.name}`);
-        scen.resolve(scen.results);
+      // Check finish event
+      const shouldCheckFinish = isSignal ? (eventType === 'signal') : (eventType === 'action_finish');
+      if (checkPhase !== 'start' && shouldCheckFinish && eventName === finishEvent && sceneInstance.started) {
+        c.activeScenarioName = scen.name;
+        c.activeSceneName = sceneName;
+        
+        const postOk = sceneInstance.validatePostConditions(c);
+        console.log(`🧐 [SCENARIO] [${scen.name}] Postcondition validation result for scene ${sceneName}: ${postOk ? '✅ PASS' : '❌ FAIL'}`);
+        
+        c.recordPostcondition(sceneName, sceneInstance.postconditionExprs || [], postOk);
+        
+        scen.results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });
+        scen.currentIndex++;
+        isCascading = true; // Cascade to allow checking start of next scene
+        
+        if (scen.currentIndex >= scen.sceneSequence.length) {
+          console.log(`🏁 [SCENARIO] All scenes completed for scenario ${scen.name}`);
+          scen.resolve(scen.results);
+        }
+        continue;
       }
     }
   }
@@ -794,7 +833,7 @@ function setupReplicatedDelegations(ctx) {
           
           const getActiveChildPort = () => {
             const idx = ctx.replicatedIndices.current[compPath] || 0;
-            const activePiece = comp.pieces[idx] || comp.pieces[comp.pieces.length - 1];
+            const activePiece = comp.pieces[idx];
             if (activePiece) {
               let childPort = activePiece.envPorts?.[portName];
               if (!childPort && activePiece.envPorts) {
@@ -818,9 +857,29 @@ function setupReplicatedDelegations(ctx) {
             const childPort = getActiveChildPort();
             if (childPort) {
               const val = childPort.getValue();
-              return val;
+              if (val !== undefined && val !== null) {
+                return val;
+              }
             }
-            return origGetValue.call(this);
+            
+            // If activePiece is undefined or has no value (empty slot), return type-specific default empty value directly
+            const type = port.opts?.expectedType || port.expectedType;
+            const nameLower = port.name.toLowerCase();
+            if (type === 'PieceColor' || nameLower.includes('piececolor') || nameLower.includes('piece')) {
+              return 'None';
+            }
+            if (type === 'NavColor' || nameLower.includes('navcolor') || nameLower.includes('nav') || nameLower.includes('line') || nameLower.includes('pad')) {
+              return 'None';
+            }
+            if (type === 'Boolean' || nameLower.includes('presence') || nameLower.includes('alarm') || nameLower.includes('obstacle')) {
+              return false;
+            }
+            if (type === 'Int' || type === 'Real') {
+              return 0;
+            }
+            
+            const parentVal = origGetValue.call(this);
+            return parentVal !== undefined ? parentVal : null;
           };
         }
       }
@@ -1050,6 +1109,14 @@ function createExecutionContext(envModel) {
     };
 
     envModel.envActivities.handleSignal = function(signalName, signalData, c, sourceInstance) {
+      if (signalName === 'StartSimulationSig') {
+        Object.keys(c.replicatedIndices.current || {}).forEach(key => {
+          c.replicatedIndices.current[key] = 0;
+        });
+        Object.keys(c.replicatedIndices.pending || {}).forEach(key => {
+          c.replicatedIndices.pending[key] = 0;
+        });
+      }
       const queue = [{ signal: signalName, data: signalData, sourceInstance: sourceInstance }];
       const allResults = [];
       let maxIter = 150;
@@ -1080,11 +1147,27 @@ function createExecutionContext(envModel) {
         }
         seenSignals.add(loopKey);
         
-        // Check passive scenes on signal start
-        checkPassiveScenes(c, current.signal, 'signal', current.sourceInstance);
-        
         const stepResults = this.handleSignalOneStep(current.signal, current.data, c, current.sourceInstance);
         allResults.push(...stepResults);
+        
+        // Check passive scenes on signal start (preconditions check, before index increments)
+        checkPassiveScenes(c, current.signal, 'signal', current.sourceInstance, 'start');
+
+        // Save backup of index state before committing replication increments
+        c.replicatedIndices.backup = JSON.parse(JSON.stringify(c.replicatedIndices.current));
+
+        // Commit pending replication increments right after step processing so subsequent steps see it
+        Object.keys(c.replicatedIndices.pending).forEach(compPath => {
+          const pending = c.replicatedIndices.pending[compPath] || 0;
+          if (pending > 0) {
+            c.replicatedIndices.current[compPath] = (c.replicatedIndices.current[compPath] || 0) + pending;
+            c.replicatedIndices.pending[compPath] = 0;
+            console.log(`   [STEP COMMIT] Incremented index for '${compPath}' to ${c.replicatedIndices.current[compPath]}`);
+          }
+        });
+        
+        // Check passive scenes on signal finish (postconditions check, after index increments)
+        checkPassiveScenes(c, current.signal, 'signal', current.sourceInstance, 'finish');
         
         // Collect pending signals to propagate
         const newSignals = stepResults.filter(r => r.signal && !r.executed);
@@ -1191,7 +1274,7 @@ function createExecutionContext(envModel) {
                 }
                 scenRecord.resolve(scenRecord.results);
               }
-            }, 200);
+            }, 5000);
 
             return promise;
           }
@@ -1553,10 +1636,24 @@ class SysADLSimulator {
                     }
                 }
                 
-                if (execution.executeAsync) {
-                    await execution.executeAsync(ctxProxy);
-                } else if (execution.start) {
-                    await execution.start(ctxProxy);
+                const origLog = console.log;
+                if (!this.config.verbose) {
+                    console.log = function(...args) {
+                        const msg = args.join(' ');
+                        if (msg.includes('===') || msg.includes('║') || msg.includes('▶') || msg.includes('Result:') || msg.includes('Summary:') || msg.includes('passed') || msg.includes('failed') || msg.includes('[INFO]') || msg.includes('[ERROR]') || msg.includes('Starting execution:') || msg.includes('[SCENARIO]') || msg.includes('[POSTCONDITION]') || msg.includes('[COUNT]') || msg.includes('[DEBUG]')) {
+                            origLog.apply(console, args);
+                        }
+                    };
+                }
+
+                try {
+                    if (execution.executeAsync) {
+                        await execution.executeAsync(ctxProxy);
+                    } else if (execution.start) {
+                        await execution.start(ctxProxy);
+                    }
+                } finally {
+                    console.log = origLog;
                 }
                 
                 ctxProxy.scheduler.clearAll();

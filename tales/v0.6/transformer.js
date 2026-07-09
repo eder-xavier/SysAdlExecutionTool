@@ -4748,64 +4748,52 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
 
     // --- 8. New grammar Scenario classes ---
     for (const { element } of scenarioDefinitions) {
-      const scenarios = pegExtract(element.scenarios || []);
-      for (const scenarioDef of scenarios) {
-        if (!scenarioDef || scenarioDef.type !== 'ScenarioDef') continue;
-        const scenarioClassName = sanitizeId(scenarioDef.name);
-        const body = scenarioDef.body || [];
-
-        lines.push(`// Scenario: ${scenarioDef.name}`);
+      const scenarios = extractScenariosEnhanced(element);
+      for (const [scenarioName, scenarioDef] of Object.entries(scenarios)) {
+        const scenarioClassName = sanitizeId(scenarioName);
+        lines.push(`// Scenario: ${scenarioName}`);
         lines.push(`class ${scenarioClassName} extends Scenario {`);
-        lines.push(`  constructor(name = '${scenarioDef.name}', opts = {}) {`);
-        lines.push(`    super(name, { ...opts, scenarioType: 'scenario' });`);
-        lines.push(`    this.sceneSequence = [`);
-        for (const item of body) {
-          if (item && item.type === 'SceneCall') {
-            lines.push(`      '${item.sceneName}',`);
-          }
-        }
-        lines.push(`    ];`);
+        lines.push(`  constructor(name = '${scenarioName}', opts = {}) {`);
+        lines.push(`    super(name, {`);
+        lines.push(`      ...opts,`);
+        lines.push(`      scenarioType: 'scenario'`);
+        lines.push(`    });`);
+        lines.push(`    this.sceneSequence = ${JSON.stringify(scenarioDef.scenes || [])};`);
         lines.push(`  }`);
-        lines.push('');
-        lines.push(`  async execute(ctx) {`);
-        lines.push(`    const results = [];`);
-        lines.push(`    for (const sceneName of this.sceneSequence) {`);
-        lines.push(`      const SceneClass = ctx.scenes?.[sceneName];`);
-        lines.push(`      if (!SceneClass) { results.push({ scene: sceneName, status: 'NOT_FOUND' }); continue; }`);
-        lines.push(`      const scene = typeof SceneClass === 'function' ? new SceneClass() : SceneClass;`);
-        lines.push(`      const preOk = scene.validatePreConditions(ctx);`);
-        lines.push(`      if (!preOk) { results.push({ scene: sceneName, status: 'PRECONDITION_FAIL' }); continue; }`);
-        lines.push(`      // Execute scene logic (start → finish via ON/THEN/SEND chain)`);
-        lines.push(`      if (ctx.envActivities) {`);
-        lines.push(`        const chain = ctx.envActivities.handleSignal(scene.opts?.startEvent || scene.startEvent, {}, ctx);`);
-        lines.push(`        // Process signal chain until finish event`);
-        lines.push(`        let pending = chain.filter(r => r.signal);`);
-        lines.push(`        let maxIter = 100;`);
-        lines.push(`        while (pending.length > 0 && maxIter-- > 0) {`);
-        lines.push(`          const next = [];`);
-        lines.push(`          for (const p of pending) {`);
-        lines.push(`            const sub = ctx.envActivities.handleSignal(p.signal, p.data || {}, ctx);`);
-        lines.push(`            next.push(...sub.filter(r => r.signal));`);
-        lines.push(`          }`);
-        lines.push(`          pending = next;`);
-        lines.push(`        }`);
-        lines.push(`      }`);
-        lines.push(`      // Wait for postconditions to be met (reactive evaluation)`);
-        lines.push(`      let postOk = false;`);
-        lines.push(`      const startTime = Date.now();`);
-        lines.push(`      const timeout = 2000; // 2 seconds max timeout`);
-        lines.push(`      while (Date.now() - startTime < timeout) {`);
-        lines.push(`        postOk = scene.validatePostConditions(ctx);`);
-        lines.push(`        if (postOk) break;`);
-        lines.push(`        await new Promise(resolve => setTimeout(resolve, 5));`);
-        lines.push(`      }`);
-        lines.push(`      results.push({ scene: sceneName, status: postOk ? 'PASS' : 'POSTCONDITION_FAIL' });`);
-        lines.push(`    }`);
-        lines.push(`    return results;`);
+        lines.push(``);
+        lines.push(`  async execute(context) {`);
+        lines.push(generateJavaScriptScenarioExecution(scenarioDef.programmingStructures));
         lines.push(`  }`);
         lines.push(`}`);
         lines.push('');
       }
+    }
+
+    // --- 8.5 New grammar ScenarioDefinitions classes ---
+    for (const { element, className } of scenarioDefinitions) {
+      const scenariosName = element.name || element.id || 'UnnamedScenarios';
+      const targetName = element.scenes || element.target || element.to || 'UnnamedScenes';
+      const scenarios = extractScenariosEnhanced(element);
+
+      lines.push(`// Scenario Definitions: ${scenariosName}`);
+      lines.push(`class ${className} extends ScenarioDefinitions {`);
+      lines.push(`  constructor(name = '${scenariosName}', opts = {}) {`);
+      lines.push(`    super(name, {`);
+      lines.push(`      ...opts,`);
+      lines.push(`      targetScenes: '${targetName}',`);
+      lines.push(`      scenarios: ${JSON.stringify(extractScenarios(element))}`);
+      lines.push(`    });`);
+      lines.push(``);
+
+      // Add scenario registry
+      for (const [scenarioName] of Object.entries(scenarios)) {
+        const scenarioClassName = sanitizeId(scenarioName);
+        lines.push(`    this.addScenario('${scenarioName}', ${scenarioClassName});`);
+      }
+
+      lines.push(`  }`);
+      lines.push(`}`);
+      lines.push('');
     }
 
     // --- 9. New grammar ScenarioExecution classes ---
@@ -5329,6 +5317,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`      ...opts,`);
       lines.push(`      scenarioType: 'scenario'`);
       lines.push(`    });`);
+      lines.push(`    this.sceneSequence = ${JSON.stringify(scenarioDef.scenes || [])};`);
       lines.push(`  }`);
       lines.push(``);
 
@@ -6327,193 +6316,196 @@ function extractScenarios(element) {
  * @returns {string} - JavaScript function body code
  */
 function generateJavaScriptScenarioExecution(programmingStructures) {
-  if (!programmingStructures || programmingStructures.length === 0) {
-    return `    return { success: true, message: 'Empty scenario executed' };`;
-  }
-
   const functionBody = [];
   functionBody.push(`    if (!context || !context.scenes) {`);
   functionBody.push(`      throw new Error('Context with scenes registry is required for scenario execution');`);
   functionBody.push(`    }`);
   functionBody.push(``);
 
-  // Track declared variables
-  const declaredVariables = new Set();
+  function exprToJS(expr) {
+    if (!expr) return 'null';
+    if (typeof expr === 'string') return expr;
+    if (typeof expr === 'number') return String(expr);
+    if (typeof expr === 'boolean') return String(expr);
 
-  // Process each programming structure
-  for (const structure of programmingStructures) {
-    console.log(`DEBUG: Processing structure type ${structure.type}:`, JSON.stringify(structure, null, 2));
-
-    switch (structure.type) {
-      case 'VarDec':
-      case 'VariableDecl':
-        // let i: Integer = 1;
-        console.log(`DEBUG: Variable declaration structure:`, JSON.stringify(structure, null, 2));
-
-        const varName = structure.name || (structure.id && structure.id.name) || structure.id;
-        let varValue = '1'; // default
-
-        // Try multiple ways to extract the value
-        if (structure.value) {
-          if (Array.isArray(structure.value) && structure.value.length >= 3) {
-            // Format: ["=", [" "], {type: "NumberLiteral", value: 1}]
-            const valueObj = structure.value[2];
-            if (valueObj && typeof valueObj === 'object') {
-              if (valueObj.value !== undefined) {
-                varValue = valueObj.value;
-              } else if (valueObj.literal !== undefined) {
-                varValue = valueObj.literal;
-              } else {
-                varValue = JSON.stringify(valueObj);
-              }
-            }
-          } else if (typeof structure.value === 'object' && structure.value.value !== undefined) {
-            varValue = structure.value.value;
-          } else if (typeof structure.value === 'object' && structure.value.literal) {
-            varValue = structure.value.literal.value || structure.value.literal;
-          } else if (typeof structure.value === 'number' || typeof structure.value === 'string') {
-            varValue = structure.value;
-          } else {
-            console.log(`DEBUG: Cannot extract value from:`, JSON.stringify(structure.value, null, 2));
-            varValue = '1'; // fallback
+    switch (expr.type) {
+      case 'Identifier':
+        return expr.name;
+      case 'PropertyAccess':
+        return `${exprToJS(expr.object)}.${expr.property}`;
+      case 'BooleanLiteral':
+        return String(expr.value);
+      case 'NumberLiteral':
+        return String(expr.value);
+      case 'StringLiteral':
+        return JSON.stringify(expr.value);
+      case 'LogicalExpression':
+        return `(${exprToJS(expr.left)} ${expr.operator === 'AND' ? '&&' : (expr.operator === 'OR' ? '||' : expr.operator)} ${exprToJS(expr.right)})`;
+      case 'BinaryExpression': {
+        const left = exprToJS(expr.left);
+        let op = '==';
+        let right = 'null';
+        if (Array.isArray(expr.operator)) {
+          op = expr.operator[1] || '==';
+          const rightExpr = expr.operator[3];
+          if (rightExpr && typeof rightExpr === 'object') {
+            right = exprToJS(rightExpr);
+          } else if (rightExpr !== undefined) {
+            right = String(rightExpr);
           }
-        } else if (structure.init) {
-          // Alternative property name for initial value
-          if (typeof structure.init === 'object' && structure.init.value !== undefined) {
-            varValue = structure.init.value;
-          } else if (typeof structure.init === 'object' && structure.init.literal) {
-            varValue = structure.init.literal.value || structure.init.literal;
-          } else {
-            varValue = structure.init;
-          }
+        } else if (typeof expr.operator === 'string') {
+          op = expr.operator;
+          right = exprToJS(expr.right);
         }
-
-        console.log(`DEBUG: Extracted varName=${varName}, varValue=${varValue}`);
-
-        if (varName && !declaredVariables.has(varName)) {
-          functionBody.push(`    let ${varName} = ${varValue};`);
-          declaredVariables.add(varName);
-        }
-        break;
-
-      case 'While':
-      case 'WhileStatement':
-        // while (i < 5) { ... }
-        let condition = 'true'; // default
-
-        if (structure.condition) {
-          if (typeof structure.condition === 'string') {
-            condition = structure.condition;
-          } else if (typeof structure.condition === 'object' && structure.condition.left && (structure.condition.op || structure.condition.operator) && structure.condition.right) {
-            // Binary expression like {left: {name: 'i'}, operator: '<', right: {value: 5}}
-            const left = structure.condition.left.name || structure.condition.left;
-            const op = structure.condition.op || structure.condition.operator;
-            const right = structure.condition.right.value !== undefined ? structure.condition.right.value : structure.condition.right;
-            condition = `${left} ${op} ${right}`;
-          }
-        }
-
-        functionBody.push(`    while (${condition}) {`);
-
-        // Process body statements
-        const bodyStatements = structure.body ?
-          (Array.isArray(structure.body) ? structure.body :
-            (structure.body.body && Array.isArray(structure.body.body) ? structure.body.body : [])) : [];
-
-        for (const bodyItem of bodyStatements) {
-          console.log(`DEBUG: Processing body item type ${bodyItem.type}:`, JSON.stringify(bodyItem, null, 2));
-
-          if (bodyItem.type === 'ScenarioRef') {
-            // Scene or scenario call within while loop
-            const sceneName = bodyItem.name;
-            if (sceneName) {
-              if (sceneName.includes('SCN_')) {
-                const sanitizedSceneName = sanitizeId(sceneName);
-                functionBody.push(`      // Execute scene with logging`);
-                functionBody.push(`      if (context.model?.logger) {`);
-                functionBody.push(`        context.model.logger.logExecution({`);
-                functionBody.push(`          type: 'scene.execution.started',`);
-                functionBody.push(`          name: '${sceneName}',`);
-                functionBody.push(`          context: { withinLoop: true, scenario: this.name },`);
-                functionBody.push(`          trace: { withinLoop: true, scenario: this.name, sceneName: '${sceneName}' }`);
-                functionBody.push(`        });`);
-                functionBody.push(`      }`);
-                functionBody.push(`      const sceneStartTime_${sanitizedSceneName} = Date.now();`);
-                functionBody.push(`      await this.executeScene('${sceneName}', context);`);
-                functionBody.push(`      if (context.model?.logger) {`);
-                functionBody.push(`        context.model.logger.logExecution({`);
-                functionBody.push(`          type: 'scene.execution.completed',`);
-                functionBody.push(`          name: '${sceneName}',`);
-                functionBody.push(`          context: { withinLoop: true, scenario: this.name },`);
-                functionBody.push(`          trace: { withinLoop: true, scenario: this.name, sceneName: '${sceneName}' },`);
-                functionBody.push(`          metrics: { duration: Date.now() - sceneStartTime_${sanitizedSceneName} }`);
-                functionBody.push(`        });`);
-                functionBody.push(`      }`);
-                functionBody.push(`      // Notify EventScheduler about scene completion`);
-                functionBody.push(`      if (context.eventScheduler?.notifyScenarioCompleted) {`);
-                functionBody.push(`        context.eventScheduler.notifyScenarioCompleted('${sceneName}');`);
-                functionBody.push(`      }`);
-              } else {
-                functionBody.push(`      await this.executeScenario('${sceneName}', context);`);
-              }
-            }
-          } else if (bodyItem.type === 'IncDec') {
-            // i++
-            const variable = bodyItem.name || 'i';
-            const operator = bodyItem.op || '++';
-            functionBody.push(`      ${variable}${operator};`);
-          }
-        }
-
-        functionBody.push(`    }`);
-        break;
-
-      case 'ScenarioRef':
-        // Scene or scenario call
-        const refName = structure.name;
-        if (refName) {
-          if (refName.includes('SCN_')) {
-            functionBody.push(`    // Execute scene with logging`);
-            functionBody.push(`    if (context.model?.logger) {`);
-            functionBody.push(`      context.model.logger.logExecution({`);
-            functionBody.push(`        type: 'scene.execution.started',`);
-            functionBody.push(`        name: '${refName}',`);
-            functionBody.push(`        context: { scenario: this.name },`);
-            functionBody.push(`        trace: { scenario: this.name, sceneName: '${refName}' }`);
-            functionBody.push(`      });`);
-            functionBody.push(`    }`);
-            functionBody.push(`    const sceneStartTime_${sanitizeId(refName)} = Date.now();`);
-            functionBody.push(`    await this.executeScene('${refName}', context);`);
-            functionBody.push(`    if (context.model?.logger) {`);
-            functionBody.push(`      context.model.logger.logExecution({`);
-            functionBody.push(`        type: 'scene.execution.completed',`);
-            functionBody.push(`        name: '${refName}',`);
-            functionBody.push(`        context: { scenario: this.name },`);
-            functionBody.push(`        trace: { scenario: this.name, sceneName: '${refName}' },`);
-            functionBody.push(`        metrics: { duration: Date.now() - sceneStartTime_${sanitizeId(refName)} }`);
-            functionBody.push(`      });`);
-            functionBody.push(`    }`);
-            functionBody.push(`    // Notify EventScheduler about scene completion`);
-            functionBody.push(`    if (context.eventScheduler?.notifyScenarioCompleted) {`);
-            functionBody.push(`      context.eventScheduler.notifyScenarioCompleted('${refName}');`);
-            functionBody.push(`    }`);
-          } else {
-            functionBody.push(`    await this.executeScenario('${refName}', context);`);
-          }
-        }
-        break;
-
-      case 'IncDec':
-        // i++
-        const incVariable = structure.name || 'i';
-        const incOperator = structure.op || '++';
-        functionBody.push(`    ${incVariable}${incOperator};`);
-        break;
-
+        return `(${left} ${op === '==' ? '===' : op} ${right})`;
+      }
+      case 'Assignment': {
+        const lhs = exprToJS(expr.left);
+        const rhs = exprToJS(expr.right);
+        return `${lhs} = ${rhs}`;
+      }
+      case 'ArrayAccess':
+        return `${exprToJS(expr.array)}[${exprToJS(expr.index)}]`;
+      case 'EnumAccess':
+      case 'QualifiedName':
+        return `'${expr.member || expr.value || expr.name}'`;
       default:
-        console.log(`DEBUG: Unknown structure type: ${structure.type}`);
-        functionBody.push(`    // TODO: Handle ${structure.type}`);
-        break;
+        return JSON.stringify(expr);
+    }
+  }
+
+  function compileStatement(stmt, indent = '    ') {
+    if (!stmt) return '';
+
+    if (stmt.type === 'SceneCall' || stmt.type === 'ScenarioRef') {
+      const name = stmt.sceneName || stmt.name;
+      if (!name) return '';
+      const lines = [];
+      const sanitizedName = sanitizeId(name);
+      if (name.includes('SCN_')) {
+        lines.push(`${indent}// Execute scene with logging`);
+        lines.push(`${indent}if (context.model?.logger) {`);
+        lines.push(`${indent}  context.model.logger.logExecution({`);
+        lines.push(`${indent}    type: 'scene.execution.started',`);
+        lines.push(`${indent}    name: '${name}',`);
+        lines.push(`${indent}    context: { scenario: this.name },`);
+        lines.push(`${indent}    trace: { scenario: this.name, sceneName: '${name}' }`);
+        lines.push(`${indent}  });`);
+        lines.push(`${indent}}`);
+        lines.push(`${indent}const sceneStartTime_${sanitizedName} = Date.now();`);
+        lines.push(`${indent}await this.executeScene('${name}', context);`);
+        lines.push(`${indent}if (context.model?.logger) {`);
+        lines.push(`${indent}  context.model.logger.logExecution({`);
+        lines.push(`${indent}    type: 'scene.execution.completed',`);
+        lines.push(`${indent}    name: '${name}',`);
+        lines.push(`${indent}    context: { scenario: this.name },`);
+        lines.push(`${indent}    trace: { scenario: this.name, sceneName: '${name}' },`);
+        lines.push(`${indent}    metrics: { duration: Date.now() - sceneStartTime_${sanitizedName} }`);
+        lines.push(`${indent}  });`);
+        lines.push(`${indent}}`);
+        lines.push(`${indent}if (context.eventScheduler?.notifyScenarioCompleted) {`);
+        lines.push(`${indent}  context.eventScheduler.notifyScenarioCompleted('${name}');`);
+        lines.push(`${indent}}`);
+      } else {
+        lines.push(`${indent}await this.executeScenario('${name}', context);`);
+      }
+      return lines.join('\n');
+    }
+
+    switch (stmt.type) {
+      case 'Block': {
+        const bodyLines = (stmt.statements || []).map(s => compileStatement(s, indent + '  ')).filter(Boolean);
+        return `${indent}{\n${bodyLines.join('\n')}\n${indent}}`;
+      }
+      case 'VarDecl':
+      case 'VarDec':
+      case 'VariableDecl': {
+        const name = stmt.variableType?.name || stmt.name;
+        let value = 'undefined';
+        if (stmt.init) {
+          value = exprToJS(stmt.init);
+        }
+        if (name) {
+          return `${indent}let ${name} = ${value};`;
+        }
+        return '';
+      }
+      case 'While':
+      case 'WhileStatement': {
+        const cond = exprToJS(stmt.condition);
+        const bodyCode = compileStatement(stmt.body, indent);
+        return `${indent}while (${cond}) ${bodyCode.trimStart()}`;
+      }
+      case 'IfStatement': {
+        const cond = exprToJS(stmt.condition);
+        const thenCode = compileStatement(stmt.thenBlock, indent);
+        let code = `${indent}if (${cond}) ${thenCode.trimStart()}`;
+        if (stmt.elseBlock) {
+          const elseCode = compileStatement(stmt.elseBlock, indent);
+          code += ` else ${elseCode.trimStart()}`;
+        }
+        return code;
+      }
+      case 'ForStatement': {
+        const variables = stmt.variables || [];
+        if (variables.length > 0) {
+          const forVar = variables[0];
+          const varName = forVar.varType?.name;
+          const coll = exprToJS(forVar.collection);
+          const range = forVar.range ? exprToJS(forVar.range) : null;
+          const bodyCode = compileStatement(stmt.body, indent);
+          if (range) {
+            return `${indent}for (let ${varName} = ${coll}; ${varName} <= ${range}; ${varName}++) ${bodyCode.trimStart()}`;
+          } else {
+            return `${indent}for (let ${varName} of ${coll}) ${bodyCode.trimStart()}`;
+          }
+        }
+        return '';
+      }
+      case 'DoStatement': {
+        const cond = exprToJS(stmt.condition);
+        const bodyCode = compileStatement(stmt.body, indent);
+        return `${indent}do ${bodyCode.trimStart()} while (${cond});`;
+      }
+      case 'SwitchStatement': {
+        const cond = exprToJS(stmt.condition);
+        const clausesCode = (stmt.clauses || []).map(c => {
+          const cases = (c.cases || []).map(cs => `${indent}  case ${exprToJS(cs)}:`).join('\n');
+          const body = (c.body || []).map(s => compileStatement(s, indent + '    ')).filter(Boolean).join('\n');
+          return `${cases}\n${body}\n${indent}    break;`;
+        }).join('\n');
+        let defCode = '';
+        if (stmt.defaultClause) {
+          const defBody = (stmt.defaultClause.body || []).map(s => compileStatement(s, indent + '    ')).filter(Boolean).join('\n');
+          defCode = `\n${indent}  default:\n${defBody}\n${indent}    break;`;
+        }
+        return `${indent}switch (${cond}) {\n${clausesCode}${defCode}\n${indent}}`;
+      }
+      case 'AssignmentStmt':
+      case 'Assignment': {
+        return `${indent}${exprToJS(stmt.left || stmt.lhs)} = ${exprToJS(stmt.right || stmt.rhs)};`;
+      }
+      case 'IncDecStatement':
+      case 'IncDec': {
+        const varName = stmt.name || exprToJS(stmt.expression);
+        const op = stmt.op || stmt.operator || '++';
+        return `${indent}${varName}${op};`;
+      }
+      case 'ReturnStatement':
+      case 'Return': {
+        const val = stmt.expression ? exprToJS(stmt.expression) : '';
+        return `${indent}return ${val};`;
+      }
+      default:
+        console.log(`DEBUG: Unhandled statement type: ${stmt.type}`);
+        return `${indent}// TODO: Handle stmt type ${stmt.type}`;
+    }
+  }
+
+  for (const structure of programmingStructures) {
+    const code = compileStatement(structure, '    ');
+    if (code) {
+      functionBody.push(code);
     }
   }
 
@@ -6750,6 +6742,45 @@ function generateExplicitScenarioExecution(executionData) {
   return functionBody.join('\n');
 }
 
+function collectScenes(node, list) {
+  if (!node) return;
+  if (node.type === 'SceneCall') {
+    if (node.sceneName) list.push(node.sceneName);
+  } else if (node.type === 'ScenarioRef') {
+    if (node.name) list.push(node.name);
+  } else if (node.type === 'Block') {
+    if (Array.isArray(node.statements)) {
+      for (const s of node.statements) {
+        collectScenes(s, list);
+      }
+    }
+  } else if (node.type === 'WhileStatement' || node.type === 'While') {
+    collectScenes(node.body, list);
+  } else if (node.type === 'IfStatement') {
+    collectScenes(node.thenBlock, list);
+    collectScenes(node.elseBlock, list);
+  } else if (node.type === 'ForStatement') {
+    collectScenes(node.body, list);
+  } else if (node.type === 'DoStatement') {
+    collectScenes(node.body, list);
+  } else if (node.type === 'SwitchStatement') {
+    if (Array.isArray(node.clauses)) {
+      for (const c of node.clauses) {
+        if (Array.isArray(c.body)) {
+          for (const s of c.body) {
+            collectScenes(s, list);
+          }
+        }
+      }
+    }
+    if (node.defaultClause && Array.isArray(node.defaultClause.body)) {
+      for (const s of node.defaultClause.body) {
+        collectScenes(s, list);
+      }
+    }
+  }
+}
+
 // Enhanced Scenario extraction with programming structures support
 function extractScenariosEnhanced(element) {
   const scenarios = {};
@@ -6757,7 +6788,8 @@ function extractScenariosEnhanced(element) {
   if (!element || !element.scenarios) return scenarios;
 
   // Process scenarios array directly from the ScenarioDefinitions element
-  for (const scenarioDef of element.scenarios) {
+  const scenariosList = pegExtract(element.scenarios);
+  for (const scenarioDef of scenariosList) {
     if (scenarioDef && scenarioDef.type === 'ScenarioDef') {
       const scenarioName = scenarioDef.name || (scenarioDef.id && scenarioDef.id.name) || scenarioDef.id;
       if (scenarioName) {
@@ -6771,32 +6803,8 @@ function extractScenariosEnhanced(element) {
         if (scenarioDef.body && Array.isArray(scenarioDef.body)) {
           for (const item of scenarioDef.body) {
             console.log(`DEBUG: Processing item type ${item.type}:`, JSON.stringify(item, null, 2));
-
-            if (item.type === 'ScenarioRef') {
-              // Scene or Scenario reference
-              scenes.push(item.name);
-              programmingStructures.push(item);
-            } else if (item.type === 'VarDec' || item.type === 'VariableDecl') {
-              // Variable declaration (let i: Integer = 1)
-              programmingStructures.push(item);
-            } else if (item.type === 'While' || item.type === 'WhileStatement') {
-              // While loop structure
-              programmingStructures.push(item);
-              // Extract scenes from within the while loop
-              if (item.body && Array.isArray(item.body)) {
-                for (const bodyItem of item.body) {
-                  if (bodyItem.type === 'ScenarioRef') {
-                    scenes.push(bodyItem.name);
-                  }
-                }
-              }
-            } else if (item.type === 'IncDec') {
-              // Increment/decrement statements
-              programmingStructures.push(item);
-            } else {
-              // Any other programming structure
-              programmingStructures.push(item);
-            }
+            programmingStructures.push(item);
+            collectScenes(item, scenes);
           }
         }
 
@@ -6812,6 +6820,7 @@ function extractScenariosEnhanced(element) {
 
   return scenarios;
 }
+
 
 function extractScenarioExecutionEnhanced(element) {
   const execution = {

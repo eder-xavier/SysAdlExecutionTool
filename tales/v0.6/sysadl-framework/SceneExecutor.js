@@ -148,15 +148,18 @@ class SceneExecutor {
       console.log(`🔄 Phase 1: Validating pre-conditions`);
       await this.validatePreConditions(execution);
 
+      // Phase 3: Prepare waiting for finish event (register listener)
+      execution.phase = 'waiting_finish';
+      console.log(`🔄 Phase 3: Preparing finish event listener`);
+      const finishPromise = this.waitForFinishEvent(execution);
+
       // Phase 2: Execute start event
       execution.phase = 'start_event';
       console.log(`🔄 Phase 2: Executing start event`);
       await this.executeStartEvent(execution);
 
-      // Phase 3: Wait for finish event (with timeout)
-      execution.phase = 'waiting_finish';
-      console.log(`🔄 Phase 3: Waiting for finish event`);
-      await this.waitForFinishEvent(execution);
+      // Await finish event completion
+      await finishPromise;
 
       // Phase 4: Validate post-conditions
       execution.phase = 'post_conditions';
@@ -403,7 +406,7 @@ class SceneExecutor {
     if (!scene.finishEvent) {
       console.log(`[WARN] No finish event defined - scene completes immediately`);
       // No finish event - scene completes immediately after start event
-      return;
+      return Promise.resolve();
     }
 
     const timeoutMs = scene.timeout || 30000;

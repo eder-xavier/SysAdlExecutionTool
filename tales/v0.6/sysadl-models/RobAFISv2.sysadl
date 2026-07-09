@@ -1,0 +1,1852 @@
+Model SysADLModel ; 
+
+// TYPES
+package SysADL.types {
+value type Int {}
+    value type Boolean {}
+    value type String {}
+    value type Void {}
+    value type Real {}
+
+    enum PieceColor { Blue , Red , None }
+    enum MissionParameter { P0 , P1 }
+    enum StrategyParameter { T_First , SPE_First }
+    enum MotorCommand { On , Off }
+    enum Direction { Forward , Left , Right , SoftLeft , SoftRight , Stop }
+    enum NavColor { Black , Green , Red , None }
+
+    datatype MissionConfig {
+        attributes:
+            mission : MissionParameter ;
+            strategy : StrategyParameter ;
+    }
+
+    datatype RobotCommands {
+        attributes:
+            dir : Direction ;
+            grab : MotorCommand ;
+    }
+}
+
+// STRUCTURAL PORT TYPES
+package SysADL.Ports {
+    import SysADL.types;
+
+port def ParameterIPT { flow in MissionParameter }
+    port def ParameterOPT { flow out MissionParameter }
+
+    port def StrategyIPT { flow in StrategyParameter }
+    port def StrategyOPT { flow out StrategyParameter }
+
+    port def PieceColorIPT { flow in PieceColor }
+    port def PieceColorOPT { flow out PieceColor }
+
+    port def BooleanIPT { flow in Boolean }
+    port def BooleanOPT { flow out Boolean }
+
+    port def DirectionIPT { flow in Direction }
+    port def DirectionOPT { flow out Direction }
+
+    port def CommandIPT { flow in MotorCommand }
+    port def CommandOPT { flow out MotorCommand }
+
+    port def IntIPT { flow in Int }
+    port def IntOPT { flow out Int }
+
+    port def NavColorIPT { flow in NavColor }
+    port def NavColorOPT { flow out NavColor }
+
+    port def MissionConfigIPT { flow in MissionConfig }
+    port def MissionConfigOPT { flow out MissionConfig }
+}
+
+// STRUCTURAL CONNECTOR TYPES
+package SysADL.Connectors {
+    import SysADL.types;
+    import SysADL.Ports;
+
+connector def ParamCN {
+        participants:
+            ~ outP : ParameterOPT ;
+            ~ inP : ParameterIPT ;
+        flows:
+            MissionParameter from outP to inP
+    }
+
+    connector def StrategyCN {
+        participants:
+            ~ outS : StrategyOPT ;
+            ~ inS : StrategyIPT ;
+        flows:
+            StrategyParameter from outS to inS
+    }
+
+    connector def PieceColorCN {
+        participants:
+            ~ outC : PieceColorOPT ;
+            ~ inC : PieceColorIPT ;
+        flows:
+            PieceColor from outC to inC
+    }
+
+    connector def BooleanCN {
+        participants:
+            ~ outB : BooleanOPT ;
+            ~ inB : BooleanIPT ;
+        flows:
+            Boolean from outB to inB
+    }
+
+    connector def DirectionCN {
+        participants:
+            ~ outD : DirectionOPT ;
+            ~ inD : DirectionIPT ;
+        flows:
+            Direction from outD to inD
+    }
+
+    connector def CommandCN {
+        participants:
+            ~ outC : CommandOPT ;
+            ~ inC : CommandIPT ;
+        flows:
+            MotorCommand from outC to inC
+    }
+
+    connector def IntCN {
+        participants:
+            ~ outI : IntOPT ;
+            ~ inI : IntIPT ;
+        flows:
+            Int from outI to inI
+    }
+
+    connector def NavColorCN {
+        participants:
+            ~ outN : NavColorOPT ;
+            ~ inN : NavColorIPT ;
+        flows:
+            NavColor from outN to inN
+    }
+
+    connector def MissionConfigCN {
+        participants:
+            ~ outMC : MissionConfigOPT ;
+            ~ inMC : MissionConfigIPT ;
+        flows:
+            MissionConfig from outMC to inMC
+    }
+}
+
+// STRUCTURAL COMPONENTS
+package SysADL.Components {
+    import SysADL.types;
+    import SysADL.Ports;
+    import SysADL.Connectors;
+
+// Boundary Component: Parameter and Strategy Input Panel
+    boundary component def ParameterInputCP {
+        ports:
+            pOut : ParameterOPT ;
+            strategyOut : StrategyOPT ;
+    }
+
+
+    boundary component def CameraSensorCP {
+        ports:
+            floorColorOut : NavColorOPT ;
+            lineOffsetOut : IntOPT ;
+            zoneAlarmOut : BooleanOPT ;
+            pieceColorOut : PieceColorOPT ;
+    }
+
+    boundary component def ObstacleSensorCP {
+        ports:
+            obstacleOut : BooleanOPT ;
+    }
+
+    boundary component def DriveSystemCP {
+        ports:
+            dirIn : DirectionIPT ;
+    }
+
+    boundary component def GrabberCP {
+        ports:
+            cmdIn : CommandIPT ;
+    }
+
+   
+    component def MissionPlannerCP {
+        ports:
+            planner_inParam : ParameterIPT ;
+            planner_inStrategy : StrategyIPT ;
+            planner_outConfig : MissionConfigOPT ;
+    }
+
+    component def NavigatorCP {
+        ports:
+            navigator_inFloorColor : NavColorIPT ;
+            navigator_inLineOffset : IntIPT ;
+            navigator_inZoneAlarm : BooleanIPT ;
+            navigator_inObstacle : BooleanIPT ;
+            navigator_inConfig : MissionConfigIPT ;
+            navigator_outDir : DirectionOPT ;
+    }
+
+    component def CargoHandlerCP {
+        ports:
+            cargo_inPieceColor : PieceColorIPT ;
+            cargo_inConfig : MissionConfigIPT ;
+            cargo_outGrab : CommandOPT ;
+    }
+
+    component def RobAFISControllerCP {
+        ports:
+            controller_inParam : ParameterIPT ;
+            controller_inStrategy : StrategyIPT ;
+            controller_inFloorColor : NavColorIPT ;
+            controller_inLineOffset : IntIPT ;
+            controller_inZoneAlarm : BooleanIPT ;
+            controller_inObstacle : BooleanIPT ;
+            controller_inPieceColor : PieceColorIPT ;
+            controller_outDir : DirectionOPT ;
+            controller_outGrab : CommandOPT ;
+        configuration {
+            components:
+                planner : MissionPlannerCP {
+                    using ports:
+                        planner_inParam : ParameterIPT ;
+                        planner_inStrategy : StrategyIPT ;
+                        planner_outConfig : MissionConfigOPT ;
+                }
+                navigator : NavigatorCP {
+                    using ports:
+                        navigator_inFloorColor : NavColorIPT ;
+                        navigator_inLineOffset : IntIPT ;
+                        navigator_inZoneAlarm : BooleanIPT ;
+                        navigator_inObstacle : BooleanIPT ;
+                        navigator_inConfig : MissionConfigIPT ;
+                        navigator_outDir : DirectionOPT ;
+                }
+                cargo : CargoHandlerCP {
+                    using ports:
+                        cargo_inPieceColor : PieceColorIPT ;
+                        cargo_inConfig : MissionConfigIPT ;
+                        cargo_outGrab : CommandOPT ;
+                }
+            connectors:
+                c_config1 : MissionConfigCN bindings planner_outConfig = navigator_inConfig ;
+                c_config2 : MissionConfigCN bindings planner_outConfig = cargo_inConfig ;
+            delegations:
+                planner_inParam to controller_inParam  
+                planner_inStrategy to controller_inStrategy
+                navigator_inFloorColor to controller_inFloorColor 
+                navigator_inLineOffset to controller_inLineOffset  
+                navigator_inZoneAlarm to controller_inZoneAlarm  
+                navigator_inObstacle to controller_inObstacle  
+                cargo_inPieceColor to controller_inPieceColor  
+                navigator_outDir to controller_outDir  
+                cargo_outGrab to controller_outGrab
+        }
+    }
+
+    component def RobAFISSystemCP {
+        configuration {
+            components:
+                pInput : ParameterInputCP {
+                    using ports:
+                        pOut : ParameterOPT ;
+                        strategyOut : StrategyOPT ;
+                }
+                camera : CameraSensorCP {
+                    using ports:
+                        floorColorOut : NavColorOPT ;
+                        lineOffsetOut : IntOPT ;
+                        zoneAlarmOut : BooleanOPT ;
+                        pieceColorOut : PieceColorOPT ;
+                }
+                obstacleSens : ObstacleSensorCP {
+                    using ports:
+                        obstacleOut : BooleanOPT ;
+                }
+                driveSys : DriveSystemCP {
+                    using ports:
+                        dirIn : DirectionIPT ;
+                }
+                grabber : GrabberCP {
+                    using ports:
+                        cmdIn : CommandIPT ;
+                }
+                controller : RobAFISControllerCP {
+                    using ports:
+                        controller_inParam : ParameterIPT ;
+                        controller_inStrategy : StrategyIPT ;
+                        controller_inFloorColor : NavColorIPT ;
+                        controller_inLineOffset : IntIPT ;
+                        controller_inZoneAlarm : BooleanIPT ;
+                        controller_inObstacle : BooleanIPT ;
+                        controller_inPieceColor : PieceColorIPT ;
+                        controller_outDir : DirectionOPT ;
+                        controller_outGrab : CommandOPT ;
+                }
+            connectors:
+                c1 : ParamCN bindings pOut = controller_inParam ;
+                c2 : StrategyCN bindings strategyOut = controller_inStrategy ;
+                c3 : NavColorCN bindings floorColorOut = controller_inFloorColor ;
+                c4 : IntCN bindings lineOffsetOut = controller_inLineOffset ;
+                c5 : BooleanCN bindings zoneAlarmOut = controller_inZoneAlarm ;
+                c6 : BooleanCN bindings obstacleOut = controller_inObstacle ;
+                c7 : PieceColorCN bindings pieceColorOut = controller_inPieceColor ;
+                c8 : DirectionCN bindings controller_outDir = dirIn ;
+                c9 : CommandCN bindings controller_outGrab = cmdIn ;
+        }
+    }
+}
+
+// BEHAVIORAL VIEWPOINT
+package SysADL.Behavior {
+    import SysADL.types ;
+
+    action def ConfigureMissionAN ( paramIn : MissionParameter , strategyIn : StrategyParameter ) : MissionConfig {}
+    action def DecideCommandAN ( decFloorColor : NavColor , decOffset : Int , decZoneAlarm : Boolean , decObstacle : Boolean , decConfig : MissionConfig ) : RobotCommands {}
+    action def ExtractDirAN ( extDirCmd : RobotCommands ) : Direction {}
+    action def VerifyCargoAN ( cargoPieceColor : PieceColor , cargoConfig : MissionConfig ) : RobotCommands {}
+    action def ExtractGrabAN ( extGrabCmd : RobotCommands ) : MotorCommand {}
+
+    activity def MissionPlannerAC ( actParam : MissionParameter ) ( actStrategy : StrategyParameter ) : ( actConfig : MissionConfig ) {
+        body {
+            actions:
+                configAct : ConfigureMissionAN {
+                    using pins:
+                        paramIn : MissionParameter ;
+                        strategyIn : StrategyParameter ;
+                }
+            delegate actParam to paramIn 
+            delegate actStrategy to strategyIn 
+            delegate actConfig to configAct 
+        }
+    }
+
+    activity def NavigatorAC (
+        actFloorColor : NavColor ) (
+        actLineOffset : Int ) (
+        actZoneAlarm : Boolean ) (
+        actObstacle : Boolean ) (
+        actConfig : MissionConfig
+    ) : ( actDir : Direction ) {
+        body {
+            actions:
+                navAct : DecideCommandAN {
+                    using pins:
+                        decFloorColor : NavColor ;
+                        decOffset : Int ;
+                        decZoneAlarm : Boolean ;
+                        decObstacle : Boolean ;
+                        decConfig : MissionConfig ;
+                }
+                extDirAct : ExtractDirAN {
+                    using pins:
+                        extDirCmd : RobotCommands ;
+                }
+            delegate actFloorColor to decFloorColor 
+            delegate actLineOffset to decOffset 
+            delegate actZoneAlarm to decZoneAlarm 
+            delegate actObstacle to decObstacle 
+            delegate actConfig to decConfig 
+            delegate actDir to extDirAct
+            
+            flow from navAct to extDirCmd 
+        }
+    }
+
+    activity def CargoHandlerAC ( actPieceColor : PieceColor ) ( actConfig : MissionConfig ) : ( actGrab : MotorCommand ) {
+        body {
+            actions:
+                cargoAct : VerifyCargoAN {
+                    using pins:
+                        cargoPieceColor : PieceColor ;
+                        cargoConfig : MissionConfig ;
+                }
+                extGrabAct : ExtractGrabAN {
+                    using pins:
+                        extGrabCmd : RobotCommands ;
+                }
+            delegate actPieceColor to cargoPieceColor 
+            delegate actConfig to cargoConfig 
+            delegate actGrab to extGrabAct
+            
+            flow from cargoAct to extGrabCmd
+        }
+    }
+}
+
+// EXECUTABLE VIEWPOINT
+package SysADL.Execution {
+    import SysADL.types;
+
+executable def ConfigureMissionEX ( in paramIn : MissionParameter , in strategyIn : StrategyParameter ) : out MissionConfig {
+        let cfg : MissionConfig ;
+    	cfg->mission = paramIn;
+    	cfg->strategy = strategyIn;
+    	
+        return cfg;
+    }
+
+    executable def DecideCommandEX ( in decFloorColor : NavColor , in decOffset : Int , in decZoneAlarm : Boolean , in decObstacle : Boolean , in decConfig : MissionConfig ) : out RobotCommands {
+        let cmds : RobotCommands ;
+        
+        // 1. Zone Machine collision or intrusion safeguard
+        if (decObstacle == true) {
+            cmds->dir = Direction::Stop ;
+            cmds->grab = MotorCommand::Off ;
+            return cmds ;
+        }
+        
+        if (decZoneAlarm == true) {
+            cmds->dir = Direction::Stop ;
+            cmds->grab = MotorCommand::Off ;
+            return cmds ;
+        }
+
+        // 2. Proportional trajectory control logic
+        if (decOffset < (0 - 10)) {
+            cmds->dir = Direction::SoftLeft ;
+            cmds->grab = MotorCommand::Off ;
+            return cmds ;
+        }
+        
+        if (decOffset > 10) {
+            cmds->dir = Direction::SoftRight ;
+            cmds->grab = MotorCommand::Off ;
+            return cmds ;
+        }
+
+        // 3. Logic based on strategy and soil color
+        if (decConfig->strategy == StrategyParameter::SPE_First) {
+            if (decFloorColor == NavColor::Green) {
+                cmds->dir = Direction::Stop ;
+                cmds->grab = MotorCommand::Off ;
+                return cmds ;
+            }
+        }
+
+        if (decFloorColor == NavColor::Red) {
+            cmds->dir = Direction::Stop ;
+            cmds->grab = MotorCommand::Off ;
+            return cmds ;
+        }
+
+        // 4. Nominal rectilinear trajectory
+        cmds->dir = Direction::Forward ;
+        cmds->grab = MotorCommand::Off ;
+        return cmds ;
+    }
+
+    executable def ExtractDirEX ( in extDirCmd : RobotCommands ) : out Direction {
+        return extDirCmd->dir ;
+    }
+
+    executable def VerifyCargoEX ( in cargoPieceColor : PieceColor , in cargoConfig : MissionConfig ) : out RobotCommands {
+        let cmds : RobotCommands ;
+        cmds->dir = Direction::Forward ;
+        
+        if (cargoPieceColor == PieceColor::Blue) {
+            cmds->grab = MotorCommand::On ;
+            return cmds ;
+        }
+        if (cargoPieceColor == PieceColor::Red) {
+            cmds->grab = MotorCommand::On ;
+            return cmds ;
+        }
+        cmds->grab = MotorCommand::Off ;
+        return cmds ;
+    }
+
+    executable def ExtractGrabEX ( in extGrabCmd : RobotCommands ) : out MotorCommand {
+        return extGrabCmd->grab ;
+    }
+}
+// =========================================================================
+// 7. ENVPORTS & ENVCONNECTORS (Co-Simulation Boundary Mappings)
+// =========================================================================
+package EnvPortsRobAFIS {
+    import SysADL.types ;
+
+    EnvPort def InPieceColor { flow in PieceColor }
+    EnvPort def OutPieceColor { flow out PieceColor }
+
+    EnvPort def InNavColor { flow in NavColor }
+    EnvPort def OutNavColor { flow out NavColor }
+
+    EnvPort def InBoolean { flow in Boolean }
+    EnvPort def OutBoolean { flow out Boolean }
+
+    EnvPort def InParameter { flow in MissionParameter }
+    EnvPort def OutParameter { flow out MissionParameter }
+
+    EnvPort def InStrategy { flow in StrategyParameter }
+    EnvPort def OutStrategy { flow out StrategyParameter }
+
+    EnvPort def InMotorCommand { flow in MotorCommand }
+    EnvPort def OutMotorCommand { flow out MotorCommand }
+
+    EnvPort def InDirection { flow in Direction }
+    EnvPort def OutDirection { flow out Direction }
+
+    EnvPort def InInt { flow in Int }
+    EnvPort def OutInt { flow out Int }
+
+    EnvPort def InPresence { flow in Boolean }
+    EnvPort def OutPresence { flow out Boolean }
+}
+
+package EnvConnectorsRobAFIS {
+    import SysADL.types ;
+    import EnvPortsRobAFIS ;
+
+    EnvConnector def PieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceColor from outColor to inColor
+    }
+
+    EnvConnector def NavColorEnvCN {
+        participants:
+            ~ outColor : OutNavColor ;
+            ~ inColor : InNavColor ;
+        flows: NavColor from outColor to inColor
+    }
+
+    EnvConnector def BooleanEnvCN {
+        participants:
+            ~ outB : OutBoolean ;
+            ~ inB : InBoolean ;
+        flows: Boolean from outB to inB
+    }
+
+    EnvConnector def ParamEnvCN {
+        participants:
+            ~ outP : OutParameter ;
+            ~ inP : InParameter ;
+        flows: MissionParameter from outP to inP
+    }
+
+    EnvConnector def StrategyEnvCN {
+        participants:
+            ~ outS : OutStrategy ;
+            ~ inS : InStrategy ;
+        flows: StrategyParameter from outS to inS
+    }
+
+    EnvConnector def DirectionEnvCN {
+        participants:
+            ~ outD : OutDirection ;
+            ~ inD : InDirection ;
+        flows: Direction from outD to inD
+    }
+
+    EnvConnector def MotorCommandEnvCN {
+        participants:
+            ~ outC : OutMotorCommand ;
+            ~ inC : InMotorCommand ;
+        flows: MotorCommand from outC to inC
+    }
+
+    EnvConnector def IntEnvCN {
+        participants:
+            ~ outI : OutInt ;
+            ~ inI : InInt ;
+        flows: Int from outI to inI
+    }
+
+    EnvConnector def ReadPresenceEnvCN {
+        participants:
+            ~ outPresence : OutPresence ;
+            ~ inPresence : InPresence ;
+        flows: Boolean from outPresence to inPresence
+    }
+
+    EnvConnector def ReadPieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceColor from outColor to inColor
+    }
+
+    EnvConnector def DetectPieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceColor from outColor to inColor
+    }
+
+    EnvConnector def DetectParameterEnvCN {
+        participants:
+            ~ outParam : OutParameter ;
+            ~ inParam : InParameter ;
+        flows: MissionParameter from outParam to inParam
+    }
+
+    EnvConnector def ReadParameterEnvCN {
+        participants:
+            ~ outParam : OutParameter ;
+            ~ inParam : InParameter ;
+        flows: MissionParameter from outParam to inParam
+    }
+
+    EnvConnector def SendMotorCommandEnvCN {
+        participants:
+            ~ outCommand : OutMotorCommand ;
+            ~ inCommand : InMotorCommand ;
+        flows: MotorCommand from outCommand to inCommand
+    }
+
+    EnvConnector def SendEnvironmentalDirectionEnvCN {
+        participants:
+            ~ outColor : OutNavColor ;
+            ~ inColor : InNavColor ;
+        flows: NavColor from outColor to inColor
+    }
+
+    EnvConnector def SendPieceColorEnvCN {
+        participants:
+            ~ outColor : OutPieceColor ;
+            ~ inColor : InPieceColor ;
+        flows: PieceColor from outColor to inColor
+    }
+}
+
+// =========================================================================
+// 8. ENVCOMPONENTS & REOPENED FRONTIERS (Atelier Entities)
+// =========================================================================
+package EnvComponentsRobAFIS {
+	import SysADL.types;
+	import SysADL.Components;
+	import EnvPortsRobAFIS;
+	import EnvConnectorsRobAFIS;
+
+	boundary component SysADL.Components::ParameterInputCP {
+		envPorts:
+			inParam : InParameter;
+			inStrategy : InStrategy;
+	}
+
+	boundary component SysADL.Components::CameraSensorCP {
+		envPorts:
+			inFloorColor : InNavColor;
+			inLineOffset : InInt;
+			inZoneAlarm : InBoolean;
+			inPieceColor : InPieceColor;
+	}
+
+	boundary component SysADL.Components::ObstacleSensorCP {
+		envPorts:
+			inObstacle : InBoolean;
+	}
+
+	boundary component SysADL.Components::DriveSystemCP {
+		envPorts:
+			outDir : OutDirection;
+	}
+
+	boundary component SysADL.Components::GrabberCP {
+		envPorts:
+			outGrab : OutMotorCommand;
+			outPieceColor : OutPieceColor;
+	}
+
+	EnvComponent def PieceEnvCP {
+		envPorts:
+			outColor : OutPieceColor ;
+			inColor : InPieceColor ;
+			outPresence : OutPresence ;
+			inPresence : InPresence ;
+			inCommand : InMotorCommand ;
+		properties:
+			Property def color : PieceColor ;
+	}
+
+	EnvComponent def HumanOperatorEnvCP {
+		envPorts:
+			outParam : OutParameter ;
+			outStrategy : OutStrategy ;
+	}
+
+	EnvComponent def NavigationLineEnvCP {
+		envPorts:
+			outColor : OutNavColor ;
+			inColor : InNavColor ;
+	}
+
+	EnvComponent def NavigationPadEnvCP {
+		envPorts:
+			outColor : OutNavColor ;
+			inColor : InNavColor ;
+	}
+
+	EnvComponent def StandbyPositionEnvCP {
+		envPorts:
+			outColor : OutNavColor ;
+			inColor : InNavColor ;
+	}
+
+	EnvComponent def RestrictedMachineZoneEnvCP {
+		envPorts:
+			outPresence : OutPresence ;
+	}
+
+	EnvComponent def ObstacleEnvCP {
+		envPorts:
+			outObstacle : OutBoolean ;
+		properties:
+			Property def isPresent : Boolean ;
+	}
+
+	EnvComponent def TransElevatorEnvCP {
+		envPorts:
+			outPieceColor : OutPieceColor ;
+			inCommand : InMotorCommand ;
+			outPresence : OutPresence ;
+			inPieceColor : InPieceColor ;
+			inPresence : InPresence ;
+
+        environmentConfiguration TransElevatorConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+            envDelegations:
+                pieces.outColor to outPieceColor ;
+                inCommand to pieces.inCommand ;
+                inPieceColor to pieces.inColor ;
+                pieces.outPresence to outPresence ;
+                inPresence to pieces.inPresence ;
+        }
+	}
+
+	EnvComponent def SharedEntryStockEnvCP {
+		envPorts:
+			inPieceColor : InPieceColor ;
+			outPieceColor : OutPieceColor ;
+			outPresence : OutPresence ;
+			inPresence : InPresence ;
+
+        environmentConfiguration SharedEntryConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                pieces.outColor to outPieceColor ;
+                inCommand to pieces.inCommand ;
+                pieces.outPresence to outPresence ;
+                inPresence to pieces.inPresence ;
+        }
+	}
+
+	EnvComponent def SharedDepartureStockEnvCP {
+		envPorts:
+			inPieceColor : InPieceColor ;
+			inDropCommand : InMotorCommand ;
+			outTransferToSPE : OutPieceColor ;
+			outPieceColor : OutPieceColor ;
+
+        environmentConfiguration SharedDepartureConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                inDropCommand to pieces.inCommand ;
+                pieces.outColor to outTransferToSPE ;
+                pieces.outColor to outPieceColor ;
+        }
+	}
+
+	EnvComponent def ArrivalStockEnvCP {
+		envPorts:
+			inPieceColor : InPieceColor ;
+			inDropCommand : InMotorCommand ;
+			outPieceColor : OutPieceColor ;
+
+        environmentConfiguration ArrivalStockConfig {
+            envComponents:
+                pieces : PieceEnvCP [0..3] ;
+            envDelegations:
+                inPieceColor to pieces.inColor ;
+                inDropCommand to pieces.inCommand ;
+                pieces.outColor to outPieceColor ;
+        }
+	}
+
+	EnvComponent def ProductionUnitEnvCP {
+		envPorts:
+			inOpParam : InParameter ;
+			inOpStrategy : InStrategy ;
+			inUnitNavPad : InNavColor ;
+			inUnitPieceColor : InPieceColor ;
+			inSPEPresence : InPresence ;
+			inTPresence : InPresence ;
+			inTPieceColor : InPieceColor ;
+			inSPEPieceColor : InPieceColor ;
+			outUnitNavLine : OutNavColor ;
+			outUnitNavPad : OutNavColor ;
+			outUnitPieceColor : OutPieceColor ;
+			outSPEPieceColor : OutPieceColor ;
+			outSAPieceColor : OutPieceColor ;
+			outSPDPieceColor : OutPieceColor ;
+			outUnitPAColor : OutNavColor ;
+			inUnitTransferFromSPD : InPieceColor ;
+			outUnitTransferToSPE : OutPieceColor ;
+			outObstacle : OutBoolean ;
+
+        environmentConfiguration UnitConfig {
+            envComponents:
+                standbyPos : StandbyPositionEnvCP ;
+                transElevator : TransElevatorEnvCP ;
+                arrivalStock : ArrivalStockEnvCP ;
+                entryStock : SharedEntryStockEnvCP ;
+                departureStock : SharedDepartureStockEnvCP ;
+                navLine : NavigationLineEnvCP ;
+                navPad : NavigationPadEnvCP ;
+                machineZone : RestrictedMachineZoneEnvCP ;
+                obstacle : ObstacleEnvCP ;
+            components:
+                unit_camera : SysADL.Components::CameraSensorCP ;
+                unit_obstacleSens : SysADL.Components::ObstacleSensorCP ;
+                unit_driveSys : SysADL.Components::DriveSystemCP ;
+                unit_grabber : SysADL.Components::GrabberCP ;
+            envDelegations:
+                inUnitTransferFromSPD to entryStock.inPieceColor ;
+                inSPEPresence to entryStock.inPresence ;
+                inTPresence to transElevator.inPresence ;
+                inTPieceColor to transElevator.inPieceColor ;
+                departureStock.outTransferToSPE to outUnitTransferToSPE ;
+                navLine.outColor to outUnitNavLine ;
+                navPad.outColor to outUnitNavPad ;
+                transElevator.outPieceColor to outUnitPieceColor ;
+                entryStock.outPieceColor to outSPEPieceColor ;
+                arrivalStock.outPieceColor to outSAPieceColor ;
+                departureStock.outPieceColor to outSPDPieceColor ;
+                standbyPos.outColor to outUnitPAColor ;
+                obstacle.outObstacle to outObstacle ;
+            envConnectors:
+                // Opto-Vision loop connections
+                lineC : NavColorEnvCN bindings navLine.outColor = unit_camera.inFloorColor ;
+                offsetC : IntEnvCN bindings navLine.outColor = unit_camera.inLineOffset ; // Simulated offset binding
+                zoneC : ReadPresenceEnvCN bindings machineZone.outPresence = unit_camera.inZoneAlarm ;
+                colorC : ReadPieceColorEnvCN bindings transElevator.outPieceColor = unit_camera.inPieceColor ;
+                speColorC : ReadPieceColorEnvCN bindings entryStock.outPieceColor = unit_camera.inPieceColor ;
+
+                // Safeguards loop
+                spePresenceC : ReadPresenceEnvCN bindings entryStock.outPresence = unit_camera.inZoneAlarm ; // Delegated interrupt detection
+                obsC : BooleanEnvCN bindings obstacle.outObstacle = unit_obstacleSens.inObstacle ;
+
+                // Closed-loop simulation feedback bindings
+                navLineC : SendEnvironmentalDirectionEnvCN bindings unit_driveSys.outColor = navLine.inColor ;
+                navPadC : SendEnvironmentalDirectionEnvCN bindings unit_driveSys.outColor = navPad.inColor ;
+                paColorC : SendEnvironmentalDirectionEnvCN bindings unit_driveSys.outColor = standbyPos.inColor ;
+
+                // Gripper manipulation dispatch bindings
+                grabC : SendMotorCommandEnvCN bindings unit_grabber.outGrab = transElevator.inCommand ;
+                grabSPE_C : SendMotorCommandEnvCN bindings unit_grabber.outGrab = entryStock.inCommand ;
+                dropSA_CommandC : SendMotorCommandEnvCN bindings unit_grabber.outGrab = arrivalStock.inDropCommand ;
+                dropSPD_CommandC : SendMotorCommandEnvCN bindings unit_grabber.outGrab = departureStock.inDropCommand ;
+                dropSA_PieceC : SendPieceColorEnvCN bindings unit_grabber.outPieceColor = arrivalStock.inPieceColor ;
+                dropSPD_PieceC : SendPieceColorEnvCN bindings unit_grabber.outPieceColor = departureStock.inPieceColor ;
+        }
+	}
+
+	EnvComponent def AtelierEnvironment {
+
+        environmentConfiguration AtelierConfig {
+            envComponents:
+                unit1 : ProductionUnitEnvCP ;
+                unit2 : ProductionUnitEnvCP ;
+                operator1 : HumanOperatorEnvCP ;
+                operator2 : HumanOperatorEnvCP ;
+            components:
+                r1_pInput : SysADL.Components::ParameterInputCP ;
+                r2_pInput : SysADL.Components::ParameterInputCP ;
+            envConnectors:
+                unit1ToUnit2TransferC : DetectPieceColorEnvCN bindings unit1.outUnitTransferToSPE = unit2.inUnitTransferFromSPD ;
+                unit2ToUnit1TransferC : DetectPieceColorEnvCN bindings unit2.outUnitTransferToSPE = unit1.inUnitTransferFromSPD ;
+                param1C : ReadParameterEnvCN bindings operator1.outParam = r1_pInput.inParam ;
+                param2C : ReadParameterEnvCN bindings operator2.outParam = r2_pInput.inParam ;
+                unit1MissionC : DetectParameterEnvCN bindings operator1.outParam = unit1.inOpParam ;
+                unit2MissionC : DetectParameterEnvCN bindings operator2.outParam = unit2.inOpParam ;
+                unit1StrategyC : StrategyEnvCN bindings operator1.outStrategy = unit1.inOpStrategy ;
+                unit2StrategyC : StrategyEnvCN bindings operator2.outStrategy = unit2.inOpStrategy ;
+        }
+	}
+
+}
+
+// =========================================================================
+// 9. BOUNDARYBEHAVIOR (Boundary Activities & Mappings for Xtext Parser)
+// =========================================================================
+package BoundaryBehavior {
+    import SysADL.types ;
+
+    action def PassBooleanAN ( boolIn : Boolean ) : Boolean { }
+    action def PassIntAN ( intIn : Int ) : Int { }
+    action def PassNavColorAN ( colorIn : NavColor ) : NavColor { }
+    action def PassPieceColorAN ( pColorIn : PieceColor ) : PieceColor { }
+    action def PassDirectionAN ( dirIn : Direction ) : Direction { }
+    action def PassMotorCommandAN ( cmdIn : MotorCommand ) : MotorCommand { }
+    action def PassMissionParameterAN ( paramIn : MissionParameter ) : MissionParameter { }
+    action def PassStrategyParameterAN ( strategyIn : StrategyParameter ) : StrategyParameter { }
+
+    activity def ParameterInputAC ( envParam : MissionParameter , envStrategy : StrategyParameter ) : ( sysParam : MissionParameter , sysStrategy : StrategyParameter ) {
+        body {
+            actions:
+                passP : PassMissionParameterAN { using pins: paramIn : MissionParameter ; paramOut : MissionParameter ; }
+                passS : PassStrategyParameterAN { using pins: strategyIn : StrategyParameter ; strategyOut : StrategyParameter ; }
+            delegate envParam to passP.paramIn
+            delegate sysParam to passP.paramOut
+            delegate envStrategy to passS.strategyIn
+            delegate sysStrategy to passS.strategyOut
+        }
+    }
+
+    activity def CameraSensorAC ( envFloor : NavColor , envOffset : Int , envZone : Boolean , envPiece : PieceColor ) : ( sysFloor : NavColor , sysOffset : Int , sysZone : Boolean , sysPiece : PieceColor ) {
+        body {
+            actions:
+                passF : PassNavColorAN { using pins: colorIn : NavColor ; colorOut : NavColor ; }
+                passO : PassIntAN { using pins: intIn : Int ; intOut : Int ; }
+                passZ : PassBooleanAN { using pins: boolIn : Boolean ; boolOut : Boolean ; }
+                passP : PassPieceColorAN { using pins: pColorIn : PieceColor ; pColorOut : PieceColor ; }
+            delegate envFloor to passF.colorIn
+            delegate sysFloor to passF.colorOut
+            delegate envOffset to passO.intIn
+            delegate sysOffset to passO.intOut
+            delegate envZone to passZ.boolIn
+            delegate sysZone to passZ.boolOut
+            delegate envPiece to passP.pColorIn
+            delegate sysPiece to passP.pColorOut
+        }
+    }
+
+    activity def ObstacleSensorAC ( envObstacle : Boolean ) : ( sysObstacle : Boolean ) {
+        body {
+            actions:
+                passObstacle : PassBooleanAN { using pins: boolIn : Boolean ; boolOut : Boolean ; }
+            delegate envObstacle to passObstacle.boolIn
+            delegate sysObstacle to passObstacle.boolOut
+        }
+    }
+
+    activity def DriveSystemAC ( sysDir : Direction ) : ( envDir : Direction ) {
+        body {
+            actions:
+                passDir : PassDirectionAN { using pins: dirIn : Direction ; dirOut : Direction ; }
+            delegate sysDir to passDir.dirIn
+            delegate envDir to passDir.dirOut
+        }
+    }
+
+    activity def GrabberAC ( sysCmd : MotorCommand ) : ( envCmd : MotorCommand ) {
+        body {
+            actions:
+                passCmd : PassMotorCommandAN { using pins: cmdIn : MotorCommand ; cmdOut : MotorCommand ; }
+            delegate sysCmd to passCmd.cmdIn
+            delegate envCmd to passCmd.cmdOut
+        }
+    }
+}
+
+// =========================================================================
+// 10. BOUNDARYEXECUTION (Isolating HAL Execution Semantics)
+// =========================================================================
+package BoundaryExecution {
+    import SysADL.types ;
+
+    executable def PassBooleanEX ( in boolIn : Boolean ) : out Boolean {
+        return boolIn ;
+    }
+
+    executable def PassIntEX ( in intIn : Int ) : out Int {
+        return intIn ;
+    }
+
+    executable def PassNavColorEX ( in colorIn : NavColor ) : out NavColor {
+        return colorIn ;
+    }
+
+    executable def PassPieceColorEX ( in pColorIn : PieceColor ) : out PieceColor {
+        return pColorIn ;
+    }
+
+    executable def PassDirectionEX ( in dirIn : Direction ) : out Direction {
+        return dirIn ;
+    }
+
+    executable def PassMotorCommandEX ( in cmdIn : MotorCommand ) : out MotorCommand {
+        return cmdIn ;
+    }
+
+    executable def PassMissionParameterEX ( in paramIn : MissionParameter ) : out MissionParameter {
+        return paramIn ;
+    }
+
+    executable def PassStrategyParameterEX ( in strategyIn : StrategyParameter ) : out StrategyParameter {
+        return strategyIn ;
+    }
+
+    // Mathematical loop simulator: maps trajectories to floor markers for closed-loop validation
+    executable def MapDirectionToColorEX ( in dirIn : Direction ) : out NavColor {
+        if (dirIn == Direction::Forward) {
+            return NavColor::Black ;
+        }
+        if (dirIn == Direction::Left) {
+            return NavColor::Green ;
+        }
+        if (dirIn == Direction::Right) {
+            return NavColor::Red ;
+        }
+        return NavColor::None ;
+    }
+}
+
+// =========================================================================
+// 11. REQUIREMENTS & STRICT TRI-PARTITE TRACEABILITY (verified by clauses)
+// =========================================================================
+Requirement SortAndTransportFR ( 1.0 ) {
+    text = "The RobAFIS system must autonomously retrieve, sort, transport, and store pieces of type P1 (blue spheres) and P2 (red spheres) of 52mm diameter in the production atelier."
+    satisfied by SysADL.Components::RobAFISSystemCP ;
+}
+
+Requirement ConfigureMissionFR ( 1.1 ) {
+    text = "Must be able to read and configure the mission parameter p (P0 or P1) at the beginning of the mission."
+    satisfied by SysADL.Components::ParameterInputCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement SelectStrategyFR ( 1.2 ) {
+    text = "Must be able to read and configure the initial production strategy (T_First or SPE_First) at startup to determine whether to prioritize clearing the shared entry stock SPE or the nominal trans-elevator T."
+    satisfied by SysADL.Components::ParameterInputCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement IdentifyPieceColorFR ( 1.3 ) {
+    text = "Must be able to identify the physical color of the 52mm spheres (Blue or Red) or detect their absence using the camera."
+    satisfied by SysADL.Components::CameraSensorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement DetectObstacleFR ( 1.4 ) {
+    text = "Must be able to detect the presence or absence of physical obstacles or obstructions in the path to prevent collisions."
+    satisfied by SysADL.Components::ObstacleSensorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_ObstacleHandling_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_ObstacleHandling_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement DecideRouteFR ( 1.5 ) {
+    text = "Must be able to logically decide the correct route and trajectory to the target stock (SA or SPD) based on the piece color, active mission parameter, and configured production strategy."
+    satisfied by SysADL.Components::NavigatorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement ExecutePriorityLogicFR ( 1.6 ) {
+    text = "Must be able to logically override the nominal routing to prioritize grabbing a piece in the SPE buffer within 2 minutes of its appearance to prevent locking the neighboring unit."
+    satisfied by SysADL.Components::CargoHandlerCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement ManipulatePieceFR ( 1.7 ) {
+    text = "Must be able to physically retrieve and release a 52mm sphere from/to the storage calhas using the grabber mechanism without loss."
+    satisfied by SysADL.Components::GrabberCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement NavigateAutonomouslyFR ( 1.8 ) {
+    text = "Must be able to autonomously follow mat black lines of 20mm width and detect green or red color pads of 50mm diameter to control stops and turns."
+    satisfied by SysADL.Components::DriveSystemCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement CorrectTrajectoryFR ( 1.8.1 ) {
+    text = "Must be able to measure lateral line offset relative to the robot's center and apply proportional steering corrections to ensure stable line-following."
+    satisfied by SysADL.Components::CameraSensorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ,
+    SysADL.Components::DriveSystemCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive NavigateAutonomouslyFR ;
+}
+
+Requirement ReturnToStandbyFR ( 1.9 ) {
+    text = "Must be able to automatically return to the standby position PA and halt when the trans-elevator T and the SPE are both empty."
+    satisfied by SysADL.Components::NavigatorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_EndMission_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_EndMission_Unit2
+    ] ;
+    derive SortAndTransportFR ;
+}
+
+Requirement SystemConstraintsNFR ( 2.0 ) {
+    text = "The system must comply with all operational, performance, and safety constraints of the atelier."
+}
+
+Requirement MaintenanceNFR ( 2.1 ) {
+    text = "Must execute the entire mission without requiring any preventive or curative maintenance during operation."
+    satisfied by SysADL.Components::RobAFISSystemCP ;
+    derive SystemConstraintsNFR ;
+}
+
+Requirement SafetyZoneNFR ( 2.2 ) {
+    text = "The RobAFIS system must maintain complete safety boundaries and avoid entering Forbidden machine zones."
+    satisfied by SysADL.Components::RobAFISSystemCP ;
+    derive SystemConstraintsNFR ;
+}
+
+Requirement DetectZoneLimitNFR ( 2.2.1 ) {
+    text = "Must detect the boundaries of the forbidden mat black machine zones by identifying when the detected black area width significantly exceeds the 20mm line threshold."
+    satisfied by SysADL.Components::CameraSensorCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive SafetyZoneNFR ;
+}
+
+Requirement AvoidZoneNFR ( 2.2.2 ) {
+    text = "Must prevent the robot's wheels or tracks from entering the forbidden machine zones by initiating an immediate emergency stop upon boundary detection."
+    satisfied by SysADL.Components::DriveSystemCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P0_Unit2 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_RoutingLogic_P1_Unit2
+    ] ;
+    derive SafetyZoneNFR ;
+}
+
+Requirement MissionTimeNFR ( 2.3 ) {
+    text = "Must be able to complete the nominal sorting and transport mission within a maximum time of 4 minutes."
+    satisfied by SysADL.Components::RobAFISSystemCP ;
+    derive SystemConstraintsNFR ;
+}
+
+Requirement PriorityTimeNFR ( 2.4 ) {
+    text = "The RobAFIS system must meet strict execution and travel time budgets for priority SPE operations."
+    satisfied by SysADL.Components::RobAFISSystemCP ;
+    derive SystemConstraintsNFR ;
+}
+
+Requirement PriorityRoutingTimeNFR ( 2.4.1 ) {
+    text = "Must be able to process the SPE priority interrupt and calculate the new route within the allocated time budget."
+    satisfied by SysADL.Components::CargoHandlerCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive PriorityTimeNFR ;
+}
+
+Requirement PriorityTravelTimeNFR ( 2.4.2 ) {
+    text = "Must be able to transit to the SPE location within the allocated time budget."
+    satisfied by SysADL.Components::DriveSystemCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive PriorityTimeNFR ;
+}
+
+Requirement PriorityExtractionTimeNFR ( 2.4.3 ) {
+    text = "Must be able to physically extract the priority piece within the allocated time budget."
+    satisfied by SysADL.Components::GrabberCP [
+        verified by ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit1 ,
+        ValidationPlan_PkgScenarios.Scenario_PriorityResolution_Unit2
+    ] ;
+    derive PriorityTimeNFR ;
+}
+
+Requirement AutonomyNFR ( 2.5 ) {
+    text = "Must operate completely autonomously without remote control or human intervention after the initial start signal."
+    satisfied by SysADL.Components::RobAFISControllerCP ;
+    derive SystemConstraintsNFR ;
+}
+
+
+// =========================================================================
+// 12. VALIDATION PLAN (Unified package containing Signals, Activities, Scenes & Scenarios)
+// =========================================================================
+package PkgScenarios {
+    import EnvComponentsRobAFIS ;
+    import SysADL.types ;
+
+    EnvActivitiesDefinitions RobAFISEnvironmentActivities {
+        // Signals
+        signal def StartSimulationSig { attributes : mission : MissionParameter ; strategy : StrategyParameter ; }
+        signal def SetMissionParamSig { attributes : param : MissionParameter ; strategy : StrategyParameter ; }
+        signal def LineOffsetChangedSig { attributes : offset : Int ; }
+        signal def ObstacleDetectedSig { }
+        signal def ObstacleRemovedSig { }
+        signal def ZoneAlarmTriggeredSig { }
+        signal def GrabPieceTSig { attributes : pieceColor : PieceColor ; }
+        signal def DropPieceSig { }
+        signal def LeftPASig { }
+        signal def UnitArrivedAtTSig { }
+        signal def UnitArrivedAtSPESig { }
+        signal def TargetReachedSig { }
+        signal def ExposePieceTSig { attributes : pieceColor : PieceColor ; }
+        signal def ExposePieceSPESig { attributes : pieceColor : PieceColor ; }
+        signal def ExtractedPieceTSig { }
+        signal def ExtractedPieceSPESig { }
+        signal def RoutedToSASig { }
+        signal def RoutedToSPDSig { }
+        signal def DetectedGreenPadSig { }
+        signal def DetectedRedPadSig { }
+        signal def TurnedRightSig { }
+        signal def ArrivedAtPASig { }
+        signal def RouteToSASig { }
+        signal def RouteToSPDSig { }
+        signal def StopAtSPESig { }
+        signal def ExtractPiecePESig { attributes : pieceColor : PieceColor ; }
+
+        // Actions
+        EnvAction def PassMissionParameterAN ( paramIn : MissionParameter ) : MissionParameter { }
+        EnvAction def PassStrategyParameterAN ( strategyIn : StrategyParameter ) : StrategyParameter { }
+        EnvAction def PassNavColorAN ( colorIn : NavColor ) : NavColor { }
+        EnvAction def PassIntAN ( intIn : Int ) : Int { }
+        EnvAction def PassBooleanAN ( boolIn : Boolean ) : Boolean { }
+        EnvAction def PassPieceColorAN ( colorIn : PieceColor ) : PieceColor { }
+
+        // Operator behavior
+        EnvActivity def OperatorEA () : ( opParamOut : MissionParameter , opStratOut : StrategyParameter ) {
+            body {
+                actions:
+                    setMissionParametersOp : PassMissionParameterAN { using pins: paramIn : MissionParameter ; }
+                    setStrategyOp : PassStrategyParameterAN { using pins: strategyIn : StrategyParameter ; }
+                delegate opParamOut to setMissionParametersOp
+                delegate opStratOut to setStrategyOp
+
+                ON StartSimulationSig
+                THEN setMissionParametersOp { paramIn = StartSimulationSig.mission ; }
+                SEND SetMissionParamSig { param = StartSimulationSig.mission ; strategy = StartSimulationSig.strategy ; }
+            }
+        }
+
+        // Closed-loop line and color navigation activity
+        EnvActivity def UnitEA (
+            inOpParam : MissionParameter ,
+            inOpStrategy : StrategyParameter ,
+            inLineOffset : Int ,
+            inObstacle : Boolean ,
+            inZoneAlarm : Boolean ,
+            inTPieceColor : PieceColor ,
+            inSPEPieceColor : PieceColor
+        ) : (
+            outUnitNavLine : NavColor ,
+            outUnitNavPad : NavColor ,
+            outUnitPieceColor : PieceColor ,
+            outSPEPieceColor : PieceColor ,
+            outUnitLineOffset : Int ,
+            outUnitZoneAlarm : Boolean ,
+            outUnitObstacle : Boolean
+        ) {
+            body {
+                actions:
+                    leavePA : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    detectGreenPad : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    turnRight : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    detectRedPad : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    stopAtT : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    routeToSA : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    routeToSPD : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    stopAtSPE : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    arriveAtTargetStock : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    returnJourney : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    arriveAtPA : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    acknowledgeTarget : PassNavColorAN { using pins : colorIn : NavColor ; }
+                    extractPieceT : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    extractPieceSPE : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    insertPieceSA : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    insertPieceSPD : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    exposePieceT : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    exposePieceSPE : PassPieceColorAN { using pins : pieceIn : PieceColor ; }
+                    setObstacleTrue : PassBooleanAN { using pins : boolIn : Boolean ; }
+                    setObstacleFalse : PassBooleanAN { using pins : boolIn : Boolean ; }
+
+                delegate outUnitNavLine to leavePA
+                delegate outUnitNavLine to turnRight
+                delegate outUnitNavLine to returnJourney
+                delegate outUnitNavPad to detectGreenPad
+                delegate outUnitNavPad to detectRedPad
+                delegate outUnitNavPad to stopAtT
+                delegate outUnitNavPad to routeToSA
+                delegate outUnitNavPad to routeToSPD
+                delegate outUnitNavPad to stopAtSPE
+                delegate outUnitNavPad to arriveAtTargetStock
+                delegate outUnitPieceColor to extractPieceT
+                delegate outSPEPieceColor to extractPieceSPE
+                delegate outUnitPAColor to arriveAtPA
+                delegate outObstacle to setObstacleTrue
+                delegate outObstacle to setObstacleFalse
+
+                ON SetMissionParamSig
+                THEN leavePA { colorIn = NavColor::Black ; }
+                SEND LeftPASig { }
+
+                ON LeftPASig
+                THEN detectGreenPad { colorIn = NavColor::Green ; }
+                SEND DetectedGreenPadSig { }
+
+                ON DetectedGreenPadSig
+                THEN turnRight { colorIn = NavColor::Black ; }
+                SEND TurnedRightSig { }
+
+                ON TurnedRightSig
+                THEN detectRedPad { colorIn = NavColor::Red ; }
+                SEND DetectedRedPadSig { }
+
+                ON DetectedRedPadSig
+                THEN stopAtT { colorIn = NavColor::None ; }
+                SEND UnitArrivedAtTSig { }
+
+                ON UnitArrivedAtTSig [ inTPieceColor != PieceColor::None && (inOpStrategy != StrategyParameter::SPE_First || inSPEPieceColor == PieceColor::None) ]
+                THEN exposePieceT { pieceIn = inTPieceColor ; }
+                SEND ExposePieceTSig { pieceColor = inTPieceColor ; }
+
+                ON ExposePieceTSig
+                THEN extractPieceT { pieceIn = ExposePieceTSig.pieceColor ; }
+                SEND GrabPieceTSig { pieceColor = ExposePieceTSig.pieceColor ; }
+
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P0 ]
+                THEN routeToSA { colorIn = NavColor::Green ; }
+                SEND RouteToSASig { }
+
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P1 ]
+                THEN routeToSA { colorIn = NavColor::Green ; }
+                SEND RouteToSASig { }
+
+                ON UnitArrivedAtTSig [ inTPieceColor == PieceColor::None || (inOpStrategy == StrategyParameter::SPE_First && inSPEPieceColor != PieceColor::None) ]
+                THEN stopAtSPE { colorIn = NavColor::None ; }
+                SEND StopAtSPESig { }
+
+                ON RouteToSASig
+                THEN stopAtSPE { colorIn = NavColor::None ; }
+                SEND StopAtSPESig { }
+
+                ON RouteToSPDSig
+                THEN stopAtSPE { colorIn = NavColor::None ; }
+                SEND StopAtSPESig { }
+
+                ON StopAtSPESig [ inSPEPieceColor != PieceColor::None ]
+                THEN exposePieceSPE { pieceIn = inSPEPieceColor ; }
+                SEND ExtractPiecePESig { pieceColor = inSPEPieceColor ; }
+
+                ON ExtractPiecePESig
+                THEN extractPieceSPE { pieceIn = ExtractPiecePESig.pieceColor ; }
+                SEND ExtractedPieceSPESig { }
+
+                ON ExtractedPieceSPESig
+                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                SEND TargetReachedSig { }
+
+                ON StopAtSPESig [ inSPEPieceColor == PieceColor::None ]
+                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                SEND TargetReachedSig { }
+
+                ON TargetReachedSig
+                THEN insertPieceSA { pieceIn = PieceColor::Blue ; }
+                SEND DropPieceSig { }
+
+                ON DropPieceSig
+                THEN returnJourney { colorIn = NavColor::Black ; }
+                SEND ArrivedAtPASig { }
+
+                ON ArrivedAtPASig
+                THEN arriveAtPA { colorIn = NavColor::Black ; }
+
+                ON ObstacleDetectedSig
+                THEN setObstacleTrue { boolIn = true ; }
+
+                ON ObstacleRemovedSig
+                THEN setObstacleFalse { boolIn = false ; }
+            }
+        }
+    }
+
+    SceneDefinitions RobAFISScenes to RobAFISEnvironmentActivities {
+
+        // --- UNIT 1 SCENES ---
+        Scene def SCN_ObstacleStop_Unit1 {
+            precondition { unit1.navLine.outColor == NavColor::Black ; }
+            start ObstacleDetectedSig ;
+            finish ObstacleDetectedSig ;
+            postcondition { unit1.obstacle.outObstacle == true ; }
+        }
+
+        Scene def SCN_ObstacleResume_Unit1 {
+            start ObstacleRemovedSig ;
+            finish ObstacleRemovedSig ;
+            postcondition { unit1.obstacle.outObstacle == false ; }
+        }
+
+        Scene def SCN_ReadParam_P0_Unit1 {
+            start StartSimulationSig ;
+            finish SetMissionParamSig ;
+            postcondition { operator1.outParam == MissionParameter::P0 ; }
+        }
+
+        Scene def SCN_ReadParam_P1_Unit1 {
+            start StartSimulationSig ;
+            finish SetMissionParamSig ;
+            postcondition { operator1.outParam == MissionParameter::P1 ; }
+        }
+
+        Scene def SCN_IdentifyPiece_T_Blue_Unit1 {
+            precondition { unit1.transElevator.outPieceColor == PieceColor::Blue ; }
+            start ExposePieceTSig ;
+            finish ExposePieceTSig ;
+        }
+
+        Scene def SCN_IdentifyPiece_T_Red_Unit1 {
+            precondition { unit1.transElevator.outPieceColor == PieceColor::Red ; }
+            start ExposePieceTSig ;
+            finish ExposePieceTSig ;
+        }
+
+        Scene def SCN_GrabPiece_T_Unit1 {
+            precondition { unit1.transElevator.outPieceColor != PieceColor::None ; }
+            start ExposePieceTSig ;
+            finish GrabPieceTSig ;
+            postcondition { unit1.transElevator.outPieceColor == PieceColor::None ; }
+        }
+
+        Scene def SCN_DecideRoute_SA_P0_Blue_Unit1 {
+            precondition { operator1.outParam == MissionParameter::P0 ; }
+            start GrabPieceTSig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_DecideRoute_SPD_P0_Red_Unit1 {
+            precondition { operator1.outParam == MissionParameter::P0 ; }
+            start GrabPieceTSig ;
+            finish RouteToSPDSig ;
+        }
+
+        Scene def SCN_DecideRoute_SA_P1_Red_Unit1 {
+            precondition { operator1.outParam == MissionParameter::P1 ; }
+            start GrabPieceTSig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_DecideRoute_SPD_P1_Blue_Unit1 {
+            precondition { operator1.outParam == MissionParameter::P1 ; }
+            start GrabPieceTSig ;
+            finish RouteToSPDSig ;
+        }
+
+        Scene def SCN_SPEArrival_Unit1 {
+            precondition { unit1.entryStock.outPresence == true ; }
+            start StopAtSPESig ;
+            finish ExtractPiecePESig ;
+        }
+
+        Scene def SCN_Priority_Route_Target_Unit1 {
+            start ExtractPiecePESig ;
+            finish TargetReachedSig ;
+            postcondition { unit1.navPad.outColor == NavColor::Green ; }
+        }
+
+        Scene def SCN_SkipSPE_Empty_To_Target_Unit1 {
+            precondition { unit1.entryStock.outPresence == false ; }
+            start RouteToSASig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_ReleasePiece_SA_Unit1 {
+            start RouteToSASig ;
+            finish DropPieceSig ;
+            postcondition { unit1.arrivalStock.pieces[0].outColor != PieceColor::None ; }
+        }
+
+        Scene def SCN_ReturnJourney_From_Target_to_PA_Unit1 {
+            start DropPieceSig ;
+            finish ArrivedAtPASig ;
+            postcondition { unit1.standbyPos.outColor == NavColor::Black ; }
+        }
+
+
+        // --- UNIT 2 SCENES ---
+        Scene def SCN_ObstacleStop_Unit2 {
+            precondition { unit2.navLine.outColor == NavColor::Black ; }
+            start ObstacleDetectedSig ;
+            finish ObstacleDetectedSig ;
+            postcondition { unit2.obstacle.outObstacle == true ; }
+        }
+
+        Scene def SCN_ObstacleResume_Unit2 {
+            start ObstacleRemovedSig ;
+            finish ObstacleRemovedSig ;
+            postcondition { unit2.obstacle.outObstacle == false ; }
+        }
+
+        Scene def SCN_ReadParam_P0_Unit2 {
+            start StartSimulationSig ;
+            finish SetMissionParamSig ;
+            postcondition { operator1.outParam == MissionParameter::P0 ; }
+        }
+
+        Scene def SCN_ReadParam_P1_Unit2 {
+            start StartSimulationSig ;
+            finish SetMissionParamSig ;
+            postcondition { operator1.outParam == MissionParameter::P1 ; }
+        }
+
+        Scene def SCN_IdentifyPiece_T_Blue_Unit2 {
+            precondition { unit2.transElevator.outPieceColor == PieceColor::Blue ; }
+            start ExposePieceTSig ;
+            finish ExposePieceTSig ;
+        }
+
+        Scene def SCN_IdentifyPiece_T_Red_Unit2 {
+            precondition { unit2.transElevator.outPieceColor == PieceColor::Red ; }
+            start ExposePieceTSig ;
+            finish ExposePieceTSig ;
+        }
+
+        Scene def SCN_GrabPiece_T_Unit2 {
+            precondition { unit2.transElevator.outPieceColor != PieceColor::None ; }
+            start ExposePieceTSig ;
+            finish GrabPieceTSig ;
+            postcondition { unit2.transElevator.outPieceColor == PieceColor::None ; }
+        }
+
+        Scene def SCN_DecideRoute_SA_P0_Blue_Unit2 {
+            precondition { operator1.outParam == MissionParameter::P0 ; }
+            start GrabPieceTSig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_DecideRoute_SPD_P0_Red_Unit2 {
+            precondition { operator1.outParam == MissionParameter::P0 ; }
+            start GrabPieceTSig ;
+            finish RouteToSPDSig ;
+        }
+
+        Scene def SCN_DecideRoute_SA_P1_Red_Unit2 {
+            precondition { operator1.outParam == MissionParameter::P1 ; }
+            start GrabPieceTSig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_DecideRoute_SPD_P1_Blue_Unit2 {
+            precondition { operator1.outParam == MissionParameter::P1 ; }
+            start GrabPieceTSig ;
+            finish RouteToSPDSig ;
+        }
+
+        Scene def SCN_SPEArrival_Unit2 {
+            precondition { unit2.entryStock.outPresence == true ; }
+            start StopAtSPESig ;
+            finish ExtractPiecePESig ;
+        }
+
+        Scene def SCN_Priority_Route_Target_Unit2 {
+            start ExtractPiecePESig ;
+            finish TargetReachedSig ;
+            postcondition { unit2.navPad.outColor == NavColor::Green ; }
+        }
+
+        Scene def SCN_SkipSPE_Empty_To_Target_Unit2 {
+            precondition { unit2.entryStock.outPresence == false ; }
+            start RouteToSASig ;
+            finish RouteToSASig ;
+        }
+
+        Scene def SCN_ReleasePiece_SA_Unit2 {
+            start RouteToSASig ;
+            finish DropPieceSig ;
+            postcondition { unit2.arrivalStock.pieces[0].outColor != PieceColor::None ; }
+        }
+
+        Scene def SCN_ReturnJourney_From_Target_to_PA_Unit2 {
+            start DropPieceSig ;
+            finish ArrivedAtPASig ;
+            postcondition { unit2.standbyPos.outColor == NavColor::Black ; }
+        }
+    }
+
+    // 14. ScenarioDefinitions: CASOS DE TESTE MODULARES (TEST CASES)
+    ScenarioDefinitions ValidationPlan_RobAFIS to RobAFISScenes {
+
+        // --- UNIT 1 SCENARIOS ---
+        Scenario def Scenario_ObstacleHandling_Unit1 {
+            SCN_ObstacleStop_Unit1 ;
+            SCN_ObstacleResume_Unit1 ;
+        }
+
+        Scenario def Scenario_PriorityResolution_Unit1 {
+            SCN_SPEArrival_Unit1 ;
+            SCN_Priority_Route_Target_Unit1 ;
+        }
+
+        Scenario def Scenario_RoutingLogic_P0_Unit1 {
+            SCN_ReadParam_P0_Unit1 ;
+            SCN_IdentifyPiece_T_Blue_Unit1 ;
+            SCN_GrabPiece_T_Unit1 ;
+            SCN_DecideRoute_SA_P0_Blue_Unit1 ;
+            SCN_SkipSPE_Empty_To_Target_Unit1 ;
+            SCN_ReleasePiece_SA_Unit1 ;
+        }
+
+        Scenario def Scenario_RoutingLogic_P1_Unit1 {
+            SCN_ReadParam_P1_Unit1 ;
+            SCN_IdentifyPiece_T_Red_Unit1 ;
+            SCN_GrabPiece_T_Unit1 ;
+            SCN_DecideRoute_SA_P1_Red_Unit1 ;
+            SCN_SkipSPE_Empty_To_Target_Unit1 ;
+            SCN_ReleasePiece_SA_Unit1 ;
+        }
+
+        Scenario def Scenario_EndMission_Unit1 {
+            SCN_ReturnJourney_From_Target_to_PA_Unit1 ;
+        }
+
+
+        // --- UNIT 2 SCENARIOS ---
+        Scenario def Scenario_ObstacleHandling_Unit2 {
+            SCN_ObstacleStop_Unit2 ;
+            SCN_ObstacleResume_Unit2 ;
+        }
+
+        Scenario def Scenario_PriorityResolution_Unit2 {
+            SCN_SPEArrival_Unit2 ;
+            SCN_Priority_Route_Target_Unit2 ;
+        }
+
+        Scenario def Scenario_RoutingLogic_P0_Unit2 {
+            SCN_ReadParam_P0_Unit2 ;
+            SCN_IdentifyPiece_T_Blue_Unit2 ;
+            SCN_GrabPiece_T_Unit2 ;
+            SCN_DecideRoute_SA_P0_Blue_Unit2 ;
+            SCN_SkipSPE_Empty_To_Target_Unit2 ;
+            SCN_ReleasePiece_SA_Unit2 ;
+        }
+
+        Scenario def Scenario_RoutingLogic_P1_Unit2 {
+            SCN_ReadParam_P1_Unit2 ;
+            SCN_IdentifyPiece_T_Red_Unit2 ;
+            SCN_GrabPiece_T_Unit2 ;
+            SCN_DecideRoute_SA_P1_Red_Unit2 ;
+            SCN_SkipSPE_Empty_To_Target_Unit2 ;
+            SCN_ReleasePiece_SA_Unit2 ;
+        }
+
+        Scenario def Scenario_EndMission_Unit2 {
+            SCN_ReturnJourney_From_Target_to_PA_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P0_T_First_Obstacle to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        // Sinal inicial configurando P0 e T_First
+        inject StartSimulationSig { mission = MissionParameter::P0 ; strategy = StrategyParameter::T_First ; } immediate ;
+
+        // Reativo: Injeta obstáculo na Unidade 1 assim que o sensor do robô lê Green (verde) na pista
+        inject ObstacleDetectedSig when unit1.navPad.outColor == NavColor::Green ;
+
+        // Seqüencial: Remove obstáculo na Unidade 1 após 1000ms
+        inject ObstacleRemovedSig after 1000 ;
+
+        // Inventário Inicial Unidade 1: Peça Azul (P1) no T (deve ir para a SA)
+        unit1.transElevator.pieces[0].outPresence = true ;
+        unit1.transElevator.pieces[0].outColor = PieceColor::Blue ;
+        unit1.entryStock.pieces[0].outPresence = false ;
+
+        // Inventário Inicial Unidade 2: Peça Azul (P1) no T (deve ir para a SA)
+        unit2.transElevator.pieces[0].outPresence = true ;
+        unit2.transElevator.pieces[0].outColor = PieceColor::Blue ;
+        unit2.entryStock.pieces[0].outPresence = false ;
+
+        parallel {
+            Scenario_RoutingLogic_P0_Unit1 ;
+            Scenario_ObstacleHandling_Unit1 ;
+            Scenario_EndMission_Unit1 ;
+
+            Scenario_RoutingLogic_P0_Unit2 ;
+            Scenario_EndMission_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P0_SPE_First_Priority to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig { mission = MissionParameter::P0 ; strategy = StrategyParameter::SPE_First ; } immediate ;
+
+        // Injeta obstáculo na Unidade 2 após 200ms
+        inject ObstacleDetectedSig after 200 ;
+        // Remove obstáculo na Unidade 2 após 1200ms
+        inject ObstacleRemovedSig after 1200 ;
+
+        // Inventário Unidade 1 (Ambos cheios): Prioriza SPE (Azul) e depois pega T (Azul)
+        unit1.transElevator.pieces[0].outPresence = true ;
+        unit1.transElevator.pieces[0].outColor = PieceColor::Blue ;
+        unit1.entryStock.pieces[0].outPresence = true ;
+        unit1.entryStock.pieces[0].outColor = PieceColor::Blue ;
+
+        // Inventário Unidade 2 (Ambos cheios): Prioriza SPE (Vermelha) e depois pega T (Azul)
+        unit2.transElevator.pieces[0].outPresence = true ;
+        unit2.transElevator.pieces[0].outColor = PieceColor::Blue ;
+        unit2.entryStock.pieces[0].outPresence = true ;
+        unit2.entryStock.pieces[0].outColor = PieceColor::Red ;
+
+        parallel {
+            Scenario_PriorityResolution_Unit1 ;
+            Scenario_RoutingLogic_P0_Unit1 ;
+            Scenario_EndMission_Unit1 ;
+
+            Scenario_PriorityResolution_Unit2 ;
+            Scenario_ObstacleHandling_Unit2 ;
+            Scenario_RoutingLogic_P0_Unit2 ;
+            Scenario_EndMission_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P1_T_First_Bypass to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig { mission = MissionParameter::P1 ; strategy = StrategyParameter::T_First ; } immediate ;
+
+        // Simula uma perturbação externa na linha de navegação após 10 passos de simulação
+        inject LineOffsetChangedSig { offset = 3 ; } after 10 ;
+
+        // Inventário Unidade 1: Peça vermelha (P2) no T (deve ir para a SA devido a p = 1)
+        unit1.transElevator.pieces[0].outPresence = true ;
+        unit1.transElevator.pieces[0].outColor = PieceColor::Red ;
+        unit1.entryStock.pieces[0].outPresence = false ;
+
+        // Unidade 2 (Bypass): T está vazio, mas tem peça na SPE. Robô deve pular o T e ir direto para o SPE.
+        unit2.transElevator.pieces[0].outPresence = false ;
+        unit2.entryStock.pieces[0].outPresence = true ;
+        unit2.entryStock.pieces[0].outColor = PieceColor::Red ;
+
+        parallel {
+            Scenario_RoutingLogic_P1_Unit1 ;
+            Scenario_EndMission_Unit1 ;
+
+            Scenario_PriorityResolution_Unit2 ;
+            Scenario_EndMission_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P1_SPE_First_Inverted to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig { mission = MissionParameter::P1 ; strategy = StrategyParameter::SPE_First ; } immediate ;
+
+        // Injeta obstáculo na Unidade 1 após 1200ms
+        inject ObstacleDetectedSig after 1200 ;
+        // Remove obstáculo na Unidade 1 após 2200ms
+        inject ObstacleRemovedSig after 2200 ;
+
+        // Unidade 1: Peça Vermelha (P2) no T, Azul (P1) no SPE. Prioriza SPE (SPD) e depois pega T (SA).
+        unit1.transElevator.pieces[0].outPresence = true ;
+        unit1.transElevator.pieces[0].outColor = PieceColor::Red ;
+        unit1.entryStock.pieces[0].outPresence = true ;
+        unit1.entryStock.pieces[0].outColor = PieceColor::Blue ;
+
+        // Unidade 2: Peça Vermelha (P2) no T, Azul (P1) no SPE. Prioriza SPE (SPD) e depois pega T (SA).
+        unit2.transElevator.pieces[0].outPresence = true ;
+        unit2.transElevator.pieces[0].outColor = PieceColor::Red ;
+        unit2.entryStock.pieces[0].outPresence = true ;
+        unit2.entryStock.pieces[0].outColor = PieceColor::Blue ;
+
+        parallel {
+            Scenario_PriorityResolution_Unit1 ;
+            Scenario_RoutingLogic_P1_Unit1 ;
+            Scenario_ObstacleHandling_Unit1 ;
+            Scenario_EndMission_Unit1 ;
+
+            Scenario_PriorityResolution_Unit2 ;
+            Scenario_RoutingLogic_P1_Unit2 ;
+            Scenario_EndMission_Unit2 ;
+        }
+    }
+}
+// =========================================================================
+// allocations (Unified mapping of components, behaviors & executables)
+// =========================================================================
+allocations {
+    envActivity OperatorEA to HumanOperatorEnvCP
+    envActivity UnitEA to ProductionUnitEnvCP
+
+    // 1. Software Comportamental (Controlador Composto)
+    activity SysADL.Behavior::MissionPlannerAC to SysADL.Components::MissionPlannerCP
+    activity SysADL.Behavior::NavigatorAC to SysADL.Components::NavigatorCP
+    activity SysADL.Behavior::CargoHandlerAC to SysADL.Components::CargoHandlerCP
+    activity SysADL.Behavior::RobAFISControllerAC to SysADL.Components::RobAFISControllerCP
+
+    // 2. Comportamento das Fronteiras (Boundary activities para a HAL)
+    activity BoundaryBehavior::ParameterInputAC to SysADL.Components::ParameterInputCP
+    activity BoundaryBehavior::CameraSensorAC to SysADL.Components::CameraSensorCP
+    activity BoundaryBehavior::ObstacleSensorAC to SysADL.Components::ObstacleSensorCP
+    activity BoundaryBehavior::DriveSystemAC to SysADL.Components::DriveSystemCP
+    activity BoundaryBehavior::GrabberAC to SysADL.Components::GrabberCP
+
+    // 3. Executáveis do Sistema (Inteligência Central de Software)
+    executable SysADL.Execution::ConfigureMissionEX to SysADL.Behavior::ConfigureMissionAN
+    executable SysADL.Execution::DecideCommandEX to SysADL.Behavior::DecideCommandAN
+    executable SysADL.Execution::ExtractDirEX to SysADL.Behavior::ExtractDirAN
+    executable SysADL.Execution::VerifyCargoEX to SysADL.Behavior::VerifyCargoAN
+    executable SysADL.Execution::ExtractGrabEX to SysADL.Behavior::ExtractGrabAN
+
+    // 4. Executáveis de Fronteira (Isolados no pacote BoundaryExecution)
+    executable BoundaryExecution::PassBooleanEX to BoundaryBehavior::PassBooleanAN
+    executable BoundaryExecution::PassIntEX to BoundaryBehavior::PassIntAN
+    executable BoundaryExecution::PassNavColorEX to BoundaryBehavior::PassNavColorAN
+    executable BoundaryExecution::PassPieceColorEX to BoundaryBehavior::PassPieceColorAN
+    executable BoundaryExecution::PassDirectionEX to BoundaryBehavior::PassDirectionAN
+    executable BoundaryExecution::PassMotorCommandEX to BoundaryBehavior::PassMotorCommandAN
+    executable BoundaryExecution::PassMissionParameterEX to BoundaryBehavior::PassMissionParameterAN
+    executable BoundaryExecution::PassStrategyParameterEX to BoundaryBehavior::PassStrategyParameterAN
+}
