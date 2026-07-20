@@ -915,29 +915,17 @@ function createComponentProxy(comp, ctxProxy) {
       if (prop === '_raw') return target;
       
       if (typeof prop === 'string') {
-        // First check envPorts
-        if (target.envPorts) {
-          const port = findCompPortFuzzy(target, prop);
-          if (port) {
-            return port.getValue ? port.getValue() : port.value;
-          }
-        }
-        // Second check traditional system ports
-        if (target.ports && prop in target.ports) {
-          const port = target.ports[prop];
-          return port.getValue ? port.getValue() : port.value;
-        }
         if (prop in target) {
           const val = target[prop];
           if (val && typeof val === 'object') {
-            if (val.envComponentType || val.ports || val.envPorts) {
+            if (val.envComponentType) {
               return createComponentProxy(val, ctxProxy);
             }
             if (Array.isArray(val)) {
               return new Proxy(val, {
                 get(arrTarget, arrProp, arrReceiver) {
                   const item = Reflect.get(arrTarget, arrProp, arrReceiver);
-                  if (item && typeof item === 'object' && (item.envComponentType || item.ports || item.envPorts)) {
+                  if (item && typeof item === 'object' && item.envComponentType) {
                     return createComponentProxy(item, ctxProxy);
                   }
                   return item;
@@ -946,6 +934,12 @@ function createComponentProxy(comp, ctxProxy) {
             }
           }
           return val;
+        }
+        if (target.envPorts) {
+          const port = findCompPortFuzzy(target, prop);
+          if (port) {
+            return port.getValue ? port.getValue() : port.value;
+          }
         }
         if (target.properties && prop in target.properties) {
           return target.getProperty ? target.getProperty(prop) : target.properties[prop];
@@ -1363,7 +1357,7 @@ function createExecutionContext(envModel) {
         }
         if (target.rootComponent && prop in target.rootComponent) {
           const val = target.rootComponent[prop];
-          if (val && typeof val === 'object' && (val.envComponentType || val.ports || val.envPorts)) {
+          if (val && typeof val === 'object' && val.envComponentType) {
             return createComponentProxy(val, ctxProxy);
           }
           return val;
@@ -1789,3 +1783,5 @@ Options:
 }
 
 module.exports = SysADLSimulator;
+
+module.exports = { createExecutionContext };
