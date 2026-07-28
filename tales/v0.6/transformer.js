@@ -144,6 +144,20 @@ function traverse(node, cb) {
   }
 }
 
+function getRealAllocation(a) {
+  if (!a) return null;
+  if (Array.isArray(a)) {
+    for (const item of a) {
+      if (item && typeof item === 'object' && !Array.isArray(item) && item.type) {
+        return item;
+      }
+    }
+    if (a.length === 2 && a[1] && typeof a[1] === 'object') return a[1];
+    return a[0];
+  }
+  return a;
+}
+
 function extractConfigurations(ast) {
   const configs = [];
   traverse(ast, n => { if (n && (n.type === 'Configuration' || n.type === 'configuration')) configs.push(n); });
@@ -152,7 +166,19 @@ function extractConfigurations(ast) {
 
 function collectComponentUses(configNode) {
   const uses = [];
-  traverse(configNode, n => { if (!n || typeof n !== 'object') return; if (n.type === 'ComponentUse') uses.push(n); });
+  traverse(configNode, n => {
+    if (!n || typeof n !== 'object') return;
+    if (n.type === 'ComponentUse') {
+      uses.push(n);
+    } else if (n.type === 'ComponentInstance') {
+      uses.push({
+        type: 'ComponentUse',
+        name: n.name || (n.id && n.id.name) || n.id,
+        definition: n.componentType || n.typeDef || null,
+        location: n.location
+      });
+    }
+  });
   return uses;
 }
 
@@ -243,8 +269,9 @@ function buildDelegationMappings(ast) {
   const activityToConnector = {};
   if (ast && ast.allocation) {
     if (Array.isArray(ast.allocation.allocations)) {
-      for (const alloc of ast.allocation.allocations) {
-        if (alloc.type === 'ActivityAllocation' && alloc.source && alloc.target) {
+      for (const aRaw of ast.allocation.allocations) {
+        const alloc = getRealAllocation(aRaw);
+        if (alloc && alloc.type === 'ActivityAllocation' && alloc.source && alloc.target) {
           activityToConnector[alloc.source] = alloc.target;
         }
       }
@@ -1044,6 +1071,11 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
       Object.values(pkgMap).forEach(pkg => {
         const items = pkg.entries.map(e => `  ${e.key}: ${e.val}`).join(',\n');
         classLines.push(`const ${pkg.short} = {\n${items}\n};`);
+        
+        // Also emit individual global aliases for direct references in executables
+        pkg.entries.forEach(e => {
+          classLines.push(`const ${e.key} = ${e.val};`);
+        });
       });
     } catch (e) {
       // ignore packaging alias creation errors
@@ -1981,14 +2013,19 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
         // Extract bindings from the correct location
         let actualBindings = cb.bindings || [];
         if ((!actualBindings || actualBindings.length === 0) && cb._node && cb._node.bindings) {
-          // Try to extract from _node.bindings structure
           const nodeBindings = cb._node.bindings;
-          if (Array.isArray(nodeBindings) && nodeBindings.length > 2 && nodeBindings[2] && nodeBindings[2].items) {
-            actualBindings = nodeBindings[2].items.map(item => ({
-              source: item.source,
-              destination: item.destination,
-              left: item.source,
-              right: item.destination
+          let items = null;
+          if (nodeBindings && Array.isArray(nodeBindings.items)) {
+            items = nodeBindings.items;
+          } else if (Array.isArray(nodeBindings)) {
+            items = nodeBindings;
+          }
+          if (items) {
+            actualBindings = items.map(item => ({
+              source: item.source || item.left,
+              destination: item.destination || item.right,
+              left: item.source || item.left,
+              right: item.destination || item.right
             }));
           }
         }
@@ -2122,10 +2159,13 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
 
                       // Get component definition
                       const compDefName = compUse.definition || compUse.type;
-                      if (!compDefName || !compDefMapArg || !compDefMapArg[compDefName]) continue;
-
-                      const compDef = compDefMapArg[compDefName];
-                      if (!compDef.ports) continue;
+                      if (!compDefName || !compDefMapArg) continue;
+                      let compDef = compDefMapArg[compDefName];
+                      if (!compDef) {
+                        const shortName = String(compDefName).split(/[.:]/).pop();
+                        compDef = compDefMapArg[shortName];
+                      }
+                      if (!compDef || !compDef.ports) continue;
 
                       // Check if this component definition has a port with original name = portName
                       for (const defPort of compDef.ports) {
@@ -2238,7 +2278,11 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     try {
       const defName = compInstanceDef[ownerName];
       if (!defName) return false;
-      const compDefNode = compDefMapArg ? compDefMapArg[String(defName)] : null;
+      let compDefNode = compDefMapArg ? compDefMapArg[String(defName)] : null;
+      if (!compDefNode && compDefMapArg) {
+        const shortName = String(defName).split(/[.:]/).pop();
+        compDefNode = compDefMapArg[shortName];
+      }
       if (!compDefNode) return false;
       const ports = extractComponentDefPorts(compDefNode);
       return ports.length > 0;
@@ -2290,7 +2334,11 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
       const defName = (compInstanceDef && compInstanceDef[ownerName]) ? compInstanceDef[ownerName] : null;
       try { dbg('[DBG] resolvePortDirectionFor owner=', ownerName, 'port=', portName, 'defName=', defName); } catch (e) { }
       if (defName) {
-        const defNode = (compDefMapArg) ? (compDefMapArg[defName] || compDefMapArg[String(defName)]) : null;
+        let defNode = (compDefMapArg) ? (compDefMapArg[defName] || compDefMapArg[String(defName)]) : null;
+        if (!defNode && compDefMapArg && defName) {
+          const shortName = String(defName).split(/[.:]/).pop();
+          defNode = compDefMapArg[shortName];
+        }
         try { dbg('[DBG] compDefMap keys sample:', (compDefMapArg) ? Object.keys(compDefMapArg).slice(0, 40) : null); } catch (e) { }
         try { dbg('[DBG] defNode keys:', defNode ? Object.keys(defNode).slice(0, 20) : null); } catch (e) { }
         if (defNode) {
@@ -3157,7 +3205,8 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     // Build executable to action mapping from allocations
     const executableToActionMap = {};
     if (ast && ast.allocation && Array.isArray(ast.allocation.allocations)) {
-      for (const allocation of ast.allocation.allocations) {
+      for (const allocRaw of ast.allocation.allocations) {
+        const allocation = getRealAllocation(allocRaw);
         if (allocation && allocation.type === 'ExecutableAllocation' && allocation.source && allocation.target) {
           executableToActionMap[allocation.source] = allocation.target;
         }
@@ -3168,6 +3217,8 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
     const actionToExecutableMap = {};
     for (const [executableName, actionName] of Object.entries(executableToActionMap)) {
       actionToExecutableMap[actionName] = executableName;
+      const simpleActName = String(actionName).split(/[.:]/).pop();
+      actionToExecutableMap[simpleActName] = executableName;
     }
 
     // Collect ActivityDef nodes with their pins
@@ -3614,7 +3665,7 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
         // Prefer owner that actually exposes the input ports (more reliable match).
         // compPortsMap_main maps qualified owner -> Set(portNames).
         try {
-          if (inputPorts && inputPorts.length && typeof compPortsMap_main !== 'undefined' && compPortsMap_main) {
+          if (!a.descriptor?.isExplicitAllocation && inputPorts && inputPorts.length && typeof compPortsMap_main !== 'undefined' && compPortsMap_main) {
             // For each input port, collect candidate owners that expose it
             const portOwnersPerPort = inputPorts.map(pn => {
               const name = String(pn || '').trim();
@@ -3682,7 +3733,16 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
           // Prefer SysADL instance name when provided in the descriptor
           const instanceNameRaw = act.instanceName || act.instance || act.name || act.executable || actionName;
           const resolvedInstance = resolveInstanceName(instanceNameRaw, actionName, `${a.activityName}_${comp}`);
-          const actionVarName = sanitizeId(resolvedInstance);
+          let actionVarName = sanitizeId(resolvedInstance);
+          let loopGuard = 0;
+          const baseName = actionVarName;
+          let counter = 1;
+          while (usedActivityVarNames.has(actionVarName) && loopGuard < 1000) {
+            counter++;
+            actionVarName = `${baseName}_${counter}`;
+            loopGuard++;
+          }
+          usedActivityVarNames.add(actionVarName);
 
           if (exec) {
             // Heuristic DISABLED: Do not override action out-parameters.
@@ -3690,11 +3750,11 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
             // The Activity Delegate maps Activity Port (e.g. 'average') to Action Pin (e.g. 'TempMonitorAN').
             // Renaming the Action Instance output to 'average' breaks the internal connection in the Action Class.
             // We rely on portToPinMapping to handle the name difference.
-            lines.push(`    const ${actionVarName} = new ${actionClassName}(${JSON.stringify(instanceNameRaw)});`);
+            lines.push(`    const ${actionVarName} = new ${actionClassName}(${JSON.stringify(instanceNameRaw)}, { usingPins: ${JSON.stringify(act.usingPins || [])} });`);
             lines.push(`    ${actVar}.registerAction(${actionVarName});`);
           } else {
             // Fallback to legacy Action creation but use instance name as the Action name
-            lines.push(`    ${actVar}.addAction(new Action(${JSON.stringify(instanceNameRaw)}, ${JSON.stringify(act.params || [])}, null));`);
+            lines.push(`    ${actVar}.addAction(new Action(${JSON.stringify(instanceNameRaw)}, { usingPins: ${JSON.stringify(act.usingPins || [])} }));`);
           }
         }
       }
@@ -3849,6 +3909,15 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
           }
         }
       } catch (e) { /* best-effort only */ }
+
+      // Emit portToPinMapping from descriptor.portToPinMapping
+      try {
+        const customMapping = a.descriptor && a.descriptor.portToPinMapping ? a.descriptor.portToPinMapping : {};
+        for (const [portName, pinName] of Object.entries(customMapping)) {
+          lines.push(`    try { ${actVar}.portToPinMapping[${JSON.stringify(portName)}] = ${JSON.stringify(pinName)}; } catch(e) {}`);
+          lines.push(`    try { ${actVar}.portToPinMapping[${JSON.stringify(portName.toLowerCase())}] = ${JSON.stringify(pinName)}; } catch(e) {}`);
+        }
+      } catch (e) { }
 
       lines.push(`    this.registerActivity(${JSON.stringify(a.activityName)}, ${actVar});`);
       // Also register conservative alias keys for owner lookup (exact, tail forms, lowercase)
@@ -4067,6 +4136,51 @@ function generateClassModule(modelName, compUses, portUses, connectorBindings, e
   lines.push(`  // Initialize all connectors now that _moduleContext is available`);
   lines.push(`  model.initializeAllConnectors();`);
   lines.push(`  `);
+  
+  // Component-level delegations setup
+  try {
+    for (const [defName, defNode] of Object.entries(compDefMapArg || {})) {
+      if (!defNode) continue;
+      const delegations = (defNode.composite && defNode.composite.delegations) || defNode.delegations || [];
+      if (!Array.isArray(delegations) || delegations.length === 0) continue;
+
+      for (const [instName, instPath] of Object.entries(instancePathMap)) {
+        const instDef = compInstanceDef[instName];
+        if (instDef !== defName) continue;
+
+        const modelInstPath = instPath.replace(/^this\b/, 'model');
+        lines.push(`  // Delegations for instance: ${modelInstPath}`);
+        for (const del of delegations) {
+          if (del && del.type === 'Delegation') {
+            const src = del.source && (del.source.name || del.source.id || del.source);
+            const dst = del.destination && (del.destination.name || del.destination.id || del.destination);
+            if (!src || !dst) continue;
+
+            lines.push(`  try {`);
+            lines.push(`    const parentPort = ${modelInstPath}.getPort(${JSON.stringify(dst)});`);
+            lines.push(`    let childPort = null;`);
+            lines.push(`    if (${modelInstPath}.components) {`);
+            lines.push(`      for (const child of Object.values(${modelInstPath}.components)) {`);
+            lines.push(`        childPort = child.getPort(${JSON.stringify(src)});`);
+            lines.push(`        if (childPort) break;`);
+            lines.push(`      }`);
+            lines.push(`    }`);
+            lines.push(`    if (parentPort && childPort) {`);
+            lines.push(`      if (parentPort.direction === 'in') {`);
+            lines.push(`        parentPort.addDelegation(childPort);`);
+            lines.push(`      } else {`);
+            lines.push(`        childPort.addDelegation(parentPort);`);
+            lines.push(`      }`);
+            lines.push(`    }`);
+            lines.push(`  } catch(e) { console.warn("[DELEGATION ERROR] ${modelInstPath} delegation error: " + e.message); }`);
+          }
+        }
+      }
+    }
+  } catch(e) {
+    console.error('Delegations setup generation error:', e);
+  }
+
   lines.push(`  // Resolve constraints and executables for all registered activities`);
   lines.push(`  Object.values(model._activities || {}).forEach(activity => {`);
   lines.push(`    if (activity && activity.actions) {`);
@@ -4273,9 +4387,6 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
 
       switch (expr.type) {
         case 'Identifier':
-          if (embeddedTypes && embeddedTypes.enumerations && embeddedTypes.enumerations[expr.name]) {
-            return `ctx.${expr.name}`;
-          }
           if (contextPrefix === 'signalData') {
             if (knownSignals.has(expr.name)) {
               return `signalData.${expr.name}`;
@@ -4283,8 +4394,21 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
               return `ctx.${expr.name}`;
             }
           }
+          if (contextPrefix === 'sigObj') {
+            return `((typeof sigObj !== 'undefined' && sigObj && sigObj.${expr.name} !== undefined) ? sigObj.${expr.name} : ctx.${expr.name})`;
+          }
           return `${contextPrefix}.${expr.name}`;
         case 'PropertyAccess':
+          if (expr.object && expr.object.type === 'Identifier' && (knownSignals.has(expr.object.name) || expr.object.name.endsWith('Sig'))) {
+            const sigName = expr.object.name;
+            const prop = expr.property;
+            return `((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.${prop} !== undefined ? sigObj.${prop} : (sigObj.${sigName} ? sigObj.${sigName}.${prop} : undefined))) : (ctx.${sigName} ? ctx.${sigName}.${prop} : undefined))`;
+          }
+          if (contextPrefix === 'sigObj' && expr.object && expr.object.type === 'Identifier') {
+            const sigName = expr.object.name;
+            const prop = expr.property;
+            return `((sigObj && sigObj.${prop} !== undefined) ? sigObj.${prop} : (sigObj && sigObj.${sigName} ? sigObj.${sigName}.${prop} : undefined))`;
+          }
           return `${envExprToJS(expr.object, contextPrefix)}.${expr.property}`;
         case 'BooleanLiteral':
           return String(expr.value);
@@ -4595,7 +4719,22 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       // EnvAction definitions
       lines.push(`    this.actions = {`);
       for (const action of envActions) {
-        lines.push(`      '${action.name}': { inParams: ${JSON.stringify((action.inParameters || []).map(p => p.name))}, outType: '${action.returnType || action.outType || 'Void'}' },`);
+        const paramNames = new Set((action.inParameters || []).map(p => p.name));
+        for (const act of envActivities) {
+          const actActions = pegExtract(act.actions || []);
+          for (const aInst of actActions) {
+            const aTypeName = aInst.type || aInst.actionType || aInst.name;
+            if (aTypeName === action.name || aInst.name === action.name) {
+              const pins = aInst.usingPins || aInst.pins || aInst.using || [];
+              if (Array.isArray(pins)) {
+                for (const pin of pins) {
+                  if (pin && pin.name) paramNames.add(pin.name);
+                }
+              }
+            }
+          }
+        }
+        lines.push(`      '${action.name}': { inParams: ${JSON.stringify(Array.from(paramNames))}, outType: '${action.returnType || action.outType || 'Void'}' },`);
       }
       lines.push(`    };`);
       lines.push('');
@@ -4605,8 +4744,17 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       for (const activity of envActivities) {
         const actName = activity.name;
         const onClauses = pegExtract(activity.onClauses || []);
-        const reg = Array.isArray(activitiesToRegister) ? activitiesToRegister.find(r => r.activityName === actName) : null;
-        const dels = reg && reg.descriptor && reg.descriptor.delegates ? reg.descriptor.delegates : [];
+        let dels = [];
+        const rawDels = pegExtract(activity.delegations || []);
+        if (rawDels.length > 0) {
+          dels = rawDels.map(d => ({
+            from: d.source,
+            to: d.target
+          }));
+        } else {
+          const reg = Array.isArray(activitiesToRegister) ? activitiesToRegister.find(r => r.activityName === actName) : null;
+          dels = reg && reg.descriptor && reg.descriptor.delegates ? reg.descriptor.delegates : [];
+        }
 
         lines.push(`    this.activities['${actName}'] = {`);
         lines.push(`      name: '${actName}',`);
@@ -4621,7 +4769,12 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
 
           // Guard condition
           if (on.condition) {
-            lines.push(`          guard: (ctx) => ${envExprToJS(on.condition, 'ctx')},`);
+            lines.push(`          guard: (ctx, signalData) => {`);
+            lines.push(`            const sigObj = (signalData && signalData['${on.signal}']) || signalData;`);
+            lines.push(`            const res = ${envExprToJS(on.condition, 'ctx')};`);
+            lines.push(`            if ('${on.signal}' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=${on.actionName} res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }`);
+            lines.push(`            return res;`);
+            lines.push(`          },`);
           } else {
             lines.push(`          guard: null,`);
           }
@@ -4629,6 +4782,26 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
           // Action
           lines.push(`          actionName: '${on.actionName || ''}',`);
           lines.push(`          applyAction: (ctx, signalData) => {`);
+          lines.push(`            const sigObj = (signalData && signalData['${on.signal}']) || signalData;`);
+          lines.push(`            if (sigObj && typeof sigObj === 'object') {`);
+          lines.push(`              for (const [attrKey, attrVal] of Object.entries(sigObj)) {`);
+          lines.push(`                if (attrVal === undefined || attrVal === null) continue;`);
+          lines.push(`                ctx[attrKey] = attrVal;`);
+          lines.push(`                const ak = attrKey.toLowerCase();`);
+          lines.push(`                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');`);
+          lines.push(`                let matched = false;`);
+          lines.push(`                for (const ctxKey of Object.keys(ctx)) {`);
+          lines.push(`                  const ck = ctxKey.toLowerCase();`);
+          lines.push(`                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');`);
+          lines.push(`                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));`);
+          lines.push(`                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');`);
+          lines.push(`                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {`);
+          lines.push(`                    ctx[ctxKey] = attrVal;`);
+          lines.push(`                    matched = true;`);
+          lines.push(`                  }`);
+          lines.push(`                }`);
+          lines.push(`              }`);
+          lines.push(`            }`);
           for (const assign of actionAssigns) {
             if (assign && assign.type === 'Assignment') {
               const lhs = envExprToJS(assign.left, 'ctx');
@@ -4643,11 +4816,16 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
             lines.push(`          sendSignal: '${on.sendSignal}',`);
             lines.push(`          buildSendData: (ctx, signalData) => {`);
             lines.push(`            const data = {};`);
+            lines.push(`            const sigObj = (signalData && signalData['${on.signal}']) || signalData;`);
             for (const assign of sendAssigns) {
               if (assign && assign.type === 'Assignment') {
                 const propName = assign.left && assign.left.name ? assign.left.name : 'unknown';
-                const rhs = envExprToJS(assign.right, 'signalData');
+                const rhs = envExprToJS(assign.right, 'sigObj');
                 lines.push(`            data.${propName} = ${rhs};`);
+                lines.push(`            const fallbackVal_${propName} = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('${on.sendSignal}', '${propName}', ctx.activeInstance) : undefined;`);
+                lines.push(`            if (data.${propName} === undefined || data.${propName} === null || data.${propName} === 'None') {`);
+                lines.push(`              data.${propName} = (fallbackVal_${propName} !== undefined && fallbackVal_${propName} !== null && fallbackVal_${propName} !== 'None') ? fallbackVal_${propName} : ctx.${propName};`);
+                lines.push(`            }`);
               }
             }
             lines.push(`            return data;`);
@@ -4671,8 +4849,8 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`      const activity = this.activities[actName];`);
       lines.push(`      for (const on of activity.onClauses) {`);
       lines.push(`        if (on.signal === signalName || on.actionName === signalName) {`);
-      lines.push(`          if (!on.guard || on.guard(ctx)) {`);
-      lines.push(`            const wrappedSignalData = { [on.signal]: signalData };`);
+      lines.push(`          const wrappedSignalData = { [on.signal]: signalData };`);
+      lines.push(`          if (!on.guard || on.guard(ctx, wrappedSignalData)) {`);
       lines.push(`            on.applyAction(ctx, wrappedSignalData);`);
       lines.push(`            if (on.sendSignal) {`);
       lines.push(`              const sendData = on.buildSendData(ctx, wrappedSignalData);`);
@@ -4735,7 +4913,16 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
         } else {
           lines.push(`    try {`);
           for (const cond of postconds) {
-            lines.push(`      if (!(${envExprToJS(cond, 'ctx')})) return false;`);
+            const jsExpr = envExprToJS(cond, 'ctx');
+            const cleanExpr = jsExpr.trim().replace(/^\s*\(/, '').replace(/\)\s*$/, '');
+            const parts = cleanExpr.split('===');
+            if (parts.length === 2) {
+              const lhs = parts[0].trim();
+              const rhs = parts[1].trim();
+              lines.push(`      try { console.log('[DEBUG EXACT EVAL] ${sceneDef.name}: LHS(${lhs}) =', ${lhs}, '| RHS(${rhs}) =', ${rhs}); } catch(e) { console.log('[DEBUG EVAL ERR] ${sceneDef.name}:', e.message); }`);
+            }
+            lines.push(`      const _condRes = ${jsExpr};`);
+            lines.push(`      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] ${sceneDef.name}: expr="${cond}" -> JS: ${jsExpr}'); return false; }`);
           }
           lines.push(`      return true;`);
           lines.push(`    } catch(e) { console.error('Postcondition error in ${sceneDef.name}:', e.message); return false; }`);
@@ -4810,6 +4997,17 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
       lines.push(`      targetScenarios: '${ref}',`);
       lines.push(`      mode: '${modeType}'`);
       lines.push(`    });`);
+      lines.push(`  }`);
+      lines.push('');
+      lines.push(`  initializeState(ctx) {`);
+      for (const item of execData.orderedItems) {
+        if (item.type === 'Assignment') {
+          const lhs = envExprToJS(item.left, 'ctx');
+          const rhs = envExprToJS(item.right, 'ctx');
+          lines.push(`    // Initial assignment`);
+          lines.push(`    ${lhs} = ${rhs};`);
+        }
+      }
       lines.push(`  }`);
       lines.push('');
       lines.push(`  async executeAsync(ctx) {`);
@@ -5395,6 +5593,14 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
     lines.push(`      }`);
     lines.push(`      console.error('[ERROR] Scenario execution failed:', error);`);
     lines.push(`    });`);
+    lines.push(`  }`);
+    lines.push(``);
+    lines.push(`  initializeState(context) {`);
+    lines.push(`    try {`);
+    lines.push(generateStateInitializationsOnly(executionData));
+    lines.push(`    } catch (error) {`);
+    lines.push(`      console.error('[ERROR] Scenario initialization failed:', error);`);
+    lines.push(`    }`);
     lines.push(`  }`);
     lines.push(``);
     lines.push(`  async executeAsync(context) {`);
@@ -6555,6 +6761,70 @@ function generateCleanInjectionSyntax(injection) {
   return `    // inject ${eventName};`;
 }
 
+function generateStateInitializationsOnly(executionData) {
+  if (!executionData || !executionData.stateInitializations || executionData.stateInitializations.length === 0) {
+    return '    // No state initializations';
+  }
+  const lines = [];
+  for (const init of executionData.stateInitializations) {
+    if (init.type === 'assignment' && init.target && init.value) {
+      const pathParts = init.target.split('.');
+      if (pathParts.length === 2) {
+        lines.push(`    if (context.environment) {`);
+        if (init.valueType === 'reference') {
+          const refObj = init.value.object;
+          const refProp = init.value.property;
+          lines.push(`      const ${refObj}Ref = context.environment.${refObj};`);
+          lines.push(`      if (${refObj}Ref && ${refObj}Ref.properties) {`);
+          lines.push(`        const envPort = context.environment.${pathParts[0]}.getEnvPort ? context.environment.${pathParts[0]}.getEnvPort('${pathParts[1]}') : null;`);
+          lines.push(`        if (envPort) {`);
+          lines.push(`          envPort.setValue(${refObj}Ref.properties.${refProp});`);
+          lines.push(`        } else if (context.environment.${pathParts[0]} && typeof context.environment.${pathParts[0]}.setProperty === 'function') {`);
+          lines.push(`          context.environment.${pathParts[0]}.setProperty('${pathParts[1]}', ${refObj}Ref.properties.${refProp});`);
+          lines.push(`        } else if (context.environment.${pathParts[0]} && context.environment.${pathParts[0]}.properties) {`);
+          lines.push(`          context.environment.${pathParts[0]}.properties.${pathParts[1]} = ${refObj}Ref.properties.${refProp};`);
+          lines.push(`        } else {`);
+          lines.push(`          context.environment.${init.target} = ${refObj}Ref.properties.${refProp};`);
+          lines.push(`        }`);
+          lines.push(`      } else {`);
+          lines.push(`        console.warn('Warning: Could not resolve reference ${refObj}.${refProp}');`);
+          lines.push(`      }`);
+        } else {
+          lines.push(`      const envPort = context.environment.${pathParts[0]}.getEnvPort ? context.environment.${pathParts[0]}.getEnvPort('${pathParts[1]}') : null;`);
+          lines.push(`      if (envPort) {`);
+          lines.push(`        envPort.setValue('${init.value}');`);
+          lines.push(`      } else if (context.environment.${pathParts[0]} && typeof context.environment.${pathParts[0]}.setProperty === 'function') {`);
+          lines.push(`        context.environment.${pathParts[0]}.setProperty('${pathParts[1]}', '${init.value}');`);
+          lines.push(`      } else if (context.environment.${pathParts[0]} && context.environment.${pathParts[0]}.properties) {`);
+          lines.push(`        context.environment.${pathParts[0]}.properties.${pathParts[1]} = '${init.value}';`);
+          lines.push(`      } else {`);
+          lines.push(`        context.environment.${init.target} = '${init.value}';`);
+          lines.push(`      }`);
+        }
+        lines.push(`    }`);
+      } else if (pathParts.length === 3) {
+        lines.push(`    if (context.environment) {`);
+        if (init.valueType === 'reference') {
+          const refObj = init.value.object;
+          const refProp = init.value.property;
+          lines.push(`      const ${refObj}Ref = context.environment.${refObj};`);
+          lines.push(`      const targetComp = context.environment.${pathParts[0]}?.${pathParts[1]};`);
+          lines.push(`      if (targetComp && ${refObj}Ref && ${refObj}Ref.properties) {`);
+          lines.push(`        targetComp.${pathParts[2]} = ${refObj}Ref.properties.${refProp};`);
+          lines.push(`      }`);
+        } else {
+          lines.push(`      const targetComp = context.environment.${pathParts[0]}?.${pathParts[1]};`);
+          lines.push(`      if (targetComp) {`);
+          lines.push(`        targetComp.${pathParts[2]} = '${init.value}';`);
+          lines.push(`      }`);
+        }
+        lines.push(`    }`);
+      }
+    }
+  }
+  return lines.join('\\n');
+}
+
 function generateExplicitScenarioExecution(executionData) {
   if (!executionData) {
     return `    return { success: true, message: 'Empty scenario execution completed' };`;
@@ -6625,6 +6895,27 @@ function generateExplicitScenarioExecution(executionData) {
             functionBody.push(`        context.environment.${pathParts[0]}.properties.${pathParts[1]} = '${init.value}';`);
             functionBody.push(`      } else {`);
             functionBody.push(`        context.environment.${init.target} = '${init.value}';`);
+            functionBody.push(`      }`);
+          functionBody.push(`    }`);
+          }
+        } else if (pathParts.length === 3) {
+          functionBody.push(`    if (context.environment) {`);
+          if (init.valueType === 'reference') {
+            const refObj = init.value.object;
+            const refProp = init.value.property;
+            functionBody.push(`      const ${refObj}Ref = context.environment.${refObj};`);
+            functionBody.push(`      const targetComp = context.environment.${pathParts[0]}?.${pathParts[1]};`);
+            functionBody.push(`      if (targetComp && ${refObj}Ref && ${refObj}Ref.properties) {`);
+            functionBody.push(`        targetComp.${pathParts[2]} = ${refObj}Ref.properties.${refProp};`);
+            functionBody.push(`        console.log('DEBUG: Set nested ${init.target} to reference value:', ${refObj}Ref.properties.${refProp});`);
+            functionBody.push(`      }`);
+          } else {
+            functionBody.push(`      const targetComp = context.environment.${pathParts[0]}?.${pathParts[1]};`);
+            functionBody.push(`      if (targetComp) {`);
+            functionBody.push(`        targetComp.${pathParts[2]} = '${init.value}';`);
+            // Avoid string wrapping if it is a boolean or number
+            const val = init.value === 'true' ? true : (init.value === 'false' ? false : `'${init.value}'`);
+            functionBody.push(`        console.log('DEBUG: Set nested ${init.target} to literal value: ${val}');`);
             functionBody.push(`      }`);
           }
           functionBody.push(`    }`);
@@ -8606,7 +8897,7 @@ async function main() {
                 // ignore comment-only lines
                 if (/^\/\*/.test(c) || /^\/\//.test(c)) continue;
                 // try arrow patterns A.B.port -> C.D.port or A -> B
-                const m = c.match(/([\w\.]+)\s*[-=]*>\s*([\w\.]+)/);
+                const m = c.match(/([\w\.]+)\s*(?:[-=]*>|=)\s*([\w\.]+)/);
                 if (m) {
                   const L = m[1]; const R = m[2];
                   const lparts = L.split('.'); const rparts = R.split('.');
@@ -8832,6 +9123,14 @@ async function main() {
     for (const c of candidates) if (String(c) === t) return c;
     for (const c of candidates) if (t.endsWith(String(c))) return c;
     for (const c of candidates) if (String(c).endsWith(t)) return c;
+    // camelCase suffix check: e.g. target "actConfig", candidate "cargo_inConfig"
+    const tParts = t.split(/(?=[A-Z])/);
+    if (tParts.length > 1) {
+      const lastPart = tParts[tParts.length - 1].toLowerCase();
+      for (const c of candidates) {
+        if (String(c).toLowerCase().endsWith(lastPart)) return c;
+      }
+    }
     const tn = normalizeForMatch(t);
     for (const c of candidates) if (normalizeForMatch(c) === tn) return c;
     for (const c of candidates) if (tn.indexOf(normalizeForMatch(c)) !== -1) return c;
@@ -8840,9 +9139,9 @@ async function main() {
   }
 
   function scorePortsByTokenOverlap(param, ports) {
-    const tokens = String(param).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const tokens = String(param).split(/(?=[A-Z])|[^a-zA-Z0-9]+/).map(x => x.toLowerCase()).filter(Boolean);
     const scores = ports.map(p => {
-      const ptoks = String(p).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+      const ptoks = String(p).split(/(?=[A-Z])|[^a-zA-Z0-9]+/).map(x => x.toLowerCase()).filter(Boolean);
       let score = 0; for (const t of tokens) if (ptoks.includes(t)) score++; return { port: p, score };
     }).sort((a, b) => b.score - a.score);
     return scores.filter(s => s.score > 0).map(s => s.port);
@@ -8865,42 +9164,22 @@ async function main() {
     }
   });
 
-  // map action name -> activity name by scanning ActivityDef nodes
-  const actionToActivity = {};
-  // NEW: map to store action instance names: actionClassName -> { instanceName, activityName }
-  const actionInstanceMap = {};
-  traverse(ast, n => {
-    if (n && (n.type === 'ActivityDef' || /ActivityDef/i.test(n.type))) {
-      const activityName = n.name || n.id || null; if (!activityName) return;
-      traverse(n, x => {
-        if (x && x.type && /Action/.test(x.type)) {
-          const an = x.definition || x.name || x.id || null;
-          if (an) {
-            actionToActivity[an] = activityName;
-            // Extract instance name from action instances
-            // Prefer the explicit ActionUse name token (e.g. 'ftoc') when present
-            // SysADL format: "actions : instanceName : ClassName"
-            // x.name holds the instance identifier; fall back to other fields or class name
-            const instanceName = (typeof x.name === 'string' && x.name) || x.instanceName || x.instance || x.label || an;
-            actionInstanceMap[an] = { instanceName, activityName };
-          }
-        }
-      });
-    }
-  });
-
   // build executableToAction from allocation info if present
   const executableToAction = {};
   const activityToComponent = {};
 
   if (ast && ast.allocation && Array.isArray(ast.allocation.allocations)) {
-    for (const a of ast.allocation.allocations) {
+    for (const aRaw of ast.allocation.allocations) {
+      const a = getRealAllocation(aRaw);
       if (!a || !a.type) continue;
       if (a.type === 'ExecutableAllocation' && a.source && a.target) {
         executableToAction[a.source] = a.target;
+        const simpleSource = String(a.source).split(/[.:]/).pop();
+        const simpleTarget = String(a.target).split(/[.:]/).pop();
+        executableToAction[simpleSource] = simpleTarget;
       }
-      // Add generic ActivityAllocation processing
-      if (a.type === 'ActivityAllocation' && a.source && a.target) {
+      // Add generic ActivityAllocation / EnvActivityAllocation processing
+      if ((a.type === 'ActivityAllocation' || a.type === 'EnvActivityAllocation') && a.source && a.target) {
         activityToComponent[a.source] = a.target;
       }
     }
@@ -8917,24 +9196,48 @@ async function main() {
     }
   } catch (e) { /* ignore */ }
 
-  // build activityActionsMap: activityName -> [{ executable, name }]
-  const activityActionsMap = {};
-  for (const ex of executables) {
-    if (!ex || !ex.name) continue;
-    const actionName = executableToAction[ex.name];
-    if (!actionName) continue;
-    const activityName = actionToActivity[actionName];
-    if (!activityName) continue;
-    activityActionsMap[activityName] = activityActionsMap[activityName] || [];
-    activityActionsMap[activityName].push({ executable: ex.name, name: actionName });
+  const actionToExecutableMap = {};
+  for (const [execName, actName] of Object.entries(executableToAction)) {
+    actionToExecutableMap[actName] = execName;
+    const simpleActName = String(actName).split(/[.:]/).pop();
+    actionToExecutableMap[simpleActName] = execName;
   }
 
-  // dedupe actions within each activity
-  for (const k of Object.keys(activityActionsMap)) {
-    const seen = new Set(); const uniq = [];
-    for (const it of activityActionsMap[k]) { const key = it.executable || it.name || JSON.stringify(it); if (seen.has(key)) continue; seen.add(key); uniq.push(it); }
-    activityActionsMap[k] = uniq;
-  }
+  // map action name -> activity name by scanning ActivityDef nodes
+  const actionToActivity = {};
+  const actionInstanceMap = {};
+  const activityActionsMap = {};
+
+  traverse(ast, n => {
+    if (n && (n.type === 'ActivityDef' || /ActivityDef/i.test(n.type))) {
+      const activityName = n.name || n.id || null;
+      if (!activityName) return;
+
+      activityActionsMap[activityName] = activityActionsMap[activityName] || [];
+
+      traverse(n, x => {
+        if (x && x.type && /Action/.test(x.type)) {
+          const an = x.definition || x.name || x.id || null;
+          if (an) {
+            actionToActivity[an] = activityName;
+            const instanceName = (typeof x.name === 'string' && x.name) || x.instanceName || x.instance || x.label || an;
+            actionInstanceMap[an] = { instanceName, activityName };
+
+            // Find matching executable
+            const shortAn = String(an).split(/[.:]/).pop();
+            const execName = actionToExecutableMap[an] || actionToExecutableMap[shortAn] || null;
+
+            activityActionsMap[activityName].push({
+              executable: execName,
+              name: an,
+              instanceName: instanceName,
+              usingPins: x.using ? x.using.map(p => p.name) : []
+            });
+          }
+        }
+      });
+    }
+  });
 
   // build component -> ports map from compUses / portUses
   const compPortsMap_main = {};
@@ -9010,7 +9313,7 @@ async function main() {
       } catch (e) { }
     }
   } catch (e) { }
-  try { dbg('[DBG] compPortsMap_main keys:', Object.keys(compPortsMap_main).slice(0, 40).map(k => ({ k, ports: Array.from(compPortsMap_main[k] || []) }))); } catch (e) { }
+  try { console.log('[DBG] compPortsMap_main keys:', JSON.stringify(Object.keys(compPortsMap_main).map(k => ({ k, ports: Array.from(compPortsMap_main[k] || []) })), null, 2)); } catch (e) { }
 
   // Normalize connectorBindings into connectorDescriptors for processing
   const connectorDescriptors = [];
@@ -9130,7 +9433,7 @@ async function main() {
           const parts = []; const seen = new Set();
           for (const c of candidates) {
             if (!c) continue; if (/^\/\*/.test(c) || /^\/\//.test(c)) continue;
-            const m = c.match(/([\w\.]+)\s*[-=]*>\s*([\w\.]+)/);
+            const m = c.match(/([\w\.]+)\s*(?:[-=]*>|=)\s*([\w\.]+)/);
             if (m) {
               const L = m[1]; const R = m[2];
               const lparts = L.split('.'); const rparts = R.split('.');
@@ -9173,15 +9476,26 @@ async function main() {
     return matched;
   }
 
-  // permissive registration: for each activityDef in source, register it to instances
+  // permissive registration: for each activityDef in AST, register it to instances
   const activityDefs = {};
-  const activityRe = /activity\s+def\s+(\w+)\s*\(([^)]*)\)/gmi;
-  let mm;
-  while ((mm = activityRe.exec(src)) !== null) {
-    const name = mm[1]; const p1 = mm[2] || ''; const gather = s => s.split(',').map(x => x.trim()).filter(Boolean).map(x => { const p = x.split(':')[0].trim(); return p; });
-    const params = [].concat(gather(p1)).filter(Boolean);
-    activityDefs[name] = { name, params };
-  }
+  traverse(ast, n => {
+    if (n && (n.type === 'ActivityDef' || /ActivityDef/i.test(n.type))) {
+      const name = n.name || n.id || null;
+      if (name) {
+        const params = [];
+        if (n.inParameters && Array.isArray(n.inParameters)) {
+          const flatInParams = n.inParameters.flat(Infinity);
+          flatInParams.forEach(p => {
+            if (p && typeof p === 'object') {
+              const pinName = p.name || p.id || null;
+              if (pinName) params.push(pinName);
+            }
+          });
+        }
+        activityDefs[name] = { name, params };
+      }
+    }
+  });
 
   const compInstanceDef = {};
   for (const cu of (compUses || [])) { const iname = cu && (cu.name || (cu.id && cu.id.name) || cu.id) || null; const ddef = cu && (cu.definition || cu.def || (cu.sysadlType && cu.sysadlType.name)) || null; if (iname) compInstanceDef[iname] = ddef; }
@@ -9236,9 +9550,21 @@ async function main() {
 
     // First, check if there's an explicit ActivityAllocation
     let candidates = [];
+    const isExplicitAlloc = !!activityToComponent[an];
     if (activityToComponent[an]) {
       // Use explicit allocation from allocation table
-      candidates.push(activityToComponent[an]);
+      const allocTarget = activityToComponent[an];
+      // Resolve definition name (e.g. ProductionUnitEnvCP) to actual instances (e.g. unit1, unit2)
+      const targetLower = String(allocTarget).toLowerCase().replace(/^(sysadl::components|boundarybehavior|pkgscenarios)::/, '');
+      const instances = Object.keys(compInstanceDef).filter(instName => {
+        const ddef = String(compInstanceDef[instName] || '').toLowerCase().replace(/^(sysadl::components|boundarybehavior|pkgscenarios)::/, '');
+        return ddef === targetLower || normalizeForMatch(ddef) === normalizeForMatch(targetLower);
+      });
+      if (instances.length > 0) {
+        candidates.push(...instances);
+      } else {
+        candidates.push(allocTarget);
+      }
     } else {
       // Fall back to heuristic matching - check both components and connectors
       const root = String(an).replace(/AC$/i, '').replace(/Activity$/i, '').trim();
@@ -9291,7 +9617,8 @@ async function main() {
           executable: a.executable,
           params: ddef.params || [],
           body: ddef.body || null,
-          instanceName: instanceInfo.instanceName || a.name  // Use SysADL instance name or fallback to class name
+          instanceName: a.instanceName || instanceInfo.instanceName || a.name, // Use SysADL instance name or fallback to class name
+          usingPins: a.usingPins || []
         };
       });
       // if no matched inputPorts but action params exist, use them
@@ -9348,7 +9675,20 @@ async function main() {
         normalizedDelegations = [];
       }
 
-      activitiesToRegister.push({ activityName: an, descriptor: { component: compOwner, inputPorts: finalInputs || [], actions: enriched, delegates: normalizedDelegations } });
+      // Build portToPinMapping mapping finalInputs (component port) to params (activity parameter)
+      const portToPinMapping = {};
+      if (Array.isArray(params) && Array.isArray(finalInputs)) {
+        for (let i = 0; i < finalInputs.length; i++) {
+          if (i < params.length) {
+            const portName = finalInputs[i];
+            const paramName = params[i];
+            const paramStrName = paramName.name || paramName.id || String(paramName);
+            portToPinMapping[portName] = paramStrName;
+          }
+        }
+      }
+
+      activitiesToRegister.push({ activityName: an, descriptor: { component: compOwner, inputPorts: finalInputs || [], actions: enriched, delegates: normalizedDelegations, portToPinMapping, isExplicitAllocation: isExplicitAlloc } });
     }
   }
 

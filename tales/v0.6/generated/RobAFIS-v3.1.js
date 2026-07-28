@@ -20,6 +20,14 @@ const types = {
   MissionConfig: DT_MissionConfig,
   RobotCommands: DT_RobotCommands
 };
+const PieceColor = EN_PieceColor;
+const MissionParameter = EN_MissionParameter;
+const StrategyParameter = EN_StrategyParameter;
+const MotorCommand = EN_MotorCommand;
+const Direction = EN_Direction;
+const NavColor = EN_NavColor;
+const MissionConfig = DT_MissionConfig;
+const RobotCommands = DT_RobotCommands;
 
 // Ports
 class PT_SysADL_Ports_ParameterIPT extends SimplePort {
@@ -757,6 +765,17 @@ class CP_SysADL_Components_RobAFISControllerCP extends Component {
       this.addPort(new PT_SysADL_Ports_CommandOPT(portName_controller_outGrab, { owner: name, originalName: "controller_outGrab" }));
     }
 }
+class CP_EnvComponentsRobAFIS_PieceEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_ArrivalStockEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_MachineZoneEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_NavigationLineEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_NavigationPadEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_ObstacleEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_HumanOperatorEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_StandbyPositionEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_TransElevatorEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_SharedStockEnvCP extends Component { }
+class CP_EnvComponentsRobAFIS_ProductionUnitEnvCP extends Component { }
 class CP_SysADL_Components_RobAFISSystemCP extends Component { }
 
 // ===== Behavioral Element Classes =====
@@ -809,7 +828,7 @@ class AC_BoundaryBehavior_CameraSensorAC extends Activity {
   constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
     super(name, component, inputPorts, delegates, {
       ...opts,
-      inParameters: [{"name":"envFloor","type":"NavColor","direction":"in"},{"name":"envOffset","type":"Int","direction":"in"},{"name":"envZone","type":"NavColor","direction":"in"},{"name":"envPiece","type":"PieceColor","direction":"in"},{"name":"envSaPiece","type":"PieceColor","direction":"in"},{"name":"envSpePiece","type":"PieceColor","direction":"in"}],
+      inParameters: [{"name":"envFloor","type":"NavColor","direction":"in"},{"name":"envPad","type":"NavColor","direction":"in"},{"name":"envStandby","type":"NavColor","direction":"in"},{"name":"envOffset","type":"Int","direction":"in"},{"name":"envZone","type":"NavColor","direction":"in"},{"name":"envPiece","type":"PieceColor","direction":"in"},{"name":"envSaPiece","type":"PieceColor","direction":"in"},{"name":"envSpePiece","type":"PieceColor","direction":"in"}],
       outParameters: [{"name":"sysFloor","type":"NavColor","direction":"out"},{"name":"sysOffset","type":"Int","direction":"out"},{"name":"sysZone","type":"Boolean","direction":"out"},{"name":"sysPiece","type":"PieceColor","direction":"out"}]
     });
   }
@@ -864,8 +883,8 @@ class AC_PkgScenarios_UnitEA extends Activity {
   constructor(name, component = null, inputPorts = [], delegates = [], opts = {}) {
     super(name, component, inputPorts, delegates, {
       ...opts,
-      inParameters: [{"name":"OpParam","type":"MissionParameter","direction":"in"},{"name":"OpStrategy","type":"StrategyParameter","direction":"in"},{"name":"LineOffset","type":"Int","direction":"in"},{"name":"Obstacle","type":"Boolean","direction":"in"},{"name":"ZoneAlarm","type":"Boolean","direction":"in"},{"name":"TPieceColor","type":"PieceColor","direction":"in"},{"name":"SPEPieceColor","type":"PieceColor","direction":"in"}],
-      outParameters: [{"name":"UnitNavLine","type":"NavColor","direction":"out"},{"name":"UnitNavPad","type":"NavColor","direction":"out"},{"name":"UnitPieceColor","type":"PieceColor","direction":"out"},{"name":"SPEPieceColor","type":"PieceColor","direction":"out"},{"name":"UnitLineOffset","type":"Int","direction":"out"},{"name":"UnitZoneAlarm","type":"Boolean","direction":"out"},{"name":"UnitObstacle","type":"Boolean","direction":"out"}]
+      inParameters: [{"name":"inOpParam","type":"MissionParameter","direction":"in"},{"name":"inOpStrategy","type":"StrategyParameter","direction":"in"},{"name":"inLineOffset","type":"Int","direction":"in"},{"name":"inObstacle","type":"Boolean","direction":"in"},{"name":"inZoneAlarm","type":"Boolean","direction":"in"},{"name":"inTPieceColor","type":"PieceColor","direction":"in"},{"name":"inSPEPieceColor","type":"PieceColor","direction":"in"}],
+      outParameters: [{"name":"outUnitNavLine","type":"NavColor","direction":"out"},{"name":"outUnitNavPad","type":"NavColor","direction":"out"},{"name":"outUnitPieceColor","type":"PieceColor","direction":"out"},{"name":"outSPEPieceColor","type":"PieceColor","direction":"out"},{"name":"outSAPieceColor","type":"PieceColor","direction":"out"},{"name":"outSPDPieceColor","type":"PieceColor","direction":"out"},{"name":"outUnitLineOffset","type":"Int","direction":"out"},{"name":"outUnitZoneAlarm","type":"Boolean","direction":"out"},{"name":"outUnitObstacle","type":"Boolean","direction":"out"},{"name":"outUnitPAColor","type":"NavColor","direction":"out"}]
     });
   }
 }
@@ -877,6 +896,7 @@ class AN_SysADL_Behavior_ConfigureMissionAN extends Action {
       ...opts,
       inParameters: [{"name":"paramIn","type":"MissionParameter","direction":"in"},{"name":"strategyIn","type":"StrategyParameter","direction":"in"}],
       outParameters: [{"name":"ConfigureMissionAN","type":"MissionConfig","direction":"out"}],
+      executables: ["SysADL.Execution.ConfigureMissionEX"],
     });
   }
 }
@@ -888,6 +908,7 @@ class AN_SysADL_Behavior_DecideCommandAN extends Action {
       ...opts,
       inParameters: [{"name":"decFloorColor","type":"NavColor","direction":"in"},{"name":"decOffset","type":"Int","direction":"in"},{"name":"decZoneAlarm","type":"Boolean","direction":"in"},{"name":"decObstacle","type":"Boolean","direction":"in"},{"name":"decConfig","type":"MissionConfig","direction":"in"}],
       outParameters: [{"name":"cmds","type":"RobotCommands","direction":"out"}],
+      executables: ["SysADL.Execution.DecideCommandEX"],
     });
   }
 }
@@ -899,6 +920,7 @@ class AN_SysADL_Behavior_ExtractDirAN extends Action {
       ...opts,
       inParameters: [{"name":"extDirCmd","type":"RobotCommands","direction":"in"}],
       outParameters: [{"name":"ExtractDirAN","type":"Direction","direction":"out"}],
+      executables: ["SysADL.Execution.ExtractDirEX"],
     });
   }
 }
@@ -910,6 +932,7 @@ class AN_SysADL_Behavior_VerifyCargoAN extends Action {
       ...opts,
       inParameters: [{"name":"cargoPieceColor","type":"PieceColor","direction":"in"},{"name":"cargoConfig","type":"MissionConfig","direction":"in"}],
       outParameters: [{"name":"cmds","type":"RobotCommands","direction":"out"}],
+      executables: ["SysADL.Execution.VerifyCargoEX"],
     });
   }
 }
@@ -921,6 +944,7 @@ class AN_SysADL_Behavior_ExtractGrabAN extends Action {
       ...opts,
       inParameters: [{"name":"extGrabCmd","type":"RobotCommands","direction":"in"}],
       outParameters: [{"name":"cmds","type":"MotorCommand","direction":"out"}],
+      executables: ["SysADL.Execution.ExtractGrabEX"],
     });
   }
 }
@@ -932,6 +956,7 @@ class AN_PkgScenarios_PassBooleanAN extends Action {
       ...opts,
       inParameters: [{"name":"boolIn","type":"Boolean","direction":"in"}],
       outParameters: [{"name":"PassBooleanAN","type":"Boolean","direction":"out"}],
+      executables: ["BoundaryExecution.PassBooleanEX"],
     });
   }
 }
@@ -941,8 +966,9 @@ class AN_PkgScenarios_PassIntAN extends Action {
   constructor(name, opts = {}) {
     super(name, {
       ...opts,
-      inParameters: [{"name":"tIn","type":"Int","direction":"in"}],
+      inParameters: [{"name":"intIn","type":"Int","direction":"in"}],
       outParameters: [{"name":"PassIntAN","type":"Int","direction":"out"}],
+      executables: ["BoundaryExecution.PassIntEX"],
     });
   }
 }
@@ -954,6 +980,7 @@ class AN_PkgScenarios_PassNavColorAN extends Action {
       ...opts,
       inParameters: [{"name":"colorIn","type":"NavColor","direction":"in"}],
       outParameters: [{"name":"PassNavColorAN","type":"NavColor","direction":"out"}],
+      executables: ["BoundaryExecution.PassNavColorEX"],
     });
   }
 }
@@ -965,6 +992,7 @@ class AN_PkgScenarios_PassPieceColorAN extends Action {
       ...opts,
       inParameters: [{"name":"pColorIn","type":"PieceColor","direction":"in"}],
       outParameters: [{"name":"PassPieceColorAN","type":"PieceColor","direction":"out"}],
+      executables: ["BoundaryExecution.PassPieceColorEX"],
     });
   }
 }
@@ -976,6 +1004,7 @@ class AN_BoundaryBehavior_PassDirectionAN extends Action {
       ...opts,
       inParameters: [{"name":"dirIn","type":"Direction","direction":"in"}],
       outParameters: [{"name":"PassDirectionAN","type":"Direction","direction":"out"}],
+      executables: ["BoundaryExecution.PassDirectionEX"],
     });
   }
 }
@@ -987,6 +1016,7 @@ class AN_BoundaryBehavior_PassMotorCommandAN extends Action {
       ...opts,
       inParameters: [{"name":"cmdIn","type":"MotorCommand","direction":"in"}],
       outParameters: [{"name":"cmds","type":"MotorCommand","direction":"out"}],
+      executables: ["BoundaryExecution.PassMotorCommandEX"],
     });
   }
 }
@@ -998,6 +1028,7 @@ class AN_PkgScenarios_PassMissionParameterAN extends Action {
       ...opts,
       inParameters: [{"name":"paramIn","type":"MissionParameter","direction":"in"}],
       outParameters: [{"name":"PassMissionParameterAN","type":"MissionParameter","direction":"out"}],
+      executables: ["BoundaryExecution.PassMissionParameterEX"],
     });
   }
 }
@@ -1009,6 +1040,7 @@ class AN_PkgScenarios_PassStrategyParameterAN extends Action {
       ...opts,
       inParameters: [{"name":"strategyIn","type":"StrategyParameter","direction":"in"}],
       outParameters: [{"name":"PassStrategyParameterAN","type":"StrategyParameter","direction":"out"}],
+      executables: ["BoundaryExecution.PassStrategyParameterEX"],
     });
   }
 }
@@ -1020,6 +1052,19 @@ class AN_BoundaryBehavior_MultiplexPieceColorAN extends Action {
       ...opts,
       inParameters: [{"name":"colorT","type":"PieceColor","direction":"in"},{"name":"colorSa","type":"PieceColor","direction":"in"},{"name":"colorSpe","type":"PieceColor","direction":"in"}],
       outParameters: [{"name":"MultiplexPieceColorAN","type":"PieceColor","direction":"out"}],
+      executables: ["BoundaryExecution.MultiplexPieceColorEX"],
+    });
+  }
+}
+
+// Action class: MultiplexFloorColorAN
+class AN_BoundaryBehavior_MultiplexFloorColorAN extends Action {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"floor","type":"NavColor","direction":"in"},{"name":"pad","type":"NavColor","direction":"in"},{"name":"standby","type":"NavColor","direction":"in"}],
+      outParameters: [{"name":"MultiplexFloorColorAN","type":"NavColor","direction":"out"}],
+      executables: ["BoundaryExecution.MultiplexFloorColorEX"],
     });
   }
 }
@@ -1031,6 +1076,7 @@ class AN_BoundaryBehavior_ProcessZoneAlarmAN extends Action {
       ...opts,
       inParameters: [{"name":"zoneColor","type":"NavColor","direction":"in"}],
       outParameters: [{"name":"ProcessZoneAlarmAN","type":"Boolean","direction":"out"}],
+      executables: ["BoundaryExecution.ProcessZoneAlarmEX"],
     });
   }
 }
@@ -1384,6 +1430,31 @@ class EX_BoundaryExecution_MultiplexPieceColorEX extends Executable {
   }
 }
 
+// Executable class: MultiplexFloorColorEX
+class EX_BoundaryExecution_MultiplexFloorColorEX extends Executable {
+  constructor(name, opts = {}) {
+    super(name, {
+      ...opts,
+      inParameters: [{"name":"floor","type":"NavColor","direction":"in"},{"name":"pad","type":"NavColor","direction":"in"},{"name":"standby","type":"NavColor","direction":"in"}],
+      body: "executable def MultiplexFloorColorEX ( \n        in floor : NavColor , \n        in pad : NavColor , \n        in standby : NavColor \n    ) : out NavColor {\n        if (standby != NavColor::None) {\n            return standby ;\n        }\n        if (pad != NavColor::None) {\n            return pad ;\n        }\n        return floor ;\n    }",
+      executableFunction: function(params) {
+          // Type validation
+          // Type validation for floor: (auto-detected from usage)
+          // Type validation for pad: (auto-detected from usage)
+          // Type validation for standby: (auto-detected from usage)
+          const { floor, pad, standby } = params;
+          if (standby != NavColor.None) {
+            return standby ;
+        }
+        if (pad != NavColor.None) {
+            return pad ;
+        }
+        return floor ;
+        }
+    });
+  }
+}
+
 // Executable class: ProcessZoneAlarmEX
 class EX_BoundaryExecution_ProcessZoneAlarmEX extends Executable {
   constructor(name, opts = {}) {
@@ -1411,6 +1482,44 @@ class SysADLModel extends Model {
     super("SysADLModel");
     this.RobAFISSystemCP = new CP_SysADL_Components_RobAFISSystemCP("RobAFISSystemCP", { sysadlDefinition: "RobAFISSystemCP" });
     this.addComponent(this.RobAFISSystemCP);
+    this.arrivalStock = new CP_EnvComponentsRobAFIS_ArrivalStockEnvCP("arrivalStock", { sysadlDefinition: "ArrivalStockEnvCP", portAliases: {} });
+    this.addComponent(this.arrivalStock);
+    this.instance1 = new CP_SysADL_Components_GrabberCP("instance1", { isBoundary: true, sysadlDefinition: "GrabberCP", portAliases: {} });
+    this.addComponent(this.instance1);
+    this.machineZone = new CP_EnvComponentsRobAFIS_MachineZoneEnvCP("machineZone", { sysadlDefinition: "MachineZoneEnvCP", portAliases: {} });
+    this.addComponent(this.machineZone);
+    this.navLine = new CP_EnvComponentsRobAFIS_NavigationLineEnvCP("navLine", { sysadlDefinition: "NavigationLineEnvCP", portAliases: {} });
+    this.addComponent(this.navLine);
+    this.navPad = new CP_EnvComponentsRobAFIS_NavigationPadEnvCP("navPad", { sysadlDefinition: "NavigationPadEnvCP", portAliases: {} });
+    this.addComponent(this.navPad);
+    this.obstacle = new CP_EnvComponentsRobAFIS_ObstacleEnvCP("obstacle", { sysadlDefinition: "ObstacleEnvCP", portAliases: {} });
+    this.addComponent(this.obstacle);
+    this.operator = new CP_EnvComponentsRobAFIS_HumanOperatorEnvCP("operator", { sysadlDefinition: "HumanOperatorEnvCP", portAliases: {} });
+    this.addComponent(this.operator);
+    this.pieces = new CP_EnvComponentsRobAFIS_PieceEnvCP("pieces", { sysadlDefinition: "PieceEnvCP", portAliases: {} });
+    this.addComponent(this.pieces);
+    this.pieces = new CP_EnvComponentsRobAFIS_PieceEnvCP("pieces", { sysadlDefinition: "PieceEnvCP", portAliases: {} });
+    this.addComponent(this.pieces);
+    this.pieces = new CP_EnvComponentsRobAFIS_PieceEnvCP("pieces", { sysadlDefinition: "PieceEnvCP", portAliases: {} });
+    this.addComponent(this.pieces);
+    this.spd1_spe2 = new CP_EnvComponentsRobAFIS_SharedStockEnvCP("spd1_spe2", { sysadlDefinition: "SharedStockEnvCP", portAliases: {} });
+    this.addComponent(this.spd1_spe2);
+    this.spe1_spd2 = new CP_EnvComponentsRobAFIS_SharedStockEnvCP("spe1_spd2", { sysadlDefinition: "SharedStockEnvCP", portAliases: {} });
+    this.addComponent(this.spe1_spd2);
+    this.standbyPos = new CP_EnvComponentsRobAFIS_StandbyPositionEnvCP("standbyPos", { sysadlDefinition: "StandbyPositionEnvCP", portAliases: {} });
+    this.addComponent(this.standbyPos);
+    this.transElevator = new CP_EnvComponentsRobAFIS_TransElevatorEnvCP("transElevator", { sysadlDefinition: "TransElevatorEnvCP", portAliases: {} });
+    this.addComponent(this.transElevator);
+    this.unit_camera = new CP_SysADL_Components_CameraSensorCP("unit_camera", { isBoundary: true, sysadlDefinition: "CameraSensorCP", portAliases: {} });
+    this.addComponent(this.unit_camera);
+    this.unit_obstacleSens = new CP_SysADL_Components_ObstacleSensorCP("unit_obstacleSens", { isBoundary: true, sysadlDefinition: "ObstacleSensorCP", portAliases: {} });
+    this.addComponent(this.unit_obstacleSens);
+    this.unit_pInput = new CP_SysADL_Components_ParameterInputCP("unit_pInput", { isBoundary: true, sysadlDefinition: "ParameterInputCP", portAliases: {} });
+    this.addComponent(this.unit_pInput);
+    this.unit1 = new CP_EnvComponentsRobAFIS_ProductionUnitEnvCP("unit1", { sysadlDefinition: "ProductionUnitEnvCP", portAliases: {} });
+    this.addComponent(this.unit1);
+    this.unit2 = new CP_EnvComponentsRobAFIS_ProductionUnitEnvCP("unit2", { sysadlDefinition: "ProductionUnitEnvCP", portAliases: {} });
+    this.addComponent(this.unit2);
     this.RobAFISSystemCP.camera = new CP_SysADL_Components_CameraSensorCP("camera", { isBoundary: true, sysadlDefinition: "CameraSensorCP", portAliases: {"floorColorOut":"floorColorOut","lineOffsetOut":"lineOffsetOut","zoneAlarmOut":"zoneAlarmOut","pieceColorOut":"pieceColorOut"} });
     this.RobAFISSystemCP.addComponent(this.RobAFISSystemCP.camera);
     this.RobAFISSystemCP.controller = new CP_SysADL_Components_RobAFISControllerCP("controller", { sysadlDefinition: "RobAFISControllerCP", portAliases: {"controller_inParam":"controller_inParam","controller_inStrategy":"controller_inStrategy","controller_inFloorColor":"controller_inFloorColor","controller_inLineOffset":"controller_inLineOffset","controller_inPieceColor":"controller_inPieceColor","controller_outDir":"controller_outDir","controller_outGrab":"controller_outGrab"} });
@@ -1431,31 +1540,70 @@ class SysADLModel extends Model {
     this.RobAFISSystemCP.controller.addComponent(this.RobAFISSystemCP.controller.planner);
 
     this.RobAFISSystemCP.controller.addConnector(new CN_SysADL_Connectors_MissionConfigCN("c_config1"));
+    const c_config1 = this.RobAFISSystemCP.controller.connectors["c_config1"];
+    c_config1.bind(this.RobAFISSystemCP.controller.planner.getPort("planner_outConfig"), this.RobAFISSystemCP.controller.navigator.getPort("navigator_inConfig"));
+    try { (function(){ const _binds = [{"source":"planner_outConfig","destination":"navigator_inConfig","left":"planner_outConfig","right":"navigator_inConfig"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.controller.addConnector(new CN_SysADL_Connectors_MissionConfigCN("c_config2"));
+    const c_config2 = this.RobAFISSystemCP.controller.connectors["c_config2"];
+    c_config2.bind(this.RobAFISSystemCP.controller.planner.getPort("planner_outConfig"), this.RobAFISSystemCP.controller.cargo.getPort("cargo_inConfig"));
+    try { (function(){ const _binds = [{"source":"planner_outConfig","destination":"cargo_inConfig","left":"planner_outConfig","right":"cargo_inConfig"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_ParamCN("c1"));
+    const c1 = this.RobAFISSystemCP.connectors["c1"];
+    c1.bind(this.RobAFISSystemCP.pInput.getPort("pOut"), this.RobAFISSystemCP.controller.getPort("controller_inParam"));
+    try { (function(){ const _binds = [{"source":"pOut","destination":"controller_inParam","left":"pOut","right":"controller_inParam"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_StrategyCN("c2"));
+    const c2 = this.RobAFISSystemCP.connectors["c2"];
+    c2.bind(this.RobAFISSystemCP.pInput.getPort("strategyOut"), this.RobAFISSystemCP.controller.getPort("controller_inStrategy"));
+    try { (function(){ const _binds = [{"source":"strategyOut","destination":"controller_inStrategy","left":"strategyOut","right":"controller_inStrategy"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_NavColorCN("c3"));
+    const c3 = this.RobAFISSystemCP.connectors["c3"];
+    c3.bind(this.RobAFISSystemCP.camera.getPort("floorColorOut"), this.RobAFISSystemCP.controller.getPort("controller_inFloorColor"));
+    try { (function(){ const _binds = [{"source":"floorColorOut","destination":"controller_inFloorColor","left":"floorColorOut","right":"controller_inFloorColor"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_IntCN("c4"));
+    const c4 = this.RobAFISSystemCP.connectors["c4"];
+    c4.bind(this.RobAFISSystemCP.camera.getPort("lineOffsetOut"), this.RobAFISSystemCP.controller.getPort("controller_inLineOffset"));
+    try { (function(){ const _binds = [{"source":"lineOffsetOut","destination":"controller_inLineOffset","left":"lineOffsetOut","right":"controller_inLineOffset"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_BooleanCN("c5"));
+    const c5 = this.RobAFISSystemCP.connectors["c5"];
+    c5.bind(this.RobAFISSystemCP.camera.getPort("zoneAlarmOut"), this.RobAFISSystemCP.controller.getPort("controller_inZoneAlarm"));
+    try { (function(){ const _binds = [{"source":"zoneAlarmOut","destination":"controller_inZoneAlarm","left":"zoneAlarmOut","right":"controller_inZoneAlarm"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_BooleanCN("c6"));
+    const c6 = this.RobAFISSystemCP.connectors["c6"];
+    c6.bind(this.RobAFISSystemCP.obstacleSens.getPort("obstacleOut"), this.RobAFISSystemCP.controller.getPort("controller_inObstacle"));
+    try { (function(){ const _binds = [{"source":"obstacleOut","destination":"controller_inObstacle","left":"obstacleOut","right":"controller_inObstacle"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_PieceColorCN("c7"));
+    const c7 = this.RobAFISSystemCP.connectors["c7"];
+    c7.bind(this.RobAFISSystemCP.camera.getPort("pieceColorOut"), this.RobAFISSystemCP.controller.getPort("controller_inPieceColor"));
+    try { (function(){ const _binds = [{"source":"pieceColorOut","destination":"controller_inPieceColor","left":"pieceColorOut","right":"controller_inPieceColor"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_DirectionCN("c8"));
+    const c8 = this.RobAFISSystemCP.connectors["c8"];
+    c8.bind(this.RobAFISSystemCP.controller.getPort("controller_outDir"), this.RobAFISSystemCP.driveSys.getPort("dirIn"));
+    try { (function(){ const _binds = [{"source":"controller_outDir","destination":"dirIn","left":"controller_outDir","right":"dirIn"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
     this.RobAFISSystemCP.addConnector(new CN_SysADL_Connectors_CommandCN("c9"));
     try { this.RobAFISSystemCP.connectors["c9"].activityName = "DecideCommandAC"; } catch(e) {}
+    const c9 = this.RobAFISSystemCP.connectors["c9"];
+    c9.bind(this.RobAFISSystemCP.controller.getPort("controller_outGrab"), this.RobAFISSystemCP.grabber.getPort("cmdIn"));
+    try { (function(){ const _binds = [{"source":"controller_outGrab","destination":"cmdIn","left":"controller_outGrab","right":"cmdIn"}]; _binds.forEach(b => { try { const left = String(b.left || b.source || b.from); const right = String(b.right || b.destination || b.to); Object.values(model._activities || {}).forEach(act => { try { if (act && act.portToPinMapping) { const mapped = act.portToPinMapping[right] || act.portToPinMapping[String(right).toLowerCase()]; if (mapped) { try { act.portToPinMapping[left] = mapped; } catch(e){} } else {  try { act.portToPinMapping[left] = right; } catch(e){} } } } catch(e){} }); } catch(e){} }); })(); } catch(e) {}
 
     const ac_planner = new AC_SysADL_Behavior_MissionPlannerAC(
       "MissionPlannerAC",
       "RobAFISSystemCP.controller.planner",
-      ["planner_inParam"],
+      ["planner_inParam","planner_inStrategy"],
       [{"from":"actParam","to":"paramIn"},{"from":"actStrategy","to":"strategyIn"},{"from":"actConfig","to":"configAct"}],
       {"outParameters":[{"name":"actParam","type":"Real","direction":"out"},{"name":"actStrategy","type":"Real","direction":"out"},{"name":"actConfig","type":"Real","direction":"out"}]}
     );
+    const configAct = new AN_SysADL_Behavior_ConfigureMissionAN("configAct", { usingPins: ["paramIn","strategyIn"] });
+    ac_planner.registerAction(configAct);
     try { ac_planner.portToPinMapping["paramIn"] = "actParam"; } catch(e) {}
     try { ac_planner.portToPinMapping["paramin"] = "actParam"; } catch(e) {}
     try { ac_planner.portToPinMapping["strategyIn"] = "actStrategy"; } catch(e) {}
     try { ac_planner.portToPinMapping["strategyin"] = "actStrategy"; } catch(e) {}
     try { ac_planner.portToPinMapping["configAct"] = "actConfig"; } catch(e) {}
     try { ac_planner.portToPinMapping["configact"] = "actConfig"; } catch(e) {}
+    try { ac_planner.portToPinMapping["planner_inParam"] = "actParam"; } catch(e) {}
+    try { ac_planner.portToPinMapping["planner_inparam"] = "actParam"; } catch(e) {}
+    try { ac_planner.portToPinMapping["planner_inStrategy"] = "actStrategy"; } catch(e) {}
+    try { ac_planner.portToPinMapping["planner_instrategy"] = "actStrategy"; } catch(e) {}
     this.registerActivity("MissionPlannerAC", ac_planner);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.planner"] = ac_planner; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.planner"] = ac_planner; } catch(e) {}
@@ -1464,10 +1612,14 @@ class SysADLModel extends Model {
     const ac_navigator = new AC_SysADL_Behavior_NavigatorAC(
       "NavigatorAC",
       "RobAFISSystemCP.controller.navigator",
-      ["navigator_inFloorColor"],
+      ["navigator_inFloorColor","navigator_inLineOffset","navigator_inZoneAlarm","navigator_inObstacle","navigator_inConfig"],
       [{"from":"actFloorColor","to":"decFloorColor"},{"from":"actLineOffset","to":"decOffset"},{"from":"actZoneAlarm","to":"decZoneAlarm"},{"from":"actObstacle","to":"decObstacle"},{"from":"actConfig","to":"decConfig"},{"from":"actDir","to":"extDirAct"}],
       {"outParameters":[{"name":"actFloorColor","type":"Real","direction":"out"},{"name":"actLineOffset","type":"Real","direction":"out"},{"name":"actZoneAlarm","type":"Real","direction":"out"},{"name":"actObstacle","type":"Real","direction":"out"},{"name":"actConfig","type":"Real","direction":"out"},{"name":"actDir","type":"Real","direction":"out"}]}
     );
+    const navAct = new AN_SysADL_Behavior_DecideCommandAN("navAct", { usingPins: ["decFloorColor","decOffset","decZoneAlarm","decObstacle","decConfig"] });
+    ac_navigator.registerAction(navAct);
+    const extDirAct = new AN_SysADL_Behavior_ExtractDirAN("extDirAct", { usingPins: ["extDirCmd"] });
+    ac_navigator.registerAction(extDirAct);
     try { ac_navigator.portToPinMapping["decFloorColor"] = "actFloorColor"; } catch(e) {}
     try { ac_navigator.portToPinMapping["decfloorcolor"] = "actFloorColor"; } catch(e) {}
     try { ac_navigator.portToPinMapping["decOffset"] = "actLineOffset"; } catch(e) {}
@@ -1480,6 +1632,16 @@ class SysADLModel extends Model {
     try { ac_navigator.portToPinMapping["decconfig"] = "actConfig"; } catch(e) {}
     try { ac_navigator.portToPinMapping["extDirAct"] = "actDir"; } catch(e) {}
     try { ac_navigator.portToPinMapping["extdiract"] = "actDir"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inFloorColor"] = "actFloorColor"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_infloorcolor"] = "actFloorColor"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inLineOffset"] = "actLineOffset"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inlineoffset"] = "actLineOffset"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inZoneAlarm"] = "actZoneAlarm"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inzonealarm"] = "actZoneAlarm"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inObstacle"] = "actObstacle"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inobstacle"] = "actObstacle"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inConfig"] = "actConfig"; } catch(e) {}
+    try { ac_navigator.portToPinMapping["navigator_inconfig"] = "actConfig"; } catch(e) {}
     this.registerActivity("NavigatorAC", ac_navigator);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.navigator"] = ac_navigator; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.navigator"] = ac_navigator; } catch(e) {}
@@ -1488,16 +1650,24 @@ class SysADLModel extends Model {
     const ac_cargo = new AC_SysADL_Behavior_CargoHandlerAC(
       "CargoHandlerAC",
       "RobAFISSystemCP.controller.cargo",
-      ["cargo_inPieceColor"],
+      ["cargo_inPieceColor","cargo_inConfig"],
       [{"from":"actPieceColor","to":"cargoPieceColor"},{"from":"actConfig","to":"cargoConfig"},{"from":"actGrab","to":"extGrabAct"}],
       {"outParameters":[{"name":"actPieceColor","type":"Real","direction":"out"},{"name":"actConfig","type":"Real","direction":"out"},{"name":"actGrab","type":"Real","direction":"out"}]}
     );
+    const cargoAct = new AN_SysADL_Behavior_VerifyCargoAN("cargoAct", { usingPins: ["cargoPieceColor","cargoConfig"] });
+    ac_cargo.registerAction(cargoAct);
+    const extGrabAct = new AN_SysADL_Behavior_ExtractGrabAN("extGrabAct", { usingPins: ["extGrabCmd"] });
+    ac_cargo.registerAction(extGrabAct);
     try { ac_cargo.portToPinMapping["cargoPieceColor"] = "actPieceColor"; } catch(e) {}
     try { ac_cargo.portToPinMapping["cargopiececolor"] = "actPieceColor"; } catch(e) {}
     try { ac_cargo.portToPinMapping["cargoConfig"] = "actConfig"; } catch(e) {}
     try { ac_cargo.portToPinMapping["cargoconfig"] = "actConfig"; } catch(e) {}
     try { ac_cargo.portToPinMapping["extGrabAct"] = "actGrab"; } catch(e) {}
     try { ac_cargo.portToPinMapping["extgrabact"] = "actGrab"; } catch(e) {}
+    try { ac_cargo.portToPinMapping["cargo_inPieceColor"] = "actPieceColor"; } catch(e) {}
+    try { ac_cargo.portToPinMapping["cargo_inpiececolor"] = "actPieceColor"; } catch(e) {}
+    try { ac_cargo.portToPinMapping["cargo_inConfig"] = "actConfig"; } catch(e) {}
+    try { ac_cargo.portToPinMapping["cargo_inconfig"] = "actConfig"; } catch(e) {}
     this.registerActivity("CargoHandlerAC", ac_cargo);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.cargo"] = ac_cargo; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.cargo"] = ac_cargo; } catch(e) {}
@@ -1510,6 +1680,10 @@ class SysADLModel extends Model {
       [{"from":"envParam","to":"passP.paramIn"},{"from":"sysParam","to":"passP.paramOut"},{"from":"envStrategy","to":"passS.strategyIn"},{"from":"sysStrategy","to":"passS.strategyOut"}],
       {"outParameters":[{"name":"envParam","type":"Real","direction":"out"},{"name":"sysParam","type":"Real","direction":"out"},{"name":"envStrategy","type":"Real","direction":"out"},{"name":"sysStrategy","type":"Real","direction":"out"}]}
     );
+    const passP = new AN_PkgScenarios_PassMissionParameterAN("passP", { usingPins: ["paramIn","paramOut"] });
+    ac_pInput.registerAction(passP);
+    const passS = new AN_PkgScenarios_PassStrategyParameterAN("passS", { usingPins: ["strategyIn","strategyOut"] });
+    ac_pInput.registerAction(passS);
     try { ac_pInput.portToPinMapping["passP.paramIn"] = "envParam"; } catch(e) {}
     try { ac_pInput.portToPinMapping["passp.paramin"] = "envParam"; } catch(e) {}
     try { ac_pInput.portToPinMapping["passP.paramOut"] = "sysParam"; } catch(e) {}
@@ -1518,22 +1692,60 @@ class SysADLModel extends Model {
     try { ac_pInput.portToPinMapping["passs.strategyin"] = "envStrategy"; } catch(e) {}
     try { ac_pInput.portToPinMapping["passS.strategyOut"] = "sysStrategy"; } catch(e) {}
     try { ac_pInput.portToPinMapping["passs.strategyout"] = "sysStrategy"; } catch(e) {}
+    try { ac_pInput.portToPinMapping["pOut"] = "envParam"; } catch(e) {}
+    try { ac_pInput.portToPinMapping["pout"] = "envParam"; } catch(e) {}
     this.registerActivity("ParameterInputAC", ac_pInput);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.pInput"] = ac_pInput; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.pinput"] = ac_pInput; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pInput"] = ac_pInput; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pinput"] = ac_pInput; } catch(e) {}
+    const ac_unit_pInput = new AC_BoundaryBehavior_ParameterInputAC(
+      "ParameterInputAC",
+      "unit_pInput",
+      ["pOut"],
+      [{"from":"envParam","to":"passP.paramIn"},{"from":"sysParam","to":"passP.paramOut"},{"from":"envStrategy","to":"passS.strategyIn"},{"from":"sysStrategy","to":"passS.strategyOut"}],
+      {"outParameters":[{"name":"envParam","type":"Real","direction":"out"},{"name":"sysParam","type":"Real","direction":"out"},{"name":"envStrategy","type":"Real","direction":"out"},{"name":"sysStrategy","type":"Real","direction":"out"}]}
+    );
+    const passP_2 = new AN_PkgScenarios_PassMissionParameterAN("passP", { usingPins: ["paramIn","paramOut"] });
+    ac_unit_pInput.registerAction(passP_2);
+    const passS_2 = new AN_PkgScenarios_PassStrategyParameterAN("passS", { usingPins: ["strategyIn","strategyOut"] });
+    ac_unit_pInput.registerAction(passS_2);
+    try { ac_unit_pInput.portToPinMapping["passP.paramIn"] = "envParam"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passp.paramin"] = "envParam"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passP.paramOut"] = "sysParam"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passp.paramout"] = "sysParam"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passS.strategyIn"] = "envStrategy"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passs.strategyin"] = "envStrategy"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passS.strategyOut"] = "sysStrategy"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["passs.strategyout"] = "sysStrategy"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["pOut"] = "envParam"; } catch(e) {}
+    try { ac_unit_pInput.portToPinMapping["pout"] = "envParam"; } catch(e) {}
+    this.registerActivity("ParameterInputAC", ac_unit_pInput);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit_pInput"] = ac_unit_pInput; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit_pinput"] = ac_unit_pInput; } catch(e) {}
     const ac_camera = new AC_BoundaryBehavior_CameraSensorAC(
       "CameraSensorAC",
       "RobAFISSystemCP.camera",
       ["floorColorOut"],
-      [{"from":"envFloor","to":"colorIn"},{"from":"sysFloor","to":"colorOut"},{"from":"envOffset","to":"intIn"},{"from":"sysOffset","to":"intOut"},{"from":"envZone","to":"zoneColor"},{"from":"sysZone","to":"alarmOut"},{"from":"envPiece","to":"colorT"},{"from":"envSaPiece","to":"colorSa"},{"from":"envSpePiece","to":"colorSpe"},{"from":"sysPiece","to":"pieceOut"}],
-      {"outParameters":[{"name":"envFloor","type":"Real","direction":"out"},{"name":"sysFloor","type":"Real","direction":"out"},{"name":"envOffset","type":"Real","direction":"out"},{"name":"sysOffset","type":"Real","direction":"out"},{"name":"envZone","type":"Real","direction":"out"},{"name":"sysZone","type":"Real","direction":"out"},{"name":"envPiece","type":"Real","direction":"out"},{"name":"envSaPiece","type":"Real","direction":"out"},{"name":"envSpePiece","type":"Real","direction":"out"},{"name":"sysPiece","type":"Real","direction":"out"}]}
+      [{"from":"envFloor","to":"floor"},{"from":"envPad","to":"pad"},{"from":"envStandby","to":"standby"},{"from":"sysFloor","to":"floorOut"},{"from":"envOffset","to":"intIn"},{"from":"sysOffset","to":"intOut"},{"from":"envZone","to":"zoneColor"},{"from":"sysZone","to":"alarmOut"},{"from":"envPiece","to":"colorT"},{"from":"envSaPiece","to":"colorSa"},{"from":"envSpePiece","to":"colorSpe"},{"from":"sysPiece","to":"pieceOut"}],
+      {"outParameters":[{"name":"envFloor","type":"Real","direction":"out"},{"name":"envPad","type":"Real","direction":"out"},{"name":"envStandby","type":"Real","direction":"out"},{"name":"sysFloor","type":"Real","direction":"out"},{"name":"envOffset","type":"Real","direction":"out"},{"name":"sysOffset","type":"Real","direction":"out"},{"name":"envZone","type":"Real","direction":"out"},{"name":"sysZone","type":"Real","direction":"out"},{"name":"envPiece","type":"Real","direction":"out"},{"name":"envSaPiece","type":"Real","direction":"out"},{"name":"envSpePiece","type":"Real","direction":"out"},{"name":"sysPiece","type":"Real","direction":"out"}]}
     );
-    try { ac_camera.portToPinMapping["colorIn"] = "envFloor"; } catch(e) {}
-    try { ac_camera.portToPinMapping["colorin"] = "envFloor"; } catch(e) {}
-    try { ac_camera.portToPinMapping["colorOut"] = "sysFloor"; } catch(e) {}
-    try { ac_camera.portToPinMapping["colorout"] = "sysFloor"; } catch(e) {}
+    const muxF = new AN_BoundaryBehavior_MultiplexFloorColorAN("muxF", { usingPins: ["floor","pad","standby","floorOut"] });
+    ac_camera.registerAction(muxF);
+    const passO = new AN_PkgScenarios_PassIntAN("passO", { usingPins: ["intIn","intOut"] });
+    ac_camera.registerAction(passO);
+    const detectZ = new AN_BoundaryBehavior_ProcessZoneAlarmAN("detectZ", { usingPins: ["zoneColor","alarmOut"] });
+    ac_camera.registerAction(detectZ);
+    const muxP = new AN_BoundaryBehavior_MultiplexPieceColorAN("muxP", { usingPins: ["colorT","colorSa","colorSpe","pieceOut"] });
+    ac_camera.registerAction(muxP);
+    try { ac_camera.portToPinMapping["floor"] = "envFloor"; } catch(e) {}
+    try { ac_camera.portToPinMapping["floor"] = "envFloor"; } catch(e) {}
+    try { ac_camera.portToPinMapping["pad"] = "envPad"; } catch(e) {}
+    try { ac_camera.portToPinMapping["pad"] = "envPad"; } catch(e) {}
+    try { ac_camera.portToPinMapping["standby"] = "envStandby"; } catch(e) {}
+    try { ac_camera.portToPinMapping["standby"] = "envStandby"; } catch(e) {}
+    try { ac_camera.portToPinMapping["floorOut"] = "sysFloor"; } catch(e) {}
+    try { ac_camera.portToPinMapping["floorout"] = "sysFloor"; } catch(e) {}
     try { ac_camera.portToPinMapping["intIn"] = "envOffset"; } catch(e) {}
     try { ac_camera.portToPinMapping["intin"] = "envOffset"; } catch(e) {}
     try { ac_camera.portToPinMapping["intOut"] = "sysOffset"; } catch(e) {}
@@ -1550,10 +1762,55 @@ class SysADLModel extends Model {
     try { ac_camera.portToPinMapping["colorspe"] = "envSpePiece"; } catch(e) {}
     try { ac_camera.portToPinMapping["pieceOut"] = "sysPiece"; } catch(e) {}
     try { ac_camera.portToPinMapping["pieceout"] = "sysPiece"; } catch(e) {}
+    try { ac_camera.portToPinMapping["floorColorOut"] = "envFloor"; } catch(e) {}
+    try { ac_camera.portToPinMapping["floorcolorout"] = "envFloor"; } catch(e) {}
     this.registerActivity("CameraSensorAC", ac_camera);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.camera"] = ac_camera; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.camera"] = ac_camera; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["camera"] = ac_camera; } catch(e) {}
+    const ac_unit_camera = new AC_BoundaryBehavior_CameraSensorAC(
+      "CameraSensorAC",
+      "unit_camera",
+      ["floorColorOut"],
+      [{"from":"envFloor","to":"floor"},{"from":"envPad","to":"pad"},{"from":"envStandby","to":"standby"},{"from":"sysFloor","to":"floorOut"},{"from":"envOffset","to":"intIn"},{"from":"sysOffset","to":"intOut"},{"from":"envZone","to":"zoneColor"},{"from":"sysZone","to":"alarmOut"},{"from":"envPiece","to":"colorT"},{"from":"envSaPiece","to":"colorSa"},{"from":"envSpePiece","to":"colorSpe"},{"from":"sysPiece","to":"pieceOut"}],
+      {"outParameters":[{"name":"envFloor","type":"Real","direction":"out"},{"name":"envPad","type":"Real","direction":"out"},{"name":"envStandby","type":"Real","direction":"out"},{"name":"sysFloor","type":"Real","direction":"out"},{"name":"envOffset","type":"Real","direction":"out"},{"name":"sysOffset","type":"Real","direction":"out"},{"name":"envZone","type":"Real","direction":"out"},{"name":"sysZone","type":"Real","direction":"out"},{"name":"envPiece","type":"Real","direction":"out"},{"name":"envSaPiece","type":"Real","direction":"out"},{"name":"envSpePiece","type":"Real","direction":"out"},{"name":"sysPiece","type":"Real","direction":"out"}]}
+    );
+    const muxF_2 = new AN_BoundaryBehavior_MultiplexFloorColorAN("muxF", { usingPins: ["floor","pad","standby","floorOut"] });
+    ac_unit_camera.registerAction(muxF_2);
+    const passO_2 = new AN_PkgScenarios_PassIntAN("passO", { usingPins: ["intIn","intOut"] });
+    ac_unit_camera.registerAction(passO_2);
+    const detectZ_2 = new AN_BoundaryBehavior_ProcessZoneAlarmAN("detectZ", { usingPins: ["zoneColor","alarmOut"] });
+    ac_unit_camera.registerAction(detectZ_2);
+    const muxP_2 = new AN_BoundaryBehavior_MultiplexPieceColorAN("muxP", { usingPins: ["colorT","colorSa","colorSpe","pieceOut"] });
+    ac_unit_camera.registerAction(muxP_2);
+    try { ac_unit_camera.portToPinMapping["floor"] = "envFloor"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["floor"] = "envFloor"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["pad"] = "envPad"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["pad"] = "envPad"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["standby"] = "envStandby"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["standby"] = "envStandby"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["floorOut"] = "sysFloor"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["floorout"] = "sysFloor"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["intIn"] = "envOffset"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["intin"] = "envOffset"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["intOut"] = "sysOffset"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["intout"] = "sysOffset"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["zoneColor"] = "envZone"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["zonecolor"] = "envZone"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["alarmOut"] = "sysZone"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["alarmout"] = "sysZone"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colorT"] = "envPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colort"] = "envPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colorSa"] = "envSaPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colorsa"] = "envSaPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colorSpe"] = "envSpePiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["colorspe"] = "envSpePiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["pieceOut"] = "sysPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["pieceout"] = "sysPiece"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["floorColorOut"] = "envFloor"; } catch(e) {}
+    try { ac_unit_camera.portToPinMapping["floorcolorout"] = "envFloor"; } catch(e) {}
+    this.registerActivity("CameraSensorAC", ac_unit_camera);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit_camera"] = ac_unit_camera; } catch(e) {}
     const ac_obstacleSens = new AC_BoundaryBehavior_ObstacleSensorAC(
       "ObstacleSensorAC",
       "RobAFISSystemCP.obstacleSens",
@@ -1561,15 +1818,37 @@ class SysADLModel extends Model {
       [{"from":"envObstacle","to":"passObstacle.boolIn"},{"from":"sysObstacle","to":"passObstacle.boolOut"}],
       {"outParameters":[{"name":"envObstacle","type":"Real","direction":"out"},{"name":"sysObstacle","type":"Real","direction":"out"}]}
     );
+    const passObstacle = new AN_PkgScenarios_PassBooleanAN("passObstacle", { usingPins: ["boolIn","boolOut"] });
+    ac_obstacleSens.registerAction(passObstacle);
     try { ac_obstacleSens.portToPinMapping["passObstacle.boolIn"] = "envObstacle"; } catch(e) {}
     try { ac_obstacleSens.portToPinMapping["passobstacle.boolin"] = "envObstacle"; } catch(e) {}
     try { ac_obstacleSens.portToPinMapping["passObstacle.boolOut"] = "sysObstacle"; } catch(e) {}
     try { ac_obstacleSens.portToPinMapping["passobstacle.boolout"] = "sysObstacle"; } catch(e) {}
+    try { ac_obstacleSens.portToPinMapping["obstacleOut"] = "envObstacle"; } catch(e) {}
+    try { ac_obstacleSens.portToPinMapping["obstacleout"] = "envObstacle"; } catch(e) {}
     this.registerActivity("ObstacleSensorAC", ac_obstacleSens);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.obstacleSens"] = ac_obstacleSens; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.obstaclesens"] = ac_obstacleSens; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstacleSens"] = ac_obstacleSens; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstaclesens"] = ac_obstacleSens; } catch(e) {}
+    const ac_unit_obstacleSens = new AC_BoundaryBehavior_ObstacleSensorAC(
+      "ObstacleSensorAC",
+      "unit_obstacleSens",
+      ["obstacleOut"],
+      [{"from":"envObstacle","to":"passObstacle.boolIn"},{"from":"sysObstacle","to":"passObstacle.boolOut"}],
+      {"outParameters":[{"name":"envObstacle","type":"Real","direction":"out"},{"name":"sysObstacle","type":"Real","direction":"out"}]}
+    );
+    const passObstacle_2 = new AN_PkgScenarios_PassBooleanAN("passObstacle", { usingPins: ["boolIn","boolOut"] });
+    ac_unit_obstacleSens.registerAction(passObstacle_2);
+    try { ac_unit_obstacleSens.portToPinMapping["passObstacle.boolIn"] = "envObstacle"; } catch(e) {}
+    try { ac_unit_obstacleSens.portToPinMapping["passobstacle.boolin"] = "envObstacle"; } catch(e) {}
+    try { ac_unit_obstacleSens.portToPinMapping["passObstacle.boolOut"] = "sysObstacle"; } catch(e) {}
+    try { ac_unit_obstacleSens.portToPinMapping["passobstacle.boolout"] = "sysObstacle"; } catch(e) {}
+    try { ac_unit_obstacleSens.portToPinMapping["obstacleOut"] = "envObstacle"; } catch(e) {}
+    try { ac_unit_obstacleSens.portToPinMapping["obstacleout"] = "envObstacle"; } catch(e) {}
+    this.registerActivity("ObstacleSensorAC", ac_unit_obstacleSens);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit_obstacleSens"] = ac_unit_obstacleSens; } catch(e) {}
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit_obstaclesens"] = ac_unit_obstacleSens; } catch(e) {}
     const ac_driveSys = new AC_BoundaryBehavior_DriveSystemAC(
       "DriveSystemAC",
       "RobAFISSystemCP.driveSys",
@@ -1577,10 +1856,14 @@ class SysADLModel extends Model {
       [{"from":"sysDir","to":"passDir.dirIn"},{"from":"envDir","to":"passDir.dirOut"}],
       {"outParameters":[{"name":"sysDir","type":"Real","direction":"out"},{"name":"envDir","type":"Real","direction":"out"}]}
     );
+    const passDir = new AN_BoundaryBehavior_PassDirectionAN("passDir", { usingPins: ["dirIn","dirOut"] });
+    ac_driveSys.registerAction(passDir);
     try { ac_driveSys.portToPinMapping["passDir.dirIn"] = "sysDir"; } catch(e) {}
     try { ac_driveSys.portToPinMapping["passdir.dirin"] = "sysDir"; } catch(e) {}
     try { ac_driveSys.portToPinMapping["passDir.dirOut"] = "envDir"; } catch(e) {}
     try { ac_driveSys.portToPinMapping["passdir.dirout"] = "envDir"; } catch(e) {}
+    try { ac_driveSys.portToPinMapping["dirIn"] = "sysDir"; } catch(e) {}
+    try { ac_driveSys.portToPinMapping["dirin"] = "sysDir"; } catch(e) {}
     this.registerActivity("DriveSystemAC", ac_driveSys);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.driveSys"] = ac_driveSys; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.drivesys"] = ac_driveSys; } catch(e) {}
@@ -1593,6 +1876,14 @@ class SysADLModel extends Model {
       [{"from":"sysCmd","to":"cmdIn"},{"from":"envGrabT","to":"cmdOut"},{"from":"sysCmd","to":"cmdIn"},{"from":"envGrabSa","to":"cmdOut"},{"from":"sysCmd","to":"cmdIn"},{"from":"envGrabSpe","to":"cmdOut"},{"from":"sysCmd","to":"cmdIn"},{"from":"envGrabSpd","to":"cmdOut"}],
       {"outParameters":[{"name":"sysCmd","type":"Real","direction":"out"},{"name":"envGrabT","type":"Real","direction":"out"},{"name":"sysCmd","type":"Real","direction":"out"},{"name":"envGrabSa","type":"Real","direction":"out"},{"name":"sysCmd","type":"Real","direction":"out"},{"name":"envGrabSpe","type":"Real","direction":"out"},{"name":"sysCmd","type":"Real","direction":"out"},{"name":"envGrabSpd","type":"Real","direction":"out"}]}
     );
+    const passCmdT = new AN_BoundaryBehavior_PassMotorCommandAN("passCmdT", { usingPins: ["cmdIn","cmdOut"] });
+    ac_grabber.registerAction(passCmdT);
+    const passCmdSa = new AN_BoundaryBehavior_PassMotorCommandAN("passCmdSa", { usingPins: ["cmdIn","cmdOut"] });
+    ac_grabber.registerAction(passCmdSa);
+    const passCmdSpe = new AN_BoundaryBehavior_PassMotorCommandAN("passCmdSpe", { usingPins: ["cmdIn","cmdOut"] });
+    ac_grabber.registerAction(passCmdSpe);
+    const passCmdSpd = new AN_BoundaryBehavior_PassMotorCommandAN("passCmdSpd", { usingPins: ["cmdIn","cmdOut"] });
+    ac_grabber.registerAction(passCmdSpd);
     try { ac_grabber.portToPinMapping["cmdIn"] = "sysCmd"; } catch(e) {}
     try { ac_grabber.portToPinMapping["cmdin"] = "sysCmd"; } catch(e) {}
     try { ac_grabber.portToPinMapping["cmdIn"] = "sysCmd"; } catch(e) {}
@@ -1625,508 +1916,195 @@ class SysADLModel extends Model {
     try { ac_grabber.portToPinMapping["cmdin"] = "sysCmd"; } catch(e) {}
     try { ac_grabber.portToPinMapping["cmdOut"] = "envGrabSpd"; } catch(e) {}
     try { ac_grabber.portToPinMapping["cmdout"] = "envGrabSpd"; } catch(e) {}
+    try { ac_grabber.portToPinMapping["cmdIn"] = "sysCmd"; } catch(e) {}
+    try { ac_grabber.portToPinMapping["cmdin"] = "sysCmd"; } catch(e) {}
     this.registerActivity("GrabberAC", ac_grabber);
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.grabber"] = ac_grabber; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.grabber"] = ac_grabber; } catch(e) {}
     try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["grabber"] = ac_grabber; } catch(e) {}
-    const ac_planner_2 = new AC_PkgScenarios_OperatorEA(
+    const ac_operator = new AC_PkgScenarios_OperatorEA(
       "OperatorEA",
-      "RobAFISSystemCP.controller.planner",
-      ["planner_inParam"],
+      "operator",
+      [],
       [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
       {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
     );
-    try { ac_planner_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_planner_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_planner_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_planner_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_planner_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.planner"] = ac_planner_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.planner"] = ac_planner_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.planner"] = ac_planner_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["planner"] = ac_planner_2; } catch(e) {}
-    const ac_navigator_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.controller.navigator",
-      ["navigator_inFloorColor"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_navigator_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_navigator_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_navigator_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_navigator_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_navigator_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.navigator"] = ac_navigator_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.navigator"] = ac_navigator_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.navigator"] = ac_navigator_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["navigator"] = ac_navigator_2; } catch(e) {}
-    const ac_cargo_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.controller.cargo",
-      ["cargo_inPieceColor"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_cargo_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_cargo_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_cargo_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_cargo_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_cargo_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.cargo"] = ac_cargo_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.cargo"] = ac_cargo_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.cargo"] = ac_cargo_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["cargo"] = ac_cargo_2; } catch(e) {}
-    const ac_pInput_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.pInput",
-      ["pOut"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_pInput_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_pInput_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_pInput_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_pInput_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_pInput_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.pInput"] = ac_pInput_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.pinput"] = ac_pInput_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pInput"] = ac_pInput_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pinput"] = ac_pInput_2; } catch(e) {}
-    const ac_camera_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.camera",
-      ["floorColorOut"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_camera_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_camera_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_camera_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_camera_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_camera_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.camera"] = ac_camera_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.camera"] = ac_camera_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["camera"] = ac_camera_2; } catch(e) {}
-    const ac_obstacleSens_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.obstacleSens",
-      ["obstacleOut"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_obstacleSens_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_obstacleSens_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_obstacleSens_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_obstacleSens_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_obstacleSens_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.obstacleSens"] = ac_obstacleSens_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.obstaclesens"] = ac_obstacleSens_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstacleSens"] = ac_obstacleSens_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstaclesens"] = ac_obstacleSens_2; } catch(e) {}
-    const ac_driveSys_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.driveSys",
-      ["dirIn"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_driveSys_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_driveSys_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_driveSys_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_driveSys_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_driveSys_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.driveSys"] = ac_driveSys_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.drivesys"] = ac_driveSys_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["driveSys"] = ac_driveSys_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["drivesys"] = ac_driveSys_2; } catch(e) {}
-    const ac_grabber_2 = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.grabber",
-      ["cmdIn"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_grabber_2.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_grabber_2.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_grabber_2.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_grabber_2.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_grabber_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.grabber"] = ac_grabber_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.grabber"] = ac_grabber_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["grabber"] = ac_grabber_2; } catch(e) {}
-    const ac_controller = new AC_PkgScenarios_OperatorEA(
-      "OperatorEA",
-      "RobAFISSystemCP.controller",
-      ["controller_inParam"],
-      [{"from":"opParamOut","to":"setMissionParametersOp"},{"from":"opStratOut","to":"setStrategyOp"}],
-      {"outParameters":[{"name":"opParamOut","type":"Real","direction":"out"},{"name":"opStratOut","type":"Real","direction":"out"}]}
-    );
-    try { ac_controller.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
-    try { ac_controller.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
-    try { ac_controller.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
-    try { ac_controller.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
-    this.registerActivity("OperatorEA", ac_controller);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller"] = ac_controller; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller"] = ac_controller; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller"] = ac_controller; } catch(e) {}
-    const ac_planner_3 = new AC_PkgScenarios_UnitEA(
+    const setMissionParametersOp = new AN_PkgScenarios_PassMissionParameterAN("setMissionParametersOp", { usingPins: ["paramIn"] });
+    ac_operator.registerAction(setMissionParametersOp);
+    const setStrategyOp = new AN_PkgScenarios_PassStrategyParameterAN("setStrategyOp", { usingPins: ["strategyIn"] });
+    ac_operator.registerAction(setStrategyOp);
+    try { ac_operator.portToPinMapping["setMissionParametersOp"] = "opParamOut"; } catch(e) {}
+    try { ac_operator.portToPinMapping["setmissionparametersop"] = "opParamOut"; } catch(e) {}
+    try { ac_operator.portToPinMapping["setStrategyOp"] = "opStratOut"; } catch(e) {}
+    try { ac_operator.portToPinMapping["setstrategyop"] = "opStratOut"; } catch(e) {}
+    this.registerActivity("OperatorEA", ac_operator);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["operator"] = ac_operator; } catch(e) {}
+    const ac_unit1 = new AC_PkgScenarios_UnitEA(
       "UnitEA",
-      "RobAFISSystemCP.controller.planner",
-      ["planner_inParam"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
+      "unit1",
+      [],
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
-    try { ac_planner_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_planner_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_planner_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.planner"] = ac_planner_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.planner"] = ac_planner_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.planner"] = ac_planner_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["planner"] = ac_planner_3; } catch(e) {}
-    const ac_navigator_3 = new AC_PkgScenarios_UnitEA(
+    const leavePA = new AN_PkgScenarios_PassNavColorAN("leavePA", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(leavePA);
+    const detectGreenPad = new AN_PkgScenarios_PassNavColorAN("detectGreenPad", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(detectGreenPad);
+    const turnRight = new AN_PkgScenarios_PassNavColorAN("turnRight", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(turnRight);
+    const detectRedPad = new AN_PkgScenarios_PassNavColorAN("detectRedPad", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(detectRedPad);
+    const stopAtT = new AN_PkgScenarios_PassNavColorAN("stopAtT", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(stopAtT);
+    const routeToSA = new AN_PkgScenarios_PassNavColorAN("routeToSA", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(routeToSA);
+    const routeToSPD = new AN_PkgScenarios_PassNavColorAN("routeToSPD", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(routeToSPD);
+    const stopAtSPE = new AN_PkgScenarios_PassNavColorAN("stopAtSPE", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(stopAtSPE);
+    const arriveAtTargetStock = new AN_PkgScenarios_PassNavColorAN("arriveAtTargetStock", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(arriveAtTargetStock);
+    const returnJourney = new AN_PkgScenarios_PassNavColorAN("returnJourney", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(returnJourney);
+    const arriveAtPA = new AN_PkgScenarios_PassNavColorAN("arriveAtPA", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(arriveAtPA);
+    const acknowledgeTarget = new AN_PkgScenarios_PassNavColorAN("acknowledgeTarget", { usingPins: ["colorIn"] });
+    ac_unit1.registerAction(acknowledgeTarget);
+    const extractPieceT = new AN_PkgScenarios_PassPieceColorAN("extractPieceT", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(extractPieceT);
+    const extractPieceSPE = new AN_PkgScenarios_PassPieceColorAN("extractPieceSPE", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(extractPieceSPE);
+    const insertPieceSA = new AN_PkgScenarios_PassPieceColorAN("insertPieceSA", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(insertPieceSA);
+    const insertPieceSPD = new AN_PkgScenarios_PassPieceColorAN("insertPieceSPD", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(insertPieceSPD);
+    const exposePieceT = new AN_PkgScenarios_PassPieceColorAN("exposePieceT", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(exposePieceT);
+    const exposePieceSPE = new AN_PkgScenarios_PassPieceColorAN("exposePieceSPE", { usingPins: ["pieceIn"] });
+    ac_unit1.registerAction(exposePieceSPE);
+    const setObstacleTrue = new AN_PkgScenarios_PassBooleanAN("setObstacleTrue", { usingPins: ["boolIn"] });
+    ac_unit1.registerAction(setObstacleTrue);
+    const setObstacleFalse = new AN_PkgScenarios_PassBooleanAN("setObstacleFalse", { usingPins: ["boolIn"] });
+    ac_unit1.registerAction(setObstacleFalse);
+    try { ac_unit1.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_unit1.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
+    this.registerActivity("UnitEA", ac_unit1);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit1"] = ac_unit1; } catch(e) {}
+    const ac_unit2 = new AC_PkgScenarios_UnitEA(
       "UnitEA",
-      "RobAFISSystemCP.controller.navigator",
-      ["navigator_inFloorColor"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
+      "unit2",
+      [],
+      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
+      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outSAPieceColor","type":"Real","direction":"out"},{"name":"outSPDPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitPAColor","type":"Real","direction":"out"}]}
     );
-    try { ac_navigator_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_navigator_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_navigator_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.navigator"] = ac_navigator_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.navigator"] = ac_navigator_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.navigator"] = ac_navigator_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["navigator"] = ac_navigator_3; } catch(e) {}
-    const ac_cargo_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.controller.cargo",
-      ["cargo_inPieceColor"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_cargo_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_cargo_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_cargo_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller.cargo"] = ac_cargo_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller.cargo"] = ac_cargo_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller.cargo"] = ac_cargo_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["cargo"] = ac_cargo_3; } catch(e) {}
-    const ac_pInput_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.pInput",
-      ["pOut"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_pInput_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_pInput_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_pInput_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.pInput"] = ac_pInput_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.pinput"] = ac_pInput_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pInput"] = ac_pInput_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["pinput"] = ac_pInput_3; } catch(e) {}
-    const ac_camera_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.camera",
-      ["floorColorOut"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_camera_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_camera_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_camera_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.camera"] = ac_camera_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.camera"] = ac_camera_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["camera"] = ac_camera_3; } catch(e) {}
-    const ac_obstacleSens_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.obstacleSens",
-      ["obstacleOut"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_obstacleSens_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_obstacleSens_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_obstacleSens_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.obstacleSens"] = ac_obstacleSens_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.obstaclesens"] = ac_obstacleSens_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstacleSens"] = ac_obstacleSens_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["obstaclesens"] = ac_obstacleSens_3; } catch(e) {}
-    const ac_driveSys_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.driveSys",
-      ["dirIn"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_driveSys_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_driveSys_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_driveSys_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.driveSys"] = ac_driveSys_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.drivesys"] = ac_driveSys_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["driveSys"] = ac_driveSys_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["drivesys"] = ac_driveSys_3; } catch(e) {}
-    const ac_grabber_3 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.grabber",
-      ["cmdIn"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_grabber_3.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_grabber_3.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_grabber_3);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.grabber"] = ac_grabber_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.grabber"] = ac_grabber_3; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["grabber"] = ac_grabber_3; } catch(e) {}
-    const ac_controller_2 = new AC_PkgScenarios_UnitEA(
-      "UnitEA",
-      "RobAFISSystemCP.controller",
-      ["controller_inParam"],
-      [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
-      {"outParameters":[{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavLine","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitNavPad","type":"Real","direction":"out"},{"name":"outUnitPieceColor","type":"Real","direction":"out"},{"name":"outSPEPieceColor","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"},{"name":"outUnitObstacle","type":"Real","direction":"out"}]}
-    );
-    try { ac_controller_2.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
-    try { ac_controller_2.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
-    this.registerActivity("UnitEA", ac_controller_2);
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["RobAFISSystemCP.controller"] = ac_controller_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["robafissystemcp.controller"] = ac_controller_2; } catch(e) {}
-    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["controller"] = ac_controller_2; } catch(e) {}
+    const leavePA_2 = new AN_PkgScenarios_PassNavColorAN("leavePA", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(leavePA_2);
+    const detectGreenPad_2 = new AN_PkgScenarios_PassNavColorAN("detectGreenPad", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(detectGreenPad_2);
+    const turnRight_2 = new AN_PkgScenarios_PassNavColorAN("turnRight", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(turnRight_2);
+    const detectRedPad_2 = new AN_PkgScenarios_PassNavColorAN("detectRedPad", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(detectRedPad_2);
+    const stopAtT_2 = new AN_PkgScenarios_PassNavColorAN("stopAtT", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(stopAtT_2);
+    const routeToSA_2 = new AN_PkgScenarios_PassNavColorAN("routeToSA", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(routeToSA_2);
+    const routeToSPD_2 = new AN_PkgScenarios_PassNavColorAN("routeToSPD", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(routeToSPD_2);
+    const stopAtSPE_2 = new AN_PkgScenarios_PassNavColorAN("stopAtSPE", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(stopAtSPE_2);
+    const arriveAtTargetStock_2 = new AN_PkgScenarios_PassNavColorAN("arriveAtTargetStock", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(arriveAtTargetStock_2);
+    const returnJourney_2 = new AN_PkgScenarios_PassNavColorAN("returnJourney", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(returnJourney_2);
+    const arriveAtPA_2 = new AN_PkgScenarios_PassNavColorAN("arriveAtPA", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(arriveAtPA_2);
+    const acknowledgeTarget_2 = new AN_PkgScenarios_PassNavColorAN("acknowledgeTarget", { usingPins: ["colorIn"] });
+    ac_unit2.registerAction(acknowledgeTarget_2);
+    const extractPieceT_2 = new AN_PkgScenarios_PassPieceColorAN("extractPieceT", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(extractPieceT_2);
+    const extractPieceSPE_2 = new AN_PkgScenarios_PassPieceColorAN("extractPieceSPE", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(extractPieceSPE_2);
+    const insertPieceSA_2 = new AN_PkgScenarios_PassPieceColorAN("insertPieceSA", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(insertPieceSA_2);
+    const insertPieceSPD_2 = new AN_PkgScenarios_PassPieceColorAN("insertPieceSPD", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(insertPieceSPD_2);
+    const exposePieceT_2 = new AN_PkgScenarios_PassPieceColorAN("exposePieceT", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(exposePieceT_2);
+    const exposePieceSPE_2 = new AN_PkgScenarios_PassPieceColorAN("exposePieceSPE", { usingPins: ["pieceIn"] });
+    ac_unit2.registerAction(exposePieceSPE_2);
+    const setObstacleTrue_2 = new AN_PkgScenarios_PassBooleanAN("setObstacleTrue", { usingPins: ["boolIn"] });
+    ac_unit2.registerAction(setObstacleTrue_2);
+    const setObstacleFalse_2 = new AN_PkgScenarios_PassBooleanAN("setObstacleFalse", { usingPins: ["boolIn"] });
+    ac_unit2.registerAction(setObstacleFalse_2);
+    try { ac_unit2.portToPinMapping["leavePA"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["leavepa"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["turnRight"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["turnright"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["returnJourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["returnjourney"] = "outUnitNavLine"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["detectGreenPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["detectgreenpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["detectRedPad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["detectredpad"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["stopAtT"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["stopatt"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["routeToSA"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["routetosa"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["routeToSPD"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["routetospd"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["stopAtSPE"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["stopatspe"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["arriveAtTargetStock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["arriveattargetstock"] = "outUnitNavPad"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["extractPieceT"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["extractpiecet"] = "outUnitPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["extractPieceSPE"] = "outSPEPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["extractpiecespe"] = "outSPEPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["insertPieceSA"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["insertpiecesa"] = "outSAPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["insertPieceSPD"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["insertpiecespd"] = "outSPDPieceColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["setObstacleTrue"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["setobstacletrue"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["setObstacleFalse"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["setobstaclefalse"] = "outUnitObstacle"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["arriveAtPA"] = "outUnitPAColor"; } catch(e) {}
+    try { ac_unit2.portToPinMapping["arriveatpa"] = "outUnitPAColor"; } catch(e) {}
+    this.registerActivity("UnitEA", ac_unit2);
+    try { if (!this._activityOwnerIndex) this._activityOwnerIndex = {}; this._activityOwnerIndex["unit2"] = ac_unit2; } catch(e) {}
   }
 
 }
@@ -2208,6 +2186,7 @@ function createModel(){
     EX_BoundaryExecution_PassStrategyParameterEX,
     EX_BoundaryExecution_MapDirectionToColorEX,
     EX_BoundaryExecution_MultiplexPieceColorEX,
+    EX_BoundaryExecution_MultiplexFloorColorEX,
     EX_BoundaryExecution_ProcessZoneAlarmEX,
     EN_PieceColor,
     EN_MissionParameter,
@@ -2222,6 +2201,160 @@ function createModel(){
   // Initialize all connectors now that _moduleContext is available
   model.initializeAllConnectors();
   
+  // Delegations for instance: model.RobAFISSystemCP.controller
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inParam");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("planner_inParam");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inStrategy");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("planner_inStrategy");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inFloorColor");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("navigator_inFloorColor");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inLineOffset");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("navigator_inLineOffset");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inZoneAlarm");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("navigator_inZoneAlarm");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inObstacle");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("navigator_inObstacle");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_inPieceColor");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("cargo_inPieceColor");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_outDir");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("navigator_outDir");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
+  try {
+    const parentPort = model.RobAFISSystemCP.controller.getPort("controller_outGrab");
+    let childPort = null;
+    if (model.RobAFISSystemCP.controller.components) {
+      for (const child of Object.values(model.RobAFISSystemCP.controller.components)) {
+        childPort = child.getPort("cargo_outGrab");
+        if (childPort) break;
+      }
+    }
+    if (parentPort && childPort) {
+      if (parentPort.direction === 'in') {
+        parentPort.addDelegation(childPort);
+      } else {
+        childPort.addDelegation(parentPort);
+      }
+    }
+  } catch(e) { console.warn("[DELEGATION ERROR] model.RobAFISSystemCP.controller delegation error: " + e.message); }
   // Resolve constraints and executables for all registered activities
   Object.values(model._activities || {}).forEach(activity => {
     if (activity && activity.actions) {

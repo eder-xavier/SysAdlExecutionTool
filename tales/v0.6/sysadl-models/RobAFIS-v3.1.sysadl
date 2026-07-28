@@ -564,6 +564,8 @@ package EnvComponentsRobAFIS {
 			inSpePieceColor : InPieceColor;
 			inLineOffset : InInt;
 			inZoneColor : InNavColor;
+			inPadColor : InNavColor;
+			inStandbyColor : InNavColor;
 	}
 
 	boundary component SysADL.Components::ObstacleSensorCP {
@@ -582,6 +584,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def PieceEnvCP {
 		envPorts:
 			outColor : OutPieceColor ;
+			inColor : InPieceColor ;
 			inCommand : InMotorCommand ;
 			outCommand : OutMotorCommand ;
 		properties:
@@ -591,6 +594,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def NavigationLineEnvCP {
 		envPorts:
 			outColor : OutNavColor ;
+			inColor : InNavColor ;
 		properties:
 			Property def color : NavColor ;
 	}
@@ -598,6 +602,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def NavigationPadEnvCP {
 		envPorts:
 			outColor : OutNavColor ;
+			inColor : InNavColor ;
 		properties:
 			Property def color : NavColor ;
 	}
@@ -605,6 +610,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def MachineZoneEnvCP {
 		envPorts:
 			outColor : OutNavColor ;
+			inColor : InNavColor ;
 		properties:
 			Property def color : NavColor ;
 	}
@@ -612,6 +618,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def StandbyPositionEnvCP {
 		envPorts:
 			outColor : OutNavColor ;
+			inColor : InNavColor ;
 		properties:
 			Property def color : NavColor ;
 	}
@@ -619,6 +626,7 @@ package EnvComponentsRobAFIS {
 	EnvComponent def ObstacleEnvCP {
 		envPorts:
 			outObstacle : OutBoolean ;
+			inObstacle : InBoolean ;
 		properties:
 			Property def isPresent : Boolean ;
 	}
@@ -634,6 +642,7 @@ package EnvComponentsRobAFIS {
 			inCommand : InMotorCommand ;
 			outPieceColor : OutPieceColor ;
 			outCommand : OutMotorCommand ;
+			inPieceColor : InPieceColor ;
 
 		environmentConfiguration TransElevatorConfig {
 			envComponents:
@@ -643,6 +652,7 @@ package EnvComponentsRobAFIS {
 				outCommand to pieces.outCommand ;
 				pieces.outColor to outPieceColor ;
 				pieces.inCommand to inCommand ;
+				inPieceColor to pieces.inColor ;
 
 		}
 	}
@@ -652,6 +662,7 @@ package EnvComponentsRobAFIS {
 			inCommand : InMotorCommand ;
 			outPieceColor : OutPieceColor ;
 			outCommand : OutMotorCommand ;
+			inPieceColor : InPieceColor ;
 
 		environmentConfiguration ArrivalConfig {
 			envComponents:
@@ -661,6 +672,7 @@ package EnvComponentsRobAFIS {
 				pieces.inCommand to inCommand ;
 				pieces.outColor to outPieceColor ;
 				pieces.outCommand to outCommand ;
+				inPieceColor to pieces.inColor ;
 
 		}
 	}
@@ -671,6 +683,7 @@ package EnvComponentsRobAFIS {
 			outPieceColor : OutPieceColor ;
 			outCommand : OutMotorCommand ;
 			inGrabCommand : InMotorCommand ;
+			inPieceColor : InPieceColor ;
 
 		environmentConfiguration SharedConfig {
 			envComponents:
@@ -681,9 +694,9 @@ package EnvComponentsRobAFIS {
 				inDropCommand to pieces.inCommand ;
 				inGrabCommand to pieces.inCommand ;
 				pieces.outCommand to outCommand ;
+				inPieceColor to pieces.inColor ;
 
 		}
-
 	}
 
 	EnvComponent def ProductionUnitEnvCP {
@@ -691,6 +704,16 @@ package EnvComponentsRobAFIS {
 			inSpePieceColor : InPieceColor ;
 			outSpeGrabCommand : OutMotorCommand ;
 			outSpdGrabCommand : OutMotorCommand ;
+			outUnitNavLine : OutNavColor ;
+			outUnitNavPad : OutNavColor ;
+			outUnitPieceColor : OutPieceColor ;
+			outSPEPieceColor : OutPieceColor ;
+			outSAPieceColor : OutPieceColor ;
+			outSPDPieceColor : OutPieceColor ;
+			outUnitLineOffset : OutInt ;
+			outUnitZoneAlarm : OutBoolean ;
+			outUnitObstacle : OutBoolean ;
+			outUnitPAColor : OutNavColor ;
 
 		environmentConfiguration UnitConfig {
 			envComponents:
@@ -710,9 +733,16 @@ package EnvComponentsRobAFIS {
 				unit_pInput: ParameterInputCP ;
 
 			envDelegations:
+				navLine.inColor to outUnitNavLine ;
+				navPad.inColor to outUnitNavPad ;
+				obstacle.inObstacle to outUnitObstacle ;
+				machineZone.inColor to outUnitZoneAlarm ;
+				standbyPos.inColor to outUnitPAColor ;
 				unit_camera.inSpePieceColor to inSpePieceColor ;
 				instance1.outGrabSpe to outSpeGrabCommand ;
 				instance1.outGrabSpd to outSpdGrabCommand ;
+				transElevator.outPieceColor to outUnitPieceColor ;
+				arrivalStock.outPieceColor to outSAPieceColor ;
 
 			envConnectors:
 				obsC: ObstacleEnvCN bindings obstacle.outObstacle = unit_obstacleSens.inObstacle ;
@@ -725,6 +755,8 @@ package EnvComponentsRobAFIS {
 				saColorC: PieceColorEnvCN bindings arrivalStock.outPieceColor = unit_camera.inSaPieceColor ;
 				grabTC: MotorCommandEnvCN bindings instance1.outGrabT = transElevator.inCommand ;
 				grabSaC: MotorCommandEnvCN bindings instance1.outGrabSa = arrivalStock.inCommand ;
+				padC: NavColorEnvCN bindings navPad.outColor = unit_camera.inPadColor ;
+				standbyC: NavColorEnvCN bindings standbyPos.outColor = unit_camera.inStandbyColor ;
 
 		}
 	}
@@ -745,6 +777,10 @@ package EnvComponentsRobAFIS {
 				u2SpdGrabC: MotorCommandEnvCN bindings unit2.outSpdGrabCommand = spe1_spd2.inDropCommand ;
 				u1SpeGrabC: MotorCommandEnvCN bindings unit1.outSpeGrabCommand = spe1_spd2.inGrabCommand ;
 				u1SpeReadC: PieceColorEnvCN bindings spe1_spd2.outCommand = unit1.inSpePieceColor ;
+				u1SpeClearC: PieceColorEnvCN bindings unit1.outSPEPieceColor = spe1_spd2.inPieceColor ;
+				u1SpdDropC: PieceColorEnvCN bindings unit1.outSPDPieceColor = spd1_spe2.inPieceColor ;
+				u2SpeClearC: PieceColorEnvCN bindings unit2.outSPEPieceColor = spd1_spe2.inPieceColor ;
+				u2SpdDropC: PieceColorEnvCN bindings unit2.outSPDPieceColor = spe1_spd2.inPieceColor ;
 
 		}
 
@@ -766,6 +802,7 @@ package BoundaryBehavior {
     action def PassMissionParameterAN ( paramIn : MissionParameter ) : MissionParameter { }
     action def PassStrategyParameterAN ( strategyIn : StrategyParameter ) : StrategyParameter { }
     action def MultiplexPieceColorAN ( colorT : PieceColor , colorSa : PieceColor , colorSpe : PieceColor ) : PieceColor {}
+    action def MultiplexFloorColorAN ( floor : NavColor , pad : NavColor , standby : NavColor ) : NavColor {}
     action def ProcessZoneAlarmAN ( zoneColor : NavColor ) : Boolean {}
     
     activity def ParameterInputAC ( envParam : MissionParameter , envStrategy : StrategyParameter ) : ( sysParam : MissionParameter , sysStrategy : StrategyParameter ) {
@@ -781,6 +818,8 @@ package BoundaryBehavior {
     }
     activity def CameraSensorAC (
         envFloor : NavColor ,
+        envPad : NavColor ,
+        envStandby : NavColor ,
         envOffset : Int ,
         envZone : NavColor ,
         envPiece : PieceColor ,
@@ -794,8 +833,8 @@ package BoundaryBehavior {
     ) {
         body {
             actions:
-                passF : PassNavColorAN { 
-                    using pins: colorIn : NavColor ; colorOut : NavColor ; 
+                muxF : MultiplexFloorColorAN { 
+                    using pins: floor : NavColor ; pad : NavColor ; standby : NavColor ; floorOut : NavColor ; 
                 }
                 passO : PassIntAN { 
                     using pins: intIn : Int ; intOut : Int ; 
@@ -807,8 +846,10 @@ package BoundaryBehavior {
                     using pins: colorT : PieceColor ; colorSa : PieceColor ; colorSpe : PieceColor ; pieceOut : PieceColor ; 
                 }
             
-            delegate envFloor to colorIn
-            delegate sysFloor to colorOut
+            delegate envFloor to floor
+            delegate envPad to pad
+            delegate envStandby to standby
+            delegate sysFloor to floorOut
             
             delegate envOffset to intIn
             delegate sysOffset to intOut
@@ -946,6 +987,20 @@ package BoundaryExecution {
             return colorSpe ;
         }
         return PieceColor::None ;
+    }
+
+    executable def MultiplexFloorColorEX ( 
+        in floor : NavColor , 
+        in pad : NavColor , 
+        in standby : NavColor 
+    ) : out NavColor {
+        if (standby != NavColor::None) {
+            return standby ;
+        }
+        if (pad != NavColor::None) {
+            return pad ;
+        }
+        return floor ;
     }
 
     // NOVO: Execut�vel de Transdu��o de Alarme de Zona
@@ -1169,6 +1224,7 @@ package PkgScenarios {
         signal def ObstacleRemovedSig {}
         signal def ZoneAlarmTriggeredSig {}
         signal def GrabPieceSig { attributes : pieceColor : PieceColor ; }
+        signal def GrabPieceTSig { attributes : pieceColor : PieceColor ; }
         signal def DropPieceSig {}
         signal def LeftPASig {}
         signal def UnitArrivedAtTSig {}
@@ -1226,9 +1282,12 @@ package PkgScenarios {
             outUnitNavPad : NavColor ,
             outUnitPieceColor : PieceColor ,
             outSPEPieceColor : PieceColor ,
+            outSAPieceColor : PieceColor ,
+            outSPDPieceColor : PieceColor ,
             outUnitLineOffset : Int ,
             outUnitZoneAlarm : Boolean ,
-            outUnitObstacle : Boolean
+            outUnitObstacle : Boolean ,
+            outUnitPAColor : NavColor
         ) {
             body {
                 actions:
@@ -1265,41 +1324,99 @@ package PkgScenarios {
                 delegate outUnitNavPad to arriveAtTargetStock
                 delegate outUnitPieceColor to extractPieceT
                 delegate outSPEPieceColor to extractPieceSPE
+                delegate outSAPieceColor to insertPieceSA
+                delegate outSPDPieceColor to insertPieceSPD
                 delegate outUnitObstacle to setObstacleTrue
                 delegate outUnitObstacle to setObstacleFalse
+                delegate outUnitPAColor to arriveAtPA
+
+                ON SetMissionParamSig
+                THEN leavePA { colorIn = NavColor::Black ; }
+                SEND LeftPASig {}
 
                 ON LeftPASig
-                THEN leavePA { colorIn = NavColor::Black ; }
+                THEN detectGreenPad { colorIn = NavColor::Green ; }
+                SEND DetectedGreenPadSig {}
 
-                ON UnitArrivedAtTSig
+                ON DetectedGreenPadSig
+                THEN turnRight { colorIn = NavColor::Black ; }
+                SEND TurnedRightSig {}
+
+                ON TurnedRightSig
+                THEN detectRedPad { colorIn = NavColor::Red ; }
+                SEND DetectedRedPadSig {}
+
+                ON DetectedRedPadSig
                 THEN stopAtT { colorIn = NavColor::Red ; }
+                SEND UnitArrivedAtTSig {}
+
+                ON UnitArrivedAtTSig [ inTPieceColor != PieceColor::None ]
+                THEN exposePieceT { pieceIn = inTPieceColor ; }
+                SEND ExposePieceTSig { pieceColor = inTPieceColor ; }
 
                 ON ExposePieceTSig
                 THEN exposePieceT { pieceIn = ExposePieceTSig.pieceColor ; }
+                SEND GrabPieceSig { pieceColor = ExposePieceTSig.pieceColor ; }
 
                 ON GrabPieceSig
                 THEN extractPieceT { pieceIn = PieceColor::None ; }
+                SEND GrabPieceTSig { pieceColor = GrabPieceSig.pieceColor ; }
 
-                ON RoutedToSASig
-                THEN routeToSA { colorIn = NavColor::Black ; }
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P0 AND GrabPieceTSig.pieceColor == PieceColor::Blue ]
+                THEN routeToSA { colorIn = NavColor::Green ; }
+                SEND RouteToSASig {}
 
-                ON RoutedToSPDSig
-                THEN routeToSPD { colorIn = NavColor::Black ; }
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P0 AND GrabPieceTSig.pieceColor == PieceColor::Red ]
+                THEN routeToSPD { colorIn = NavColor::Red ; }
+                SEND RouteToSPDSig {}
 
-                ON DetectedGreenPadSig
-                THEN detectGreenPad { colorIn = NavColor::Green ; }
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P1 AND GrabPieceTSig.pieceColor == PieceColor::Red ]
+                THEN routeToSA { colorIn = NavColor::Green ; }
+                SEND RouteToSASig {}
 
-                ON TurnedRightSig
-                THEN turnRight { colorIn = NavColor::Black ; }
+                ON GrabPieceTSig [ inOpParam == MissionParameter::P1 AND GrabPieceTSig.pieceColor == PieceColor::Blue ]
+                THEN routeToSPD { colorIn = NavColor::Red ; }
+                SEND RouteToSPDSig {}
 
-                ON DetectedRedPadSig
-                THEN detectRedPad { colorIn = NavColor::Red ; }
+                ON RouteToSASig [ inSPEPieceColor != PieceColor::None ]
+                THEN stopAtSPE { colorIn = NavColor::Red ; }
+                SEND StopAtSPESig {}
+
+                ON RouteToSASig [ inSPEPieceColor == PieceColor::None ]
+                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                SEND TargetReachedSig {}
+
+                ON RouteToSPDSig [ inSPEPieceColor != PieceColor::None ]
+                THEN stopAtSPE { colorIn = NavColor::Red ; }
+                SEND StopAtSPESig {}
+
+                ON RouteToSPDSig [ inSPEPieceColor == PieceColor::None ]
+                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                SEND TargetReachedSig {}
+
+                ON StopAtSPESig
+                THEN exposePieceSPE { pieceIn = inSPEPieceColor ; }
+                SEND ExposePieceSPESig { pieceColor = inSPEPieceColor ; }
+
+                ON ExposePieceSPESig
+                THEN extractPieceSPE { pieceIn = PieceColor::None ; }
+                SEND ExtractPiecePESig { pieceColor = ExposePieceSPESig.pieceColor ; }
+
+                ON ExtractPiecePESig
+                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                SEND TargetReachedSig {}
 
                 ON TargetReachedSig
-                THEN arriveAtTargetStock { colorIn = NavColor::Green ; }
+                THEN acknowledgeTarget { colorIn = inUnitNavPad ; }
+                SEND DropPieceSig {}
 
-                ON DropPieceSig
+                ON DropPieceSig [ inUnitNavPad == NavColor::Green ]
                 THEN insertPieceSA { pieceIn = PieceColor::Blue ; }
+                SEND ArrivedAtPASig {}
+
+                ON DropPieceSig [ inUnitNavPad == NavColor::Red ]
+                THEN insertPieceSPD { pieceIn = PieceColor::Red ; }
+                SEND ArrivedAtPASig {}
 
                 ON ArrivedAtPASig
                 THEN arriveAtPA { colorIn = NavColor::Black ; }
@@ -1551,8 +1668,6 @@ package PkgScenarios {
             SCN_ReadParam_P0_Unit1 ;
             SCN_SPEArrival_Unit1 ;
             SCN_Priority_Route_Target_Unit1 ;
-            SCN_ReleasePiece_SA_Unit1 ;
-            SCN_ReturnJourney_From_Target_to_PA_Unit1 ;
         }
 
 
@@ -1617,10 +1732,7 @@ package PkgScenarios {
         parallel {
             Scenario_PriorityResolution_P0_Blue_SPE_Occupied ;
             Scenario_Obstacle_Encounter_During_Transit ;
-            Scenario_Mission_P0_Blue_Nominal_SPE_Empty ;
-            Scenario_PriorityResolution_P1_Red_SPE_Occupied ;
             Scenario_Obstacle_Encounter_Unit2 ;
-            Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2 ;
         }
     }
 }
@@ -1652,4 +1764,5 @@ allocations {
     executable BoundaryExecution::PassStrategyParameterEX to BoundaryActions::PassStrategyParameterAN
     executable BoundaryExecution::MultiplexPieceColorEX to BoundaryActions::MultiplexPieceColorAN
     executable BoundaryExecution::ProcessZoneAlarmEX to BoundaryActions::ProcessZoneAlarmAN
+    executable BoundaryExecution::MultiplexFloorColorEX to BoundaryActions::MultiplexFloorColorAN
 }

@@ -1303,7 +1303,7 @@
 
       // First, try to find component with this owner name that has activityName
       this.walkComponents(comp => {
-        if (comp.name === owner && comp.activityName) {
+        if ((comp.name === owner || comp._qualifiedName === owner) && comp.activityName) {
           console.log(`[FIND ACTIVITY]   - Found component ${comp.name} with activityName: ${comp.activityName}`);
           foundActivity = this._activities[comp.activityName];
         }
@@ -1752,7 +1752,7 @@
       let targetComponent = null;
 
       this.walkComponents(comp => {
-        if (comp.name === owner) {
+        if (comp.name === owner || comp._qualifiedName === owner) {
           targetComponent = comp;
         }
       });
@@ -2756,6 +2756,7 @@
       this.last = undefined;
       this.owner = opts.owner || null;
       this.expectedType = opts.expectedType || null; // Type validation
+      this.delegates = []; // Component-level delegations list
 
       // NOVO: Binding bidirecional com EnvPort
       this.envPortBinding = null;
@@ -2770,6 +2771,13 @@
           this.constructor.name,
           direction
         );
+      }
+    }
+
+    addDelegation(targetPort) {
+      if (targetPort && !this.delegates.includes(targetPort)) {
+        this.delegates.push(targetPort);
+        console.log(`[DELEGATION ADD] ${this.owner}.${this.name} -> ${targetPort.owner}.${targetPort.name}`);
       }
     }
 
@@ -2799,6 +2807,18 @@
 
       // Type validation removed
       model && model.logEvent && model.logEvent({ elementType: 'port_send', component: this.owner, name: this.name, inputs: [v], when: Date.now() });
+      if (typeof v === 'object' && v !== null && !(v.constructor && v.constructor.name && v.constructor.name !== 'Object')) {
+        const cleanName = (this.name || '').toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+        for (const [k, val] of Object.entries(v)) {
+          const cleanK = k.toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+          if (cleanK === cleanName || (cleanK && cleanName && (cleanK.includes(cleanName) || cleanName.includes(cleanK)))) {
+            console.log(`[PAYLOAD MATCH] port=${this.owner?.name}.${this.name} matched key=${k} -> value=${val}`);
+            v = val;
+            break;
+          }
+        }
+      }
+      this.value = v;
       this.last = v;
 
       // Debug: Check if binding exists
@@ -2811,6 +2831,14 @@
           console.log(`[PORT SEND WATCH] ${fq} -> value=`, v, ` model=${model?.name}`);
         }
       } catch (e) { }
+
+      // Propagate to delegates (for child-to-parent output delegation)
+      if (this.delegates && this.delegates.length > 0) {
+        this.delegates.forEach(d => {
+          console.log(`[DELEGATION PROPAGATE SEND] ${this.owner}.${this.name} -> ${d.owner}.${d.name} value=${v}`);
+          d.receive(v, model);
+        });
+      }
 
       // Call connector binding if present
       if (this.binding && typeof this.binding.receive === 'function') {
@@ -2901,6 +2929,17 @@
 
       // Type validation removed
       model && model.logEvent && model.logEvent({ elementType: 'port_receive', component: this.owner, name: this.name, inputs: [v], when: Date.now() });
+      if (typeof v === 'object' && v !== null && !(v.constructor && v.constructor.name && v.constructor.name !== 'Object')) {
+        const cleanName = (this.name || '').toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+        for (const [k, val] of Object.entries(v)) {
+          const cleanK = k.toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+          if (cleanK === cleanName || (cleanK && cleanName && (cleanK.includes(cleanName) || cleanName.includes(cleanK)))) {
+            v = val;
+            break;
+          }
+        }
+      }
+      this.value = v;
       this.last = v;
       // Targeted debug: watch specific ports when they receive values
       try {
@@ -2910,6 +2949,21 @@
           console.log(`[PORT RECEIVE WATCH] ${fq2} <- value=`, v, ` model=${model?.name}`);
         }
       } catch (e) { }
+
+      // Propagate to delegates (for parent-to-child input delegation)
+      if (this.delegates && this.delegates.length > 0) {
+        this.delegates.forEach(d => {
+          console.log(`[DELEGATION PROPAGATE RECEIVE] ${this.owner}.${this.name} -> ${d.owner}.${d.name} value=${v}`);
+          d.receive(v, model);
+        });
+      }
+
+      // If this is an OUT port and it received a value from delegation, propagate it to its binding
+      if (this.direction === 'out' && this.binding && typeof this.binding.receive === 'function') {
+        console.log(`[DELEGATION PROPAGATE OUT] ${this.owner}.${this.name} propagating out to binding`);
+        this.binding.receive(v, model);
+      }
+
       console.log(`[PORT RECEIVE DEBUG] About to call handlePortReceive(${this.owner}, ${this.name}, ${v})`);
       if (model) model.handlePortReceive(this.owner, this.name, v);
       console.log(`[PORT RECEIVE DEBUG] handlePortReceive completed for ${this.owner}.${this.name}`);
@@ -3237,6 +3291,7 @@
       this.executableNames = opts.executables || []; // Array of executable names (strings)
       this.executables = []; // Array of resolved Executable instances
       this.environmentBindings = opts.environmentBindings || []; // Bindings to environment elements
+      this.usingPins = opts.usingPins || [];
     }
 
     // Resolve constraint names to instances using module context
@@ -3248,11 +3303,12 @@
       this.constraintNames.forEach(constraintName => {
         // Search for constraint class in moduleContext with CT_ prefix and any package name
         // Format: CT_{PackageName}_{ConstraintName}
+        const normName = String(constraintName).replace(/\./g, '_');
         const matchingKey = Object.keys(moduleContext).find(key =>
-          key.startsWith('CT_') && key.endsWith(`_${constraintName}`)
+          key.startsWith('CT_') && (key.endsWith(`_${constraintName}`) || key.endsWith(`_${normName}`))
         );
 
-        console.log(`[RESOLVE CONSTRAINTS] Looking for constraint ending with: _${constraintName}, found: ${matchingKey}`);
+        console.log(`[RESOLVE CONSTRAINTS] Looking for constraint ending with: _${constraintName} (or _${normName}), found: ${matchingKey}`);
 
         if (matchingKey) {
           const ConstraintClass = moduleContext[matchingKey];
@@ -3277,11 +3333,12 @@
       this.executableNames.forEach(executableName => {
         // Search for executable class in moduleContext with EX_ prefix and any package name
         // Format: EX_{PackageName}_{ExecutableName}
+        const normName = String(executableName).replace(/\./g, '_');
         const matchingKey = Object.keys(moduleContext).find(key =>
-          key.startsWith('EX_') && key.endsWith(`_${executableName}`)
+          key.startsWith('EX_') && (key.endsWith(`_${executableName}`) || key.endsWith(`_${normName}`))
         );
 
-        console.log(`[RESOLVE EXECUTABLES] Looking for executable ending with: _${executableName}, found: ${matchingKey}`);
+        console.log(`[RESOLVE EXECUTABLES] Looking for executable ending with: _${executableName} (or _${normName}), found: ${matchingKey}`);
 
         if (matchingKey) {
           const ExecutableClass = moduleContext[matchingKey];
@@ -3940,6 +3997,10 @@
         console.log(`[ACTIVITY PROPAGATE]   - outParameters:`, this.outParameters);
         console.log(`[ACTIVITY PROPAGATE]   - delegates:`, this.delegates);
         console.log(`[ACTIVITY PROPAGATE]   - component:`, this.component);
+        console.log(`[ACTIVITY PROPAGATE]   - portToPinMapping keys:`, Object.keys(this.portToPinMapping || {}).join(', '));
+        for (const k of Object.keys(this.portToPinMapping || {})) {
+          console.log(`[ACTIVITY PROPAGATE]     - ${k} -> ${this.portToPinMapping[k]}`);
+        }
       } catch (e) {
         console.log('[ACTIVITY PROPAGATE] [DEBUG] failed to stringify result', e && e.message);
       }
@@ -3951,6 +4012,10 @@
       this.outParameters.forEach((param, index) => {
         if (index < results.length) {
           const value = results[index];
+          if (value === undefined || value === null) {
+            console.log(`[ACTIVITY PROPAGATE]   - Skipping outParam ${param.name} because value is ${value}`);
+            return;
+          }
           console.log(`[ACTIVITY PROPAGATE]   - Mapping outParam ${param.name} to value: ${value}`);
 
           // Find delegate that maps this output parameter
@@ -4045,14 +4110,22 @@
                       // Find the component that owns this activity
                       let ownerComponent = null;
                       this._model.walkComponents(comp => {
-                        if (comp.name === this.component || comp.activityName === this.name) {
+                        if (comp.name === this.component || comp._qualifiedName === this.component || comp.activityName === this.name) {
                           ownerComponent = comp;
                           console.log(`[ACTIVITY PROPAGATE]   - Found owner component: ${comp.name}`);
                         }
                       });
 
-                      // Use delegate.from (activity parameter name) to find component port
-                      const portName = delegate.from;
+                      // Use delegate.from (activity parameter name) to find component port, matching via portToPinMapping if available
+                      let portName = delegate.from;
+                      if (this.portToPinMapping && ownerComponent) {
+                        const boundPort = Object.keys(this.portToPinMapping).find(k => 
+                          this.portToPinMapping[k] === delegate.from && 
+                          ((ownerComponent.ports && ownerComponent.ports.hasOwnProperty(k)) || 
+                           (ownerComponent.envPorts && ownerComponent.envPorts.hasOwnProperty(k)))
+                        );
+                        if (boundPort) portName = boundPort;
+                      }
                       if (ownerComponent && ownerComponent.ports && ownerComponent.ports[portName]) {
                         const componentPort = ownerComponent.ports[portName];
                         console.log(`[ACTIVITY PROPAGATE]   - Found component port: ${this.component}.${portName}`);
@@ -4155,11 +4228,14 @@
       return null;
     }
 
-    // Clear pins after execution
+    // Clear output pins after execution, retaining input pin state (latching semantics)
     clearPins() {
       Object.keys(this.pins).forEach(pinName => {
-        this.pins[pinName].value = undefined;
-        this.pins[pinName].isFilled = false;
+        const pin = this.pins[pinName];
+        if (pin && pin.direction === 'out') {
+          pin.value = undefined;
+          pin.isFilled = false;
+        }
       });
     }
 
@@ -4212,8 +4288,15 @@
         const actionInputs = [];
         for (const p of action.inParameters) {
           let val;
+          // 0) Prefer delegation mapping if present
+          if (Array.isArray(this.delegates)) {
+            const delegation = this.delegates.find(d => d.to === p.name || (typeof d.to === 'string' && d.to.endsWith('.' + p.name)));
+            if (delegation && activityInputMap.hasOwnProperty(delegation.from)) {
+              val = activityInputMap[delegation.from];
+            }
+          }
           // 1) Prefer activity input with same name
-          if (activityInputMap.hasOwnProperty(p.name)) {
+          if (val === undefined && activityInputMap.hasOwnProperty(p.name)) {
             val = activityInputMap[p.name];
           }
           // 2) Prefer values produced by earlier actions mapped by outParameter name
@@ -4253,16 +4336,41 @@
         try {
           if (last !== undefined && last !== null && action.outParameters && action.outParameters.length > 0) {
             if (action.outParameters.length === 1) {
-              outputMap[action.outParameters[0].name] = last;
+              const pName = action.outParameters[0].name;
+              outputMap[pName] = last;
+              if (action.name) outputMap[action.name + '.' + pName] = last;
             } else if (typeof last === 'object' && !Array.isArray(last)) {
               action.outParameters.forEach(param => {
                 if (Object.prototype.hasOwnProperty.call(last, param.name)) {
                   outputMap[param.name] = last[param.name];
+                  if (action.name) outputMap[action.name + '.' + param.name] = last[param.name];
                 }
               });
             } else if (Array.isArray(last)) {
               action.outParameters.forEach((param, idx) => {
-                if (idx < last.length) outputMap[param.name] = last[idx];
+                if (idx < last.length) {
+                  outputMap[param.name] = last[idx];
+                  if (action.name) outputMap[action.name + '.' + param.name] = last[idx];
+                }
+              });
+            }
+
+            // Also register under actual using pin name in the activity context
+            if (Array.isArray(action.usingPins) && action.usingPins.length > 0) {
+              const inCount = Array.isArray(action.inParameters) ? action.inParameters.length : 0;
+              action.outParameters.forEach((param, idx) => {
+                const pinName = action.usingPins[inCount + idx];
+                if (pinName) {
+                  if (action.outParameters.length === 1) {
+                    outputMap[pinName] = last;
+                  } else if (typeof last === 'object' && !Array.isArray(last)) {
+                    if (Object.prototype.hasOwnProperty.call(last, param.name)) {
+                      outputMap[pinName] = last[param.name];
+                    }
+                  } else if (Array.isArray(last)) {
+                    if (idx < last.length) outputMap[pinName] = last[idx];
+                  }
+                }
               });
             }
           }
@@ -4347,6 +4455,12 @@
           }
 
           const finalResults = this.outParameters.map((param, idx) => {
+            if (Array.isArray(this.delegates)) {
+              const delegation = this.delegates.find(d => d.from === param.name);
+              if (delegation && outputMap.hasOwnProperty(delegation.to)) {
+                return outputMap[delegation.to];
+              }
+            }
             if (outputMap.hasOwnProperty(param.name)) return outputMap[param.name];
             // try direct composite mapping and heuristics
             const fromComposite = findInComposite(param.name, lastComposite);
@@ -5429,7 +5543,8 @@
     }
 
     setValue(value) {
-      if (this.value === value) return;
+      if (this.value === value && this._hasPropagatedInitial) return;
+      this._hasPropagatedInitial = true;
 
       // Global depth check to prevent infinite cascades
       if (_globalPropagationDepth >= MAX_PROPAGATION_DEPTH) {
@@ -5439,10 +5554,49 @@
       }
 
       const oldValue = this.value;
+      if (this.name === 'outParam') {
+        console.log(`[OUTPARAM SETVALUE] owner=${this.owner?.name}.${this.name} val=`, value, ` stack:`, new Error().stack.split('\n').slice(1,4).join(' | '));
+      }
+      if (typeof value === 'object' && value !== null && !(value.constructor && value.constructor.name && value.constructor.name !== 'Object')) {
+        const cleanName = (this.name || '').toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+        for (const [k, val] of Object.entries(value)) {
+          const cleanK = k.toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
+          if (cleanK === cleanName || (cleanK && cleanName && (cleanK.includes(cleanName) || cleanName.includes(cleanK)))) {
+            value = val;
+            break;
+          }
+        }
+      }
       this.value = value;
 
       _globalPropagationDepth++;
       try {
+        // Propagate to delegated EnvPorts (delegation parent -> child)
+        if (this._delegatedPorts && this._delegatedPorts.length > 0 && !this._propagating) {
+          this._propagating = true;
+          try {
+            for (const depPort of this._delegatedPorts) {
+              depPort.setValue(value);
+            }
+          } finally {
+            this._propagating = false;
+          }
+        }
+
+        if (this.owner && this.owner.envComponentType && this.direction === 'in' && !this._inToOutPropagating) {
+          // Passive leaf propagation: IN port → corresponding OUT port of same EnvComponent
+          this._inToOutPropagating = true;
+          try {
+            const outPortName = this.name.replace(/^in/, 'out').replace(/^In/, 'Out');
+            const outPort = this.owner.envPorts ? this.owner.envPorts[outPortName] : null;
+            if (outPort && outPort !== this) {
+              outPort.setValue(value);
+            }
+          } finally {
+            this._inToOutPropagating = false;
+          }
+        }
+
         // Propagate to bound system Port (with loop protection)
         if (this.portBinding && !this._propagating) {
           this._propagating = true;
@@ -5456,25 +5610,14 @@
           } finally {
             this._propagating = false;
           }
-        } else if (this.owner && this.owner.envComponentType && this.direction === 'in' && !this._propagating) {
-          // Passive leaf propagation: IN port → corresponding OUT port of same EnvComponent
-          this._propagating = true;
-          try {
-            const outPortName = this.name.replace(/^in/, 'out').replace(/^In/, 'Out');
-            const outPort = this.owner.envPorts[outPortName];
-            if (outPort && outPort !== this) {
-              outPort.setValue(value);
-            }
-          } finally {
-            this._propagating = false;
-          }
         } else if (this.owner && !this.owner.envComponentType && !this._propagating) {
           // Boundary component port → propagate to system model
           this._propagating = true;
           try {
             const modelToUse = this.model || this.owner.model;
             if (modelToUse && typeof modelToUse.handlePortReceive === 'function') {
-              modelToUse.handlePortReceive(this.owner._qualifiedName || this.owner.name, this.name, value);
+              const compPath = this.owner?.envPath || this.owner?._qualifiedName || this.owner?.name;
+              modelToUse.handlePortReceive(compPath, this.name, value);
             }
           } finally {
             this._propagating = false;
@@ -5521,12 +5664,46 @@
     }
 
     getValue() {
-      return this.value;
+      if (this._gettingValue) return this.value;
+      this._gettingValue = true;
+      try {
+        if (this.portBinding && typeof this.portBinding.getValue === 'function') {
+          const boundVal = this.portBinding.getValue();
+          if (boundVal !== null && boundVal !== undefined) {
+            return boundVal;
+          }
+        }
+        if ((this.value === null || this.value === undefined) && this.expectedType) {
+          const modelToUse = this.model || (this.owner && this.owner.model) || (global._activeCtxProxy && global._activeCtxProxy.envModel);
+          if (modelToUse && modelToUse.typeRegistry && this.expectedType in modelToUse.typeRegistry) {
+            const enumClassName = modelToUse.typeRegistry[this.expectedType];
+            const enumClass = modelToUse._moduleContext?.[enumClassName];
+            if (enumClass && enumClass.None !== undefined) {
+              return enumClass.None;
+            }
+            if (enumClass && Array.isArray(enumClass._values) && enumClass._values.length > 0) {
+              return enumClass._values[0];
+            }
+            return 'None';
+          }
+        }
+        return this.value;
+      } finally {
+        this._gettingValue = false;
+      }
     }
 
     // Bidirectional binding with system Port
     bindToPort(port) {
       this.portBinding = port;
+
+      // Configure delegation if port is also an EnvPort
+      if (port && (port instanceof EnvPort || port.constructor.name === 'EnvPort')) {
+        if (!port._delegatedPorts) port._delegatedPorts = [];
+        if (!port._delegatedPorts.includes(this)) {
+          port._delegatedPorts.push(this);
+        }
+      }
 
       // Configure reverse callback (Port → EnvPort)
       if (port && typeof port.onReceive === 'function') {
@@ -7806,6 +7983,14 @@
         }
 
         portValue[propName] = value;
+        if (portValue.ports && portValue.ports[propName]) {
+          portValue.ports[propName].value = value;
+          portValue.ports[propName].last = value;
+        }
+        if (portValue.envPorts && portValue.envPorts[propName]) {
+          portValue.envPorts[propName].value = value;
+          portValue.envPorts[propName].last = value;
+        }
 
         // Save back
         if (component.setProperty) {

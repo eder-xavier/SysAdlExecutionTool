@@ -539,7 +539,7 @@ AffixOperator = op:("++" / "--") { return op; }
 Property = "property" _ name:ID _ type:(":" _ t:QualifiedName)? _ value:("=" _ v:Expression)? _ ";" 
     { return { type: "Property", name, propertyType: type, value, location: location() }; }
 
-Pin = isFlow:("flow" _)? direction:(d:("inout" / "in" / "out") _ { return d; })? name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? 
+Pin = isFlow:("flow" ![a-zA-Z0-9_] _)? direction:(d:("inout" / "in" / "out") ![a-zA-Z0-9_] _ { return d; })? name:ID _ ":" _ definition:QualifiedName _ arrayIndex:Index? 
     { return { type: "Pin", name, direction: direction || null, isFlow: !!isFlow, definition, arrayIndex, location: location() }; }
 
 PinList = head:Pin tail:(_ "," _ p:Pin { return p; })* { return [head, ...tail]; }

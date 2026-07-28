@@ -288,6 +288,7 @@ class ECP_PieceEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outColor'] = new EP_OutPieceColor('outColor');
+    envPorts['inColor'] = new EP_InPieceColor('inColor');
     envPorts['inCommand'] = new EP_InMotorCommand('inCommand');
     envPorts['outCommand'] = new EP_OutMotorCommand('outCommand');
 
@@ -310,6 +311,7 @@ class ECP_NavigationLineEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outColor'] = new EP_OutNavColor('outColor');
+    envPorts['inColor'] = new EP_InNavColor('inColor');
 
     super(name, {
       ...opts,
@@ -330,6 +332,7 @@ class ECP_NavigationPadEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outColor'] = new EP_OutNavColor('outColor');
+    envPorts['inColor'] = new EP_InNavColor('inColor');
 
     super(name, {
       ...opts,
@@ -350,6 +353,7 @@ class ECP_MachineZoneEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outColor'] = new EP_OutNavColor('outColor');
+    envPorts['inColor'] = new EP_InNavColor('inColor');
 
     super(name, {
       ...opts,
@@ -370,6 +374,7 @@ class ECP_StandbyPositionEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outColor'] = new EP_OutNavColor('outColor');
+    envPorts['inColor'] = new EP_InNavColor('inColor');
 
     super(name, {
       ...opts,
@@ -390,6 +395,7 @@ class ECP_ObstacleEnvCP extends EnvComponent {
 
     const envPorts = {};
     envPorts['outObstacle'] = new EP_OutBoolean('outObstacle');
+    envPorts['inObstacle'] = new EP_InBoolean('inObstacle');
 
     super(name, {
       ...opts,
@@ -429,6 +435,7 @@ class ECP_TransElevatorEnvCP extends EnvComponent {
     envPorts['inCommand'] = new EP_InMotorCommand('inCommand');
     envPorts['outPieceColor'] = new EP_OutPieceColor('outPieceColor');
     envPorts['outCommand'] = new EP_OutMotorCommand('outCommand');
+    envPorts['inPieceColor'] = new EP_InPieceColor('inPieceColor');
 
     super(name, {
       ...opts,
@@ -449,6 +456,7 @@ class ECP_ArrivalStockEnvCP extends EnvComponent {
     envPorts['inCommand'] = new EP_InMotorCommand('inCommand');
     envPorts['outPieceColor'] = new EP_OutPieceColor('outPieceColor');
     envPorts['outCommand'] = new EP_OutMotorCommand('outCommand');
+    envPorts['inPieceColor'] = new EP_InPieceColor('inPieceColor');
 
     super(name, {
       ...opts,
@@ -470,6 +478,7 @@ class ECP_SharedStockEnvCP extends EnvComponent {
     envPorts['outPieceColor'] = new EP_OutPieceColor('outPieceColor');
     envPorts['outCommand'] = new EP_OutMotorCommand('outCommand');
     envPorts['inGrabCommand'] = new EP_InMotorCommand('inGrabCommand');
+    envPorts['inPieceColor'] = new EP_InPieceColor('inPieceColor');
 
     super(name, {
       ...opts,
@@ -490,6 +499,16 @@ class ECP_ProductionUnitEnvCP extends EnvComponent {
     envPorts['inSpePieceColor'] = new EP_InPieceColor('inSpePieceColor');
     envPorts['outSpeGrabCommand'] = new EP_OutMotorCommand('outSpeGrabCommand');
     envPorts['outSpdGrabCommand'] = new EP_OutMotorCommand('outSpdGrabCommand');
+    envPorts['outUnitNavLine'] = new EP_OutNavColor('outUnitNavLine');
+    envPorts['outUnitNavPad'] = new EP_OutNavColor('outUnitNavPad');
+    envPorts['outUnitPieceColor'] = new EP_OutPieceColor('outUnitPieceColor');
+    envPorts['outSPEPieceColor'] = new EP_OutPieceColor('outSPEPieceColor');
+    envPorts['outSAPieceColor'] = new EP_OutPieceColor('outSAPieceColor');
+    envPorts['outSPDPieceColor'] = new EP_OutPieceColor('outSPDPieceColor');
+    envPorts['outUnitLineOffset'] = new EP_OutInt('outUnitLineOffset');
+    envPorts['outUnitZoneAlarm'] = new EP_OutBoolean('outUnitZoneAlarm');
+    envPorts['outUnitObstacle'] = new EP_OutBoolean('outUnitObstacle');
+    envPorts['outUnitPAColor'] = new EP_OutNavColor('outUnitPAColor');
 
     super(name, {
       ...opts,
@@ -543,6 +562,8 @@ const BEX_SysADL_Components_CameraSensorCP = {
     'inSpePieceColor': { type: 'InPieceColor', portClass: 'EP_InPieceColor' },
     'inLineOffset': { type: 'InInt', portClass: 'EP_InInt' },
     'inZoneColor': { type: 'InNavColor', portClass: 'EP_InNavColor' },
+    'inPadColor': { type: 'InNavColor', portClass: 'EP_InNavColor' },
+    'inStandbyColor': { type: 'InNavColor', portClass: 'EP_InNavColor' },
   },
   apply: function(component) {
     if (!component.envPorts) component.envPorts = {};
@@ -558,6 +579,10 @@ const BEX_SysADL_Components_CameraSensorCP = {
     component.envPorts['inLineOffset'].owner = component;
     component.envPorts['inZoneColor'] = new EP_InNavColor('inZoneColor');
     component.envPorts['inZoneColor'].owner = component;
+    component.envPorts['inPadColor'] = new EP_InNavColor('inPadColor');
+    component.envPorts['inPadColor'].owner = component;
+    component.envPorts['inStandbyColor'] = new EP_InNavColor('inStandbyColor');
+    component.envPorts['inStandbyColor'].owner = component;
   }
 };
 
@@ -628,6 +653,18 @@ function apply_TransElevatorConfig(parent, systemModel) {
       parent.pieces[i].envPorts['inCommand'].bindToPort(parent.envPorts['inCommand']);
     }
   }
+  // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
 }
 
 // EnvironmentConfiguration: ArrivalConfig (for ArrivalStockEnvCP)
@@ -653,6 +690,18 @@ function apply_ArrivalConfig(parent, systemModel) {
     if (parent.pieces[i] && parent.pieces[i].envPorts['outCommand'] && parent.envPorts['outCommand']) {
       parent.pieces[i].envPorts['outCommand'].bindToPort(parent.envPorts['outCommand']);
     }
+  }
+  // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
   }
 }
 
@@ -698,6 +747,18 @@ function apply_SharedConfig(parent, systemModel) {
       parent.pieces[i].envPorts['outCommand'].bindToPort(parent.envPorts['outCommand']);
     }
   }
+  // Delegation: inPieceColor → pieces.inColor
+  if (parent.envPorts['inPieceColor']) {
+    parent.envPorts['inPieceColor'].bindToPort({
+      send: function(val) {
+        for (let i = 0; i <= 3; i++) {
+          if (parent.pieces[i] && parent.pieces[i].envPorts['inColor']) {
+            parent.pieces[i].envPorts['inColor'].setValue(val);
+          }
+        }
+      }
+    });
+  }
 }
 
 // EnvironmentConfiguration: UnitConfig (for ProductionUnitEnvCP)
@@ -718,6 +779,26 @@ function apply_UnitConfig(parent, systemModel) {
   parent.unit_obstacleSens = systemModel ? systemModel.getComponentByType('ObstacleSensorCP', 'unit_obstacleSens') : { name: 'unit_obstacleSens', type: 'ObstacleSensorCP' };
   // System component: unit_pInput : ParameterInputCP
   parent.unit_pInput = systemModel ? systemModel.getComponentByType('ParameterInputCP', 'unit_pInput') : { name: 'unit_pInput', type: 'ParameterInputCP' };
+  // Delegation: navLine.inColor → outUnitNavLine
+  if (parent.navLine && parent.navLine.envPorts['inColor'] && parent.envPorts['outUnitNavLine']) {
+    parent.navLine.envPorts['inColor'].bindToPort(parent.envPorts['outUnitNavLine']);
+  }
+  // Delegation: navPad.inColor → outUnitNavPad
+  if (parent.navPad && parent.navPad.envPorts['inColor'] && parent.envPorts['outUnitNavPad']) {
+    parent.navPad.envPorts['inColor'].bindToPort(parent.envPorts['outUnitNavPad']);
+  }
+  // Delegation: obstacle.inObstacle → outUnitObstacle
+  if (parent.obstacle && parent.obstacle.envPorts['inObstacle'] && parent.envPorts['outUnitObstacle']) {
+    parent.obstacle.envPorts['inObstacle'].bindToPort(parent.envPorts['outUnitObstacle']);
+  }
+  // Delegation: machineZone.inColor → outUnitZoneAlarm
+  if (parent.machineZone && parent.machineZone.envPorts['inColor'] && parent.envPorts['outUnitZoneAlarm']) {
+    parent.machineZone.envPorts['inColor'].bindToPort(parent.envPorts['outUnitZoneAlarm']);
+  }
+  // Delegation: standbyPos.inColor → outUnitPAColor
+  if (parent.standbyPos && parent.standbyPos.envPorts['inColor'] && parent.envPorts['outUnitPAColor']) {
+    parent.standbyPos.envPorts['inColor'].bindToPort(parent.envPorts['outUnitPAColor']);
+  }
   // Delegation: unit_camera.inSpePieceColor → inSpePieceColor
   if (parent.unit_camera && parent.unit_camera.envPorts['inSpePieceColor'] && parent.envPorts['inSpePieceColor']) {
     parent.unit_camera.envPorts['inSpePieceColor'].bindToPort(parent.envPorts['inSpePieceColor']);
@@ -729,6 +810,14 @@ function apply_UnitConfig(parent, systemModel) {
   // Delegation: instance1.outGrabSpd → outSpdGrabCommand
   if (parent.instance1 && parent.instance1.envPorts['outGrabSpd'] && parent.envPorts['outSpdGrabCommand']) {
     parent.instance1.envPorts['outGrabSpd'].bindToPort(parent.envPorts['outSpdGrabCommand']);
+  }
+  // Delegation: transElevator.outPieceColor → outUnitPieceColor
+  if (parent.transElevator && parent.transElevator.envPorts['outPieceColor'] && parent.envPorts['outUnitPieceColor']) {
+    parent.transElevator.envPorts['outPieceColor'].bindToPort(parent.envPorts['outUnitPieceColor']);
+  }
+  // Delegation: arrivalStock.outPieceColor → outSAPieceColor
+  if (parent.arrivalStock && parent.arrivalStock.envPorts['outPieceColor'] && parent.envPorts['outSAPieceColor']) {
+    parent.arrivalStock.envPorts['outPieceColor'].bindToPort(parent.envPorts['outSAPieceColor']);
   }
   // EnvConnector: obsC : ObstacleEnvCN bindings obstacle.outObstacle = unit_obstacleSens.inObstacle
   parent.obsC = { type: 'ObstacleEnvCN', source: 'obstacle.outObstacle', target: 'unit_obstacleSens.inObstacle' };
@@ -750,6 +839,10 @@ function apply_UnitConfig(parent, systemModel) {
   parent.grabTC = { type: 'MotorCommandEnvCN', source: 'instance1.outGrabT', target: 'transElevator.inCommand' };
   // EnvConnector: grabSaC : MotorCommandEnvCN bindings instance1.outGrabSa = arrivalStock.inCommand
   parent.grabSaC = { type: 'MotorCommandEnvCN', source: 'instance1.outGrabSa', target: 'arrivalStock.inCommand' };
+  // EnvConnector: padC : NavColorEnvCN bindings navPad.outColor = unit_camera.inPadColor
+  parent.padC = { type: 'NavColorEnvCN', source: 'navPad.outColor', target: 'unit_camera.inPadColor' };
+  // EnvConnector: standbyC : NavColorEnvCN bindings standbyPos.outColor = unit_camera.inStandbyColor
+  parent.standbyC = { type: 'NavColorEnvCN', source: 'standbyPos.outColor', target: 'unit_camera.inStandbyColor' };
 }
 
 // EnvironmentConfiguration: AtelierConfig (for AtelierEnvCP)
@@ -770,6 +863,14 @@ function apply_AtelierConfig(parent, systemModel) {
   parent.u1SpeGrabC = { type: 'MotorCommandEnvCN', source: 'unit1.outSpeGrabCommand', target: 'spe1_spd2.inGrabCommand' };
   // EnvConnector: u1SpeReadC : PieceColorEnvCN bindings spe1_spd2.outCommand = unit1.inSpePieceColor
   parent.u1SpeReadC = { type: 'PieceColorEnvCN', source: 'spe1_spd2.outCommand', target: 'unit1.inSpePieceColor' };
+  // EnvConnector: u1SpeClearC : PieceColorEnvCN bindings unit1.outSPEPieceColor = spe1_spd2.inPieceColor
+  parent.u1SpeClearC = { type: 'PieceColorEnvCN', source: 'unit1.outSPEPieceColor', target: 'spe1_spd2.inPieceColor' };
+  // EnvConnector: u1SpdDropC : PieceColorEnvCN bindings unit1.outSPDPieceColor = spd1_spe2.inPieceColor
+  parent.u1SpdDropC = { type: 'PieceColorEnvCN', source: 'unit1.outSPDPieceColor', target: 'spd1_spe2.inPieceColor' };
+  // EnvConnector: u2SpeClearC : PieceColorEnvCN bindings unit2.outSPEPieceColor = spd1_spe2.inPieceColor
+  parent.u2SpeClearC = { type: 'PieceColorEnvCN', source: 'unit2.outSPEPieceColor', target: 'spd1_spe2.inPieceColor' };
+  // EnvConnector: u2SpdDropC : PieceColorEnvCN bindings unit2.outSPDPieceColor = spe1_spd2.inPieceColor
+  parent.u2SpdDropC = { type: 'PieceColorEnvCN', source: 'unit2.outSPDPieceColor', target: 'spe1_spd2.inPieceColor' };
 }
 
 // EnvActivitiesDefinitions: RobAFISEnvironmentActivities
@@ -784,6 +885,7 @@ class ENVACT_RobAFISEnvironmentActivities {
       'ObstacleRemovedSig': { attributes: {} },
       'ZoneAlarmTriggeredSig': { attributes: {} },
       'GrabPieceSig': { attributes: { pieceColor: 'PieceColor' } },
+      'GrabPieceTSig': { attributes: { pieceColor: 'PieceColor' } },
       'DropPieceSig': { attributes: {} },
       'LeftPASig': { attributes: {} },
       'UnitArrivedAtTSig': { attributes: {} },
@@ -809,7 +911,7 @@ class ENVACT_RobAFISEnvironmentActivities {
       'PassMissionParameterAN': { inParams: ["paramIn"], outType: 'MissionParameter' },
       'PassStrategyParameterAN': { inParams: ["strategyIn"], outType: 'StrategyParameter' },
       'PassNavColorAN': { inParams: ["colorIn"], outType: 'NavColor' },
-      'PassIntAN': { inParams: ["tIn"], outType: 'Int' },
+      'PassIntAN': { inParams: ["intIn"], outType: 'Int' },
       'PassBooleanAN': { inParams: ["boolIn"], outType: 'Boolean' },
       'PassPieceColorAN': { inParams: ["colorIn"], outType: 'PieceColor' },
     };
@@ -824,13 +926,42 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'setMissionParametersOp',
           applyAction: (ctx, signalData) => {
-            ctx.paramIn = signalData.StartSimulationSig.mission;
+            const sigObj = (signalData && signalData['StartSimulationSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.paramIn = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.mission !== undefined ? sigObj.mission : (sigObj.StartSimulationSig ? sigObj.StartSimulationSig.mission : undefined))) : (ctx.StartSimulationSig ? ctx.StartSimulationSig.mission : undefined));
           },
           sendSignal: 'SetMissionParamSig',
           buildSendData: (ctx, signalData) => {
             const data = {};
-            data.param = signalData.StartSimulationSig.mission;
-            data.strategy = signalData.StartSimulationSig.strategy;
+            const sigObj = (signalData && signalData['StartSimulationSig']) || signalData;
+            data.param = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.mission !== undefined ? sigObj.mission : (sigObj.StartSimulationSig ? sigObj.StartSimulationSig.mission : undefined))) : (ctx.StartSimulationSig ? ctx.StartSimulationSig.mission : undefined));
+            const fallbackVal_param = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('SetMissionParamSig', 'param', ctx.activeInstance) : undefined;
+            if (data.param === undefined || data.param === null || data.param === 'None') {
+              data.param = (fallbackVal_param !== undefined && fallbackVal_param !== null && fallbackVal_param !== 'None') ? fallbackVal_param : ctx.param;
+            }
+            data.strategy = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.strategy !== undefined ? sigObj.strategy : (sigObj.StartSimulationSig ? sigObj.StartSimulationSig.strategy : undefined))) : (ctx.StartSimulationSig ? ctx.StartSimulationSig.strategy : undefined));
+            const fallbackVal_strategy = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('SetMissionParamSig', 'strategy', ctx.activeInstance) : undefined;
+            if (data.strategy === undefined || data.strategy === null || data.strategy === 'None') {
+              data.strategy = (fallbackVal_strategy !== undefined && fallbackVal_strategy !== null && fallbackVal_strategy !== 'None') ? fallbackVal_strategy : ctx.strategy;
+            }
             return data;
           },
         },
@@ -838,112 +969,861 @@ class ENVACT_RobAFISEnvironmentActivities {
     };
     this.activities['UnitEA'] = {
       name: 'UnitEA',
-      delegates: [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"}],
+      delegates: [{"from":"outUnitNavLine","to":"leavePA"},{"from":"outUnitNavLine","to":"turnRight"},{"from":"outUnitNavLine","to":"returnJourney"},{"from":"outUnitNavPad","to":"detectGreenPad"},{"from":"outUnitNavPad","to":"detectRedPad"},{"from":"outUnitNavPad","to":"stopAtT"},{"from":"outUnitNavPad","to":"routeToSA"},{"from":"outUnitNavPad","to":"routeToSPD"},{"from":"outUnitNavPad","to":"stopAtSPE"},{"from":"outUnitNavPad","to":"arriveAtTargetStock"},{"from":"outUnitPieceColor","to":"extractPieceT"},{"from":"outSPEPieceColor","to":"extractPieceSPE"},{"from":"outSAPieceColor","to":"insertPieceSA"},{"from":"outSPDPieceColor","to":"insertPieceSPD"},{"from":"outUnitObstacle","to":"setObstacleTrue"},{"from":"outUnitObstacle","to":"setObstacleFalse"},{"from":"outUnitPAColor","to":"arriveAtPA"}],
       onClauses: [
         {
-          signal: 'LeftPASig',
+          signal: 'SetMissionParamSig',
           guard: null,
           actionName: 'leavePA',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['SetMissionParamSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.colorIn = ctx.NavColor.Black;
           },
-          sendSignal: null,
+          sendSignal: 'LeftPASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['SetMissionParamSig']) || signalData;
+            return data;
+          },
         },
         {
-          signal: 'UnitArrivedAtTSig',
+          signal: 'LeftPASig',
+          guard: null,
+          actionName: 'detectGreenPad',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['LeftPASig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Green;
+          },
+          sendSignal: 'DetectedGreenPadSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['LeftPASig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'DetectedGreenPadSig',
+          guard: null,
+          actionName: 'turnRight',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DetectedGreenPadSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Black;
+          },
+          sendSignal: 'TurnedRightSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['DetectedGreenPadSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'TurnedRightSig',
+          guard: null,
+          actionName: 'detectRedPad',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['TurnedRightSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Red;
+          },
+          sendSignal: 'DetectedRedPadSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['TurnedRightSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'DetectedRedPadSig',
           guard: null,
           actionName: 'stopAtT',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DetectedRedPadSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.colorIn = ctx.NavColor.Red;
           },
-          sendSignal: null,
+          sendSignal: 'UnitArrivedAtTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['DetectedRedPadSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'UnitArrivedAtTSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['UnitArrivedAtTSig']) || signalData;
+            const res = (ctx.inTPieceColor != ctx.PieceColor.None);
+            if ('UnitArrivedAtTSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=exposePieceT res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'exposePieceT',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['UnitArrivedAtTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.pieceIn = ctx.inTPieceColor;
+          },
+          sendSignal: 'ExposePieceTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['UnitArrivedAtTSig']) || signalData;
+            data.pieceColor = ((typeof sigObj !== 'undefined' && sigObj && sigObj.inTPieceColor !== undefined) ? sigObj.inTPieceColor : ctx.inTPieceColor);
+            const fallbackVal_pieceColor = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('ExposePieceTSig', 'pieceColor', ctx.activeInstance) : undefined;
+            if (data.pieceColor === undefined || data.pieceColor === null || data.pieceColor === 'None') {
+              data.pieceColor = (fallbackVal_pieceColor !== undefined && fallbackVal_pieceColor !== null && fallbackVal_pieceColor !== 'None') ? fallbackVal_pieceColor : ctx.pieceColor;
+            }
+            return data;
+          },
         },
         {
           signal: 'ExposePieceTSig',
           guard: null,
           actionName: 'exposePieceT',
           applyAction: (ctx, signalData) => {
-            ctx.pieceIn = signalData.ExposePieceTSig.pieceColor;
+            const sigObj = (signalData && signalData['ExposePieceTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.pieceIn = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.ExposePieceTSig ? sigObj.ExposePieceTSig.pieceColor : undefined))) : (ctx.ExposePieceTSig ? ctx.ExposePieceTSig.pieceColor : undefined));
           },
-          sendSignal: null,
+          sendSignal: 'GrabPieceSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['ExposePieceTSig']) || signalData;
+            data.pieceColor = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.ExposePieceTSig ? sigObj.ExposePieceTSig.pieceColor : undefined))) : (ctx.ExposePieceTSig ? ctx.ExposePieceTSig.pieceColor : undefined));
+            const fallbackVal_pieceColor = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('GrabPieceSig', 'pieceColor', ctx.activeInstance) : undefined;
+            if (data.pieceColor === undefined || data.pieceColor === null || data.pieceColor === 'None') {
+              data.pieceColor = (fallbackVal_pieceColor !== undefined && fallbackVal_pieceColor !== null && fallbackVal_pieceColor !== 'None') ? fallbackVal_pieceColor : ctx.pieceColor;
+            }
+            return data;
+          },
         },
         {
           signal: 'GrabPieceSig',
           guard: null,
           actionName: 'extractPieceT',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.pieceIn = ctx.PieceColor.None;
           },
-          sendSignal: null,
+          sendSignal: 'GrabPieceTSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['GrabPieceSig']) || signalData;
+            data.pieceColor = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.GrabPieceSig ? sigObj.GrabPieceSig.pieceColor : undefined))) : (ctx.GrabPieceSig ? ctx.GrabPieceSig.pieceColor : undefined));
+            const fallbackVal_pieceColor = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('GrabPieceTSig', 'pieceColor', ctx.activeInstance) : undefined;
+            if (data.pieceColor === undefined || data.pieceColor === null || data.pieceColor === 'None') {
+              data.pieceColor = (fallbackVal_pieceColor !== undefined && fallbackVal_pieceColor !== null && fallbackVal_pieceColor !== 'None') ? fallbackVal_pieceColor : ctx.pieceColor;
+            }
+            return data;
+          },
         },
         {
-          signal: 'RoutedToSASig',
-          guard: null,
+          signal: 'GrabPieceTSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            const res = ((ctx.inOpParam === ctx.MissionParameter.P0) && (((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.GrabPieceTSig ? sigObj.GrabPieceTSig.pieceColor : undefined))) : (ctx.GrabPieceTSig ? ctx.GrabPieceTSig.pieceColor : undefined)) === ctx.PieceColor.Blue));
+            if ('GrabPieceTSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=routeToSA res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
           actionName: 'routeToSA',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = ctx.NavColor.Black;
-          },
-          sendSignal: null,
-        },
-        {
-          signal: 'RoutedToSPDSig',
-          guard: null,
-          actionName: 'routeToSPD',
-          applyAction: (ctx, signalData) => {
-            ctx.colorIn = ctx.NavColor.Black;
-          },
-          sendSignal: null,
-        },
-        {
-          signal: 'DetectedGreenPadSig',
-          guard: null,
-          actionName: 'detectGreenPad',
-          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.colorIn = ctx.NavColor.Green;
           },
-          sendSignal: null,
-        },
-        {
-          signal: 'TurnedRightSig',
-          guard: null,
-          actionName: 'turnRight',
-          applyAction: (ctx, signalData) => {
-            ctx.colorIn = ctx.NavColor.Black;
+          sendSignal: 'RouteToSASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            return data;
           },
-          sendSignal: null,
         },
         {
-          signal: 'DetectedRedPadSig',
-          guard: null,
-          actionName: 'detectRedPad',
+          signal: 'GrabPieceTSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            const res = ((ctx.inOpParam === ctx.MissionParameter.P0) && (((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.GrabPieceTSig ? sigObj.GrabPieceTSig.pieceColor : undefined))) : (ctx.GrabPieceTSig ? ctx.GrabPieceTSig.pieceColor : undefined)) === ctx.PieceColor.Red));
+            if ('GrabPieceTSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=routeToSPD res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'routeToSPD',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.colorIn = ctx.NavColor.Red;
           },
-          sendSignal: null,
+          sendSignal: 'RouteToSPDSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'GrabPieceTSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            const res = ((ctx.inOpParam === ctx.MissionParameter.P1) && (((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.GrabPieceTSig ? sigObj.GrabPieceTSig.pieceColor : undefined))) : (ctx.GrabPieceTSig ? ctx.GrabPieceTSig.pieceColor : undefined)) === ctx.PieceColor.Red));
+            if ('GrabPieceTSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=routeToSA res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'routeToSA',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Green;
+          },
+          sendSignal: 'RouteToSASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'GrabPieceTSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            const res = ((ctx.inOpParam === ctx.MissionParameter.P1) && (((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.GrabPieceTSig ? sigObj.GrabPieceTSig.pieceColor : undefined))) : (ctx.GrabPieceTSig ? ctx.GrabPieceTSig.pieceColor : undefined)) === ctx.PieceColor.Blue));
+            if ('GrabPieceTSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=routeToSPD res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'routeToSPD',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Red;
+          },
+          sendSignal: 'RouteToSPDSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['GrabPieceTSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'RouteToSASig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            const res = (ctx.inSPEPieceColor != ctx.PieceColor.None);
+            if ('RouteToSASig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=stopAtSPE res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'stopAtSPE',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Red;
+          },
+          sendSignal: 'StopAtSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'RouteToSASig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            const res = (ctx.inSPEPieceColor === ctx.PieceColor.None);
+            if ('RouteToSASig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=arriveAtTargetStock res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'arriveAtTargetStock',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Green;
+          },
+          sendSignal: 'TargetReachedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['RouteToSASig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'RouteToSPDSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            const res = (ctx.inSPEPieceColor != ctx.PieceColor.None);
+            if ('RouteToSPDSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=stopAtSPE res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'stopAtSPE',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Red;
+          },
+          sendSignal: 'StopAtSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'RouteToSPDSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            const res = (ctx.inSPEPieceColor === ctx.PieceColor.None);
+            if ('RouteToSPDSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=arriveAtTargetStock res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'arriveAtTargetStock',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Green;
+          },
+          sendSignal: 'TargetReachedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['RouteToSPDSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'StopAtSPESig',
+          guard: null,
+          actionName: 'exposePieceSPE',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['StopAtSPESig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.pieceIn = ctx.inSPEPieceColor;
+          },
+          sendSignal: 'ExposePieceSPESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['StopAtSPESig']) || signalData;
+            data.pieceColor = ((typeof sigObj !== 'undefined' && sigObj && sigObj.inSPEPieceColor !== undefined) ? sigObj.inSPEPieceColor : ctx.inSPEPieceColor);
+            const fallbackVal_pieceColor = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('ExposePieceSPESig', 'pieceColor', ctx.activeInstance) : undefined;
+            if (data.pieceColor === undefined || data.pieceColor === null || data.pieceColor === 'None') {
+              data.pieceColor = (fallbackVal_pieceColor !== undefined && fallbackVal_pieceColor !== null && fallbackVal_pieceColor !== 'None') ? fallbackVal_pieceColor : ctx.pieceColor;
+            }
+            return data;
+          },
+        },
+        {
+          signal: 'ExposePieceSPESig',
+          guard: null,
+          actionName: 'extractPieceSPE',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['ExposePieceSPESig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.pieceIn = ctx.PieceColor.None;
+          },
+          sendSignal: 'ExtractPiecePESig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['ExposePieceSPESig']) || signalData;
+            data.pieceColor = ((typeof sigObj !== 'undefined' && sigObj) ? ((sigObj.pieceColor !== undefined ? sigObj.pieceColor : (sigObj.ExposePieceSPESig ? sigObj.ExposePieceSPESig.pieceColor : undefined))) : (ctx.ExposePieceSPESig ? ctx.ExposePieceSPESig.pieceColor : undefined));
+            const fallbackVal_pieceColor = ctx.resolveSignalAttributeFallback ? ctx.resolveSignalAttributeFallback('ExtractPiecePESig', 'pieceColor', ctx.activeInstance) : undefined;
+            if (data.pieceColor === undefined || data.pieceColor === null || data.pieceColor === 'None') {
+              data.pieceColor = (fallbackVal_pieceColor !== undefined && fallbackVal_pieceColor !== null && fallbackVal_pieceColor !== 'None') ? fallbackVal_pieceColor : ctx.pieceColor;
+            }
+            return data;
+          },
+        },
+        {
+          signal: 'ExtractPiecePESig',
+          guard: null,
+          actionName: 'arriveAtTargetStock',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['ExtractPiecePESig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.NavColor.Green;
+          },
+          sendSignal: 'TargetReachedSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['ExtractPiecePESig']) || signalData;
+            return data;
+          },
         },
         {
           signal: 'TargetReachedSig',
           guard: null,
-          actionName: 'arriveAtTargetStock',
+          actionName: 'acknowledgeTarget',
           applyAction: (ctx, signalData) => {
-            ctx.colorIn = ctx.NavColor.Green;
+            const sigObj = (signalData && signalData['TargetReachedSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.colorIn = ctx.inUnitNavPad;
           },
-          sendSignal: null,
+          sendSignal: 'DropPieceSig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['TargetReachedSig']) || signalData;
+            return data;
+          },
         },
         {
           signal: 'DropPieceSig',
-          guard: null,
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            const res = (ctx.inUnitNavPad === ctx.NavColor.Green);
+            if ('DropPieceSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=insertPieceSA res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
           actionName: 'insertPieceSA',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.pieceIn = ctx.PieceColor.Blue;
           },
-          sendSignal: null,
+          sendSignal: 'ArrivedAtPASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            return data;
+          },
+        },
+        {
+          signal: 'DropPieceSig',
+          guard: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            const res = (ctx.inUnitNavPad === ctx.NavColor.Red);
+            if ('DropPieceSig' === 'GrabPieceTSig') { console.log('[GUARD EVAL] signal=GrabPieceTSig action=insertPieceSPD res=' + res + ' inOpParam=' + ctx.inOpParam + ' sigObj=' + JSON.stringify(sigObj)); }
+            return res;
+          },
+          actionName: 'insertPieceSPD',
+          applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
+            ctx.pieceIn = ctx.PieceColor.Red;
+          },
+          sendSignal: 'ArrivedAtPASig',
+          buildSendData: (ctx, signalData) => {
+            const data = {};
+            const sigObj = (signalData && signalData['DropPieceSig']) || signalData;
+            return data;
+          },
         },
         {
           signal: 'ArrivedAtPASig',
           guard: null,
           actionName: 'arriveAtPA',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['ArrivedAtPASig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.colorIn = ctx.NavColor.Black;
           },
           sendSignal: null,
@@ -953,6 +1833,26 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'setObstacleTrue',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['ObstacleDetectedSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.boolIn = true;
           },
           sendSignal: null,
@@ -962,6 +1862,26 @@ class ENVACT_RobAFISEnvironmentActivities {
           guard: null,
           actionName: 'setObstacleFalse',
           applyAction: (ctx, signalData) => {
+            const sigObj = (signalData && signalData['ObstacleRemovedSig']) || signalData;
+            if (sigObj && typeof sigObj === 'object') {
+              for (const [attrKey, attrVal] of Object.entries(sigObj)) {
+                if (attrVal === undefined || attrVal === null) continue;
+                ctx[attrKey] = attrVal;
+                const ak = attrKey.toLowerCase();
+                const cleanKey = ak.replace(/^(in|env|sys|op|act|out)/, '');
+                let matched = false;
+                for (const ctxKey of Object.keys(ctx)) {
+                  const ck = ctxKey.toLowerCase();
+                  const cleanCtxKey = ck.replace(/^(in|env|sys|op|act|out)/, '');
+                  const isParamMatch = (cleanKey.includes('param') || cleanKey.includes('mission')) && (cleanCtxKey.includes('param') || cleanCtxKey.includes('mission'));
+                  const isStratMatch = cleanKey.includes('strat') && cleanCtxKey.includes('strat');
+                  if (ck === ak || (cleanKey && cleanCtxKey === cleanKey) || isParamMatch || isStratMatch) {
+                    ctx[ctxKey] = attrVal;
+                    matched = true;
+                  }
+                }
+              }
+            }
             ctx.boolIn = false;
           },
           sendSignal: null,
@@ -976,8 +1896,8 @@ class ENVACT_RobAFISEnvironmentActivities {
       const activity = this.activities[actName];
       for (const on of activity.onClauses) {
         if (on.signal === signalName || on.actionName === signalName) {
-          if (!on.guard || on.guard(ctx)) {
-            const wrappedSignalData = { [on.signal]: signalData };
+          const wrappedSignalData = { [on.signal]: signalData };
+          if (!on.guard || on.guard(ctx, wrappedSignalData)) {
             on.applyAction(ctx, wrappedSignalData);
             if (on.sendSignal) {
               const sendData = on.buildSendData(ctx, wrappedSignalData);
@@ -1014,7 +1934,9 @@ class SCN_ObstacleStop_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.obstacle.outObstacle === true))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleStop_Unit1: LHS(ctx.unit1.obstacle.outObstacle) =', ctx.unit1.obstacle.outObstacle, '| RHS(true) =', true); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleStop_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.obstacle.outObstacle === true);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === true)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleStop_Unit1:', e.message); return false; }
   }
@@ -1039,7 +1961,9 @@ class SCN_ObstacleResume_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.obstacle.outObstacle === false))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleResume_Unit1: LHS(ctx.unit1.obstacle.outObstacle) =', ctx.unit1.obstacle.outObstacle, '| RHS(false) =', false); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleResume_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.obstacle.outObstacle === false);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === false)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleResume_Unit1:', e.message); return false; }
   }
@@ -1064,7 +1988,9 @@ class SCN_ReadParam_P0_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P0_Unit1: LHS(ctx.unit1.unit_pInput.inParam) =', ctx.unit1.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P0) =', ctx.MissionParameter.P0); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P0_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P0_Unit1:', e.message); return false; }
   }
@@ -1089,7 +2015,9 @@ class SCN_ReadParam_P1_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P1_Unit1: LHS(ctx.unit1.unit_pInput.inParam) =', ctx.unit1.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P1) =', ctx.MissionParameter.P1); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P1_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P1_Unit1:', e.message); return false; }
   }
@@ -1117,7 +2045,9 @@ class SCN_IdentifyPiece_T_Blue_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Blue_Unit1: LHS(ctx.unit1.unit_camera.inPieceColor) =', ctx.unit1.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Blue) =', ctx.PieceColor.Blue); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Blue_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Blue_Unit1:', e.message); return false; }
   }
@@ -1145,7 +2075,9 @@ class SCN_IdentifyPiece_T_Red_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Red_Unit1: LHS(ctx.unit1.unit_camera.inPieceColor) =', ctx.unit1.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Red) =', ctx.PieceColor.Red); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Red_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Red_Unit1:', e.message); return false; }
   }
@@ -1173,7 +2105,9 @@ class SCN_GrabPiece_T_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_GrabPiece_T_Unit1: LHS(ctx.unit1.transElevator.outPieceColor) =', ctx.unit1.transElevator.outPieceColor, '| RHS(ctx.PieceColor.None) =', ctx.PieceColor.None); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_GrabPiece_T_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit1: expr="[object Object]" -> JS: (ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_GrabPiece_T_Unit1:', e.message); return false; }
   }
@@ -1301,7 +2235,8 @@ class SCN_SPEArrival_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None))) return false;
+      const _condRes = (ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_SPEArrival_Unit1:', e.message); return false; }
   }
@@ -1326,7 +2261,9 @@ class SCN_Priority_Route_Target_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.navPad.outColor === ctx.NavColor.Green))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_Priority_Route_Target_Unit1: LHS(ctx.unit1.navPad.outColor) =', ctx.unit1.navPad.outColor, '| RHS(ctx.NavColor.Green) =', ctx.NavColor.Green); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_Priority_Route_Target_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.navPad.outColor === ctx.NavColor.Green);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit1: expr="[object Object]" -> JS: (ctx.unit1.navPad.outColor === ctx.NavColor.Green)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_Priority_Route_Target_Unit1:', e.message); return false; }
   }
@@ -1376,7 +2313,8 @@ class SCN_ReleasePiece_SA_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None))) return false;
+      const _condRes = (ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReleasePiece_SA_Unit1:', e.message); return false; }
   }
@@ -1401,7 +2339,9 @@ class SCN_ReturnJourney_From_Target_to_PA_Unit1 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit1.standbyPos.outColor === ctx.NavColor.Black))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit1: LHS(ctx.unit1.standbyPos.outColor) =', ctx.unit1.standbyPos.outColor, '| RHS(ctx.NavColor.Black) =', ctx.NavColor.Black); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReturnJourney_From_Target_to_PA_Unit1:', e.message); }
+      const _condRes = (ctx.unit1.standbyPos.outColor === ctx.NavColor.Black);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.standbyPos.outColor === ctx.NavColor.Black)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReturnJourney_From_Target_to_PA_Unit1:', e.message); return false; }
   }
@@ -1429,7 +2369,9 @@ class SCN_ObstacleStop_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.obstacle.outObstacle === true))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleStop_Unit2: LHS(ctx.unit2.obstacle.outObstacle) =', ctx.unit2.obstacle.outObstacle, '| RHS(true) =', true); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleStop_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.obstacle.outObstacle === true);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === true)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleStop_Unit2:', e.message); return false; }
   }
@@ -1454,7 +2396,9 @@ class SCN_ObstacleResume_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.obstacle.outObstacle === false))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleResume_Unit2: LHS(ctx.unit2.obstacle.outObstacle) =', ctx.unit2.obstacle.outObstacle, '| RHS(false) =', false); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleResume_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.obstacle.outObstacle === false);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === false)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleResume_Unit2:', e.message); return false; }
   }
@@ -1479,7 +2423,9 @@ class SCN_ReadParam_P0_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P0_Unit2: LHS(ctx.unit2.unit_pInput.inParam) =', ctx.unit2.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P0) =', ctx.MissionParameter.P0); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P0_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P0_Unit2:', e.message); return false; }
   }
@@ -1504,7 +2450,9 @@ class SCN_ReadParam_P1_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P1_Unit2: LHS(ctx.unit2.unit_pInput.inParam) =', ctx.unit2.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P1) =', ctx.MissionParameter.P1); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P1_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P1_Unit2:', e.message); return false; }
   }
@@ -1532,7 +2480,9 @@ class SCN_IdentifyPiece_T_Blue_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Blue_Unit2: LHS(ctx.unit2.unit_camera.inPieceColor) =', ctx.unit2.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Blue) =', ctx.PieceColor.Blue); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Blue_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Blue_Unit2:', e.message); return false; }
   }
@@ -1560,7 +2510,9 @@ class SCN_IdentifyPiece_T_Red_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Red_Unit2: LHS(ctx.unit2.unit_camera.inPieceColor) =', ctx.unit2.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Red) =', ctx.PieceColor.Red); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Red_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Red_Unit2:', e.message); return false; }
   }
@@ -1588,7 +2540,9 @@ class SCN_GrabPiece_T_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_GrabPiece_T_Unit2: LHS(ctx.unit2.transElevator.outPieceColor) =', ctx.unit2.transElevator.outPieceColor, '| RHS(ctx.PieceColor.None) =', ctx.PieceColor.None); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_GrabPiece_T_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit2: expr="[object Object]" -> JS: (ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_GrabPiece_T_Unit2:', e.message); return false; }
   }
@@ -1716,7 +2670,8 @@ class SCN_SPEArrival_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None))) return false;
+      const _condRes = (ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_SPEArrival_Unit2:', e.message); return false; }
   }
@@ -1741,7 +2696,9 @@ class SCN_Priority_Route_Target_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.navPad.outColor === ctx.NavColor.Green))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_Priority_Route_Target_Unit2: LHS(ctx.unit2.navPad.outColor) =', ctx.unit2.navPad.outColor, '| RHS(ctx.NavColor.Green) =', ctx.NavColor.Green); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_Priority_Route_Target_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.navPad.outColor === ctx.NavColor.Green);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit2: expr="[object Object]" -> JS: (ctx.unit2.navPad.outColor === ctx.NavColor.Green)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_Priority_Route_Target_Unit2:', e.message); return false; }
   }
@@ -1791,7 +2748,8 @@ class SCN_ReleasePiece_SA_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None))) return false;
+      const _condRes = (ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReleasePiece_SA_Unit2:', e.message); return false; }
   }
@@ -1816,7 +2774,9 @@ class SCN_ReturnJourney_From_Target_to_PA_Unit2 extends Scene {
 
   validatePostConditions(ctx) {
     try {
-      if (!((ctx.unit2.standbyPos.outColor === ctx.NavColor.Black))) return false;
+      try { console.log('[DEBUG EXACT EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit2: LHS(ctx.unit2.standbyPos.outColor) =', ctx.unit2.standbyPos.outColor, '| RHS(ctx.NavColor.Black) =', ctx.NavColor.Black); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReturnJourney_From_Target_to_PA_Unit2:', e.message); }
+      const _condRes = (ctx.unit2.standbyPos.outColor === ctx.NavColor.Black);
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.standbyPos.outColor === ctx.NavColor.Black)'); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReturnJourney_From_Target_to_PA_Unit2:', e.message); return false; }
   }
@@ -2257,7 +3217,7 @@ class Scenario_PriorityResolution_P0_Blue_SPE_Occupied extends Scenario {
       ...opts,
       scenarioType: 'scenario'
     });
-    this.sceneSequence = ["SCN_ReadParam_P0_Unit1","SCN_SPEArrival_Unit1","SCN_Priority_Route_Target_Unit1","SCN_ReleasePiece_SA_Unit1","SCN_ReturnJourney_From_Target_to_PA_Unit1"];
+    this.sceneSequence = ["SCN_ReadParam_P0_Unit1","SCN_SPEArrival_Unit1","SCN_Priority_Route_Target_Unit1"];
   }
 
   async execute(context) {
@@ -2333,52 +3293,6 @@ class Scenario_PriorityResolution_P0_Blue_SPE_Occupied extends Scenario {
     }
     if (context.eventScheduler?.notifyScenarioCompleted) {
       context.eventScheduler.notifyScenarioCompleted('SCN_Priority_Route_Target_Unit1');
-    }
-    // Execute scene with logging
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.started',
-        name: 'SCN_ReleasePiece_SA_Unit1',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReleasePiece_SA_Unit1' }
-      });
-    }
-    const sceneStartTime_SCN_ReleasePiece_SA_Unit1 = Date.now();
-    await this.executeScene('SCN_ReleasePiece_SA_Unit1', context);
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.completed',
-        name: 'SCN_ReleasePiece_SA_Unit1',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReleasePiece_SA_Unit1' },
-        metrics: { duration: Date.now() - sceneStartTime_SCN_ReleasePiece_SA_Unit1 }
-      });
-    }
-    if (context.eventScheduler?.notifyScenarioCompleted) {
-      context.eventScheduler.notifyScenarioCompleted('SCN_ReleasePiece_SA_Unit1');
-    }
-    // Execute scene with logging
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.started',
-        name: 'SCN_ReturnJourney_From_Target_to_PA_Unit1',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReturnJourney_From_Target_to_PA_Unit1' }
-      });
-    }
-    const sceneStartTime_SCN_ReturnJourney_From_Target_to_PA_Unit1 = Date.now();
-    await this.executeScene('SCN_ReturnJourney_From_Target_to_PA_Unit1', context);
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.completed',
-        name: 'SCN_ReturnJourney_From_Target_to_PA_Unit1',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReturnJourney_From_Target_to_PA_Unit1' },
-        metrics: { duration: Date.now() - sceneStartTime_SCN_ReturnJourney_From_Target_to_PA_Unit1 }
-      });
-    }
-    if (context.eventScheduler?.notifyScenarioCompleted) {
-      context.eventScheduler.notifyScenarioCompleted('SCN_ReturnJourney_From_Target_to_PA_Unit1');
     }
 
     return { success: true, message: 'Scenario completed successfully' };
@@ -3022,6 +3936,17 @@ class ScenarioExecution_P0_T_First_Obstacle extends ScenarioExecution {
     });
   }
 
+  initializeState(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.Red;
+  }
+
   async executeAsync(ctx) {
     // Initial assignment
     ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Blue;
@@ -3060,20 +3985,8 @@ class ScenarioExecution_P0_T_First_Obstacle extends ScenarioExecution {
           return { scenario: 'Scenario_Obstacle_Encounter_During_Transit', result: res };
         })(),
         (async () => {
-          const res = await this.executeScenario('Scenario_Mission_P0_Blue_Nominal_SPE_Empty', ctx);
-          return { scenario: 'Scenario_Mission_P0_Blue_Nominal_SPE_Empty', result: res };
-        })(),
-        (async () => {
-          const res = await this.executeScenario('Scenario_PriorityResolution_P1_Red_SPE_Occupied', ctx);
-          return { scenario: 'Scenario_PriorityResolution_P1_Red_SPE_Occupied', result: res };
-        })(),
-        (async () => {
           const res = await this.executeScenario('Scenario_Obstacle_Encounter_Unit2', ctx);
           return { scenario: 'Scenario_Obstacle_Encounter_Unit2', result: res };
-        })(),
-        (async () => {
-          const res = await this.executeScenario('Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2', ctx);
-          return { scenario: 'Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2', result: res };
         })()
       ]);
       ctx.parallelResults.push(...pResults);
