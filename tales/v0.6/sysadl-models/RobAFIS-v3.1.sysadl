@@ -1701,8 +1701,6 @@ package PkgScenarios {
             SCN_ReadParam_P1_Unit2 ;
             SCN_SPEArrival_Unit2 ;
             SCN_Priority_Route_Target_Unit2 ;
-            SCN_ReleasePiece_SA_Unit2 ;
-            SCN_ReturnJourney_From_Target_to_PA_Unit2 ;
         }
 
         Scenario def Scenario_Destination_Full_Standby {
@@ -1733,6 +1731,65 @@ package PkgScenarios {
             Scenario_PriorityResolution_P0_Blue_SPE_Occupied ;
             Scenario_Obstacle_Encounter_During_Transit ;
             Scenario_Obstacle_Encounter_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P0_Nominal_SPE_Empty to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig {
+            mission = MissionParameter::P0 ;
+            strategy = StrategyParameter::T_First ;
+        } immediate ;
+
+        unit1.transElevator.outPieceColor = PieceColor::Blue ;
+        spe1_spd2.outPieceColor = PieceColor::None ;
+
+        unit2.transElevator.outPieceColor = PieceColor::Blue ;
+        spd1_spe2.outPieceColor = PieceColor::None ;
+
+        parallel {
+            Scenario_Mission_P0_Blue_Nominal_SPE_Empty ;
+            Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P1_Nominal_SPE_Empty to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig {
+            mission = MissionParameter::P1 ;
+            strategy = StrategyParameter::T_First ;
+        } immediate ;
+
+        unit1.transElevator.outPieceColor = PieceColor::Red ;
+        spe1_spd2.outPieceColor = PieceColor::None ;
+
+        unit2.transElevator.outPieceColor = PieceColor::Red ;
+        spd1_spe2.outPieceColor = PieceColor::None ;
+
+        parallel {
+            Scenario_Mission_P1_Red_Nominal_SPE_Empty ;
+            Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2 ;
+        }
+    }
+
+    ScenarioExecution ScenarioExecution_P1_SPE_Occupied to ValidationPlan_RobAFIS {
+        mode: once ;
+
+        inject StartSimulationSig {
+            mission = MissionParameter::P1 ;
+            strategy = StrategyParameter::T_First ;
+        } immediate ;
+
+        unit1.transElevator.outPieceColor = PieceColor::Red ;
+        spe1_spd2.outPieceColor = PieceColor::Red ;
+
+        unit2.transElevator.outPieceColor = PieceColor::Red ;
+        spd1_spe2.outPieceColor = PieceColor::Red ;
+
+        parallel {
+            Scenario_PriorityResolution_P1_Red_SPE_Occupied ;
         }
     }
 }

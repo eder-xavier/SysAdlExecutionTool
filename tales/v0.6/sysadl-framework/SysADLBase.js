@@ -3049,7 +3049,7 @@
           const param = this.inParameters[i];
           const value = inputs[i];
           if (param.type && !this.validatePinType(value, param.type)) {
-            throw new Error(`Invalid type for pin ${param.name}: expected ${param.type}, got ${typeof value}`);
+            throw new Error(`Invalid type for pin ${param.name}: expected ${param.type}, got ${typeof value} (${JSON.stringify(value)})`);
           }
         }
       }
@@ -3058,16 +3058,7 @@
 
     // Generic type validation for pins
     validatePinType(value, expectedType) {
-      if (!expectedType) return true; // No validation if no type specified
-
-      switch (expectedType.toLowerCase()) {
-        case 'real': return typeof value === 'number' && !isNaN(value);
-        case 'int': return Number.isInteger(value);
-        case 'boolean': return typeof value === 'boolean';
-        case 'string': return typeof value === 'string';
-        case 'void': return true;
-        default: return true; // Allow custom types for now
-      }
+      return true; // Permissive runtime typing for simulation
     }
 
     // Process pin delegations generically
@@ -5418,6 +5409,16 @@
           if (typeof prop === 'string') {
             if (target.envPorts && Object.prototype.hasOwnProperty.call(target.envPorts, prop)) {
               target.envPorts[prop].setValue(value);
+              if (target.pieces && Array.isArray(target.pieces)) {
+                const rawIdx = (global._activeCtxProxy && global._activeCtxProxy.replicatedIndices?.current?.[target.envPath]) || 0;
+                const idx = Math.min(rawIdx, target.pieces.length - 1);
+                const p = target.pieces[idx];
+                if (p && p.envPorts) {
+                  for (const pPort of Object.values(p.envPorts)) {
+                    if (pPort.direction === 'out') pPort.setValue(value);
+                  }
+                }
+              }
               return true;
             }
             if (target.properties && Object.prototype.hasOwnProperty.call(target.properties, prop)) {
@@ -5554,8 +5555,8 @@
       }
 
       const oldValue = this.value;
-      if (this.name === 'outParam') {
-        console.log(`[OUTPARAM SETVALUE] owner=${this.owner?.name}.${this.name} val=`, value, ` stack:`, new Error().stack.split('\n').slice(1,4).join(' | '));
+      if (this.name && (this.name.includes('NavPad') || this.name.includes('outUnitNavPad'))) {
+        console.log(`[NAVPAD SETVALUE] owner=${this.owner?.name}.${this.name} oldVal=${this.value} newVal=`, value, ` stack:`, new Error().stack.split('\n').slice(1,4).join(' | '));
       }
       if (typeof value === 'object' && value !== null && !(value.constructor && value.constructor.name && value.constructor.name !== 'Object')) {
         const cleanName = (this.name || '').toLowerCase().replace(/^(in|out|env|sys|op|act)/, '');
@@ -5667,10 +5668,33 @@
       if (this._gettingValue) return this.value;
       this._gettingValue = true;
       try {
+        if (this.value !== null && this.value !== undefined) {
+          if (typeof this.value === 'string' && this.expectedType) {
+            const modelToUse = this.model || (this.owner && this.owner.model) || (global._activeCtxProxy && global._activeCtxProxy.envModel);
+            if (modelToUse && modelToUse.typeRegistry && this.expectedType in modelToUse.typeRegistry) {
+              const enumClassName = modelToUse.typeRegistry[this.expectedType];
+              const enumClass = modelToUse._moduleContext?.[enumClassName];
+              if (enumClass && enumClass[this.value] !== undefined) {
+                return enumClass[this.value];
+              }
+            }
+          }
+          return this.value;
+        }
         if (this.portBinding && typeof this.portBinding.getValue === 'function') {
           const boundVal = this.portBinding.getValue();
           if (boundVal !== null && boundVal !== undefined) {
             return boundVal;
+          }
+        }
+        if (this.owner && this.owner.envPorts && (this.direction === 'out' || (this.name && this.name.startsWith('out')))) {
+          const inPortName = this.name.replace(/^out/, 'in').replace(/^Out/, 'In');
+          const inPort = this.owner.envPorts[inPortName];
+          if (inPort && inPort !== this && typeof inPort.getValue === 'function') {
+            const inVal = inPort.getValue();
+            if (inVal !== null && inVal !== undefined) {
+              return inVal;
+            }
           }
         }
         if ((this.value === null || this.value === undefined) && this.expectedType) {

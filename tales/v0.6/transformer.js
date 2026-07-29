@@ -4914,7 +4914,7 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
           lines.push(`    try {`);
           for (const cond of postconds) {
             const jsExpr = envExprToJS(cond, 'ctx');
-            const cleanExpr = jsExpr.trim().replace(/^\s*\(/, '').replace(/\)\s*$/, '');
+            const cleanExpr = jsExpr.trim().replace(/^\(+\s*/, '').replace(/\s*\)+$/, '');
             const parts = cleanExpr.split('===');
             if (parts.length === 2) {
               const lhs = parts[0].trim();
@@ -4922,7 +4922,9 @@ function generateEnvironmentModule(modelName, environmentElements, traditionalEl
               lines.push(`      try { console.log('[DEBUG EXACT EVAL] ${sceneDef.name}: LHS(${lhs}) =', ${lhs}, '| RHS(${rhs}) =', ${rhs}); } catch(e) { console.log('[DEBUG EVAL ERR] ${sceneDef.name}:', e.message); }`);
             }
             lines.push(`      const _condRes = ${jsExpr};`);
-            lines.push(`      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] ${sceneDef.name}: expr="${cond}" -> JS: ${jsExpr}'); return false; }`);
+            const lhsStr = (parts[0] || '').trim();
+            const rhsStr = (parts[1] || '').trim();
+            lines.push(`      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] ${sceneDef.name}: expr="${cond}" -> JS: ${jsExpr} | LHS =', ${lhsStr}, '| RHS =', ${rhsStr}); return false; }`);
           }
           lines.push(`      return true;`);
           lines.push(`    } catch(e) { console.error('Postcondition error in ${sceneDef.name}:', e.message); return false; }`);

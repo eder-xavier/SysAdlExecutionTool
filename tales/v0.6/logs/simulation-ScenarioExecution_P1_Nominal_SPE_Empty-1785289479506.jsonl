@@ -1,0 +1,270 @@
+{
+  "simulation": {
+    "model": "RobAFIS",
+    "execution": "ScenarioExecution_P1_Nominal_SPE_Empty",
+    "timestamp": "2026-07-29T01:44:39.506Z",
+    "mode": "once",
+    "duration_ms": 70
+  },
+  "scenarios": [
+    {
+      "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+      "status": "PASS",
+      "scenes": [
+        {
+          "name": "SCN_ReadParam_P1_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_IdentifyPiece_T_Red_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_GrabPiece_T_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_DecideRoute_SA_P1_Red_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_SkipSPE_Empty_To_Target_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_ReleasePiece_SA_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_ReturnJourney_From_Target_to_PA_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2",
+      "status": "PASS",
+      "scenes": [
+        {
+          "name": "SCN_ReadParam_P1_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_IdentifyPiece_T_Red_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_GrabPiece_T_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_DecideRoute_SA_P1_Red_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_SkipSPE_Empty_To_Target_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_ReleasePiece_SA_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        },
+        {
+          "name": "SCN_ReturnJourney_From_Target_to_PA_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": []
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_scenarios": 2,
+    "passed": 2,
+    "failed": 0,
+    "total_scenes": 14,
+    "scenes_passed": 14,
+    "scenes_failed": 0,
+    "scenes_skipped": 0
+  }
+}

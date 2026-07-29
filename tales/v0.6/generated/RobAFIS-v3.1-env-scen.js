@@ -1936,7 +1936,7 @@ class SCN_ObstacleStop_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleStop_Unit1: LHS(ctx.unit1.obstacle.outObstacle) =', ctx.unit1.obstacle.outObstacle, '| RHS(true) =', true); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleStop_Unit1:', e.message); }
       const _condRes = (ctx.unit1.obstacle.outObstacle === true);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === true)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === true) | LHS =', ctx.unit1.obstacle.outObstacle, '| RHS =', true); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleStop_Unit1:', e.message); return false; }
   }
@@ -1963,7 +1963,7 @@ class SCN_ObstacleResume_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleResume_Unit1: LHS(ctx.unit1.obstacle.outObstacle) =', ctx.unit1.obstacle.outObstacle, '| RHS(false) =', false); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleResume_Unit1:', e.message); }
       const _condRes = (ctx.unit1.obstacle.outObstacle === false);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === false)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit1: expr="[object Object]" -> JS: (ctx.unit1.obstacle.outObstacle === false) | LHS =', ctx.unit1.obstacle.outObstacle, '| RHS =', false); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleResume_Unit1:', e.message); return false; }
   }
@@ -1990,7 +1990,7 @@ class SCN_ReadParam_P0_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P0_Unit1: LHS(ctx.unit1.unit_pInput.inParam) =', ctx.unit1.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P0) =', ctx.MissionParameter.P0); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P0_Unit1:', e.message); }
       const _condRes = (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0) | LHS =', ctx.unit1.unit_pInput.inParam, '| RHS =', ctx.MissionParameter.P0); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P0_Unit1:', e.message); return false; }
   }
@@ -2017,7 +2017,7 @@ class SCN_ReadParam_P1_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P1_Unit1: LHS(ctx.unit1.unit_pInput.inParam) =', ctx.unit1.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P1) =', ctx.MissionParameter.P1); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P1_Unit1:', e.message); }
       const _condRes = (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P1) | LHS =', ctx.unit1.unit_pInput.inParam, '| RHS =', ctx.MissionParameter.P1); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P1_Unit1:', e.message); return false; }
   }
@@ -2047,7 +2047,7 @@ class SCN_IdentifyPiece_T_Blue_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Blue_Unit1: LHS(ctx.unit1.unit_camera.inPieceColor) =', ctx.unit1.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Blue) =', ctx.PieceColor.Blue); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Blue_Unit1:', e.message); }
       const _condRes = (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Blue) | LHS =', ctx.unit1.unit_camera.inPieceColor, '| RHS =', ctx.PieceColor.Blue); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Blue_Unit1:', e.message); return false; }
   }
@@ -2077,7 +2077,7 @@ class SCN_IdentifyPiece_T_Red_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Red_Unit1: LHS(ctx.unit1.unit_camera.inPieceColor) =', ctx.unit1.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Red) =', ctx.PieceColor.Red); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Red_Unit1:', e.message); }
       const _condRes = (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inPieceColor === ctx.PieceColor.Red) | LHS =', ctx.unit1.unit_camera.inPieceColor, '| RHS =', ctx.PieceColor.Red); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Red_Unit1:', e.message); return false; }
   }
@@ -2107,7 +2107,7 @@ class SCN_GrabPiece_T_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_GrabPiece_T_Unit1: LHS(ctx.unit1.transElevator.outPieceColor) =', ctx.unit1.transElevator.outPieceColor, '| RHS(ctx.PieceColor.None) =', ctx.PieceColor.None); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_GrabPiece_T_Unit1:', e.message); }
       const _condRes = (ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit1: expr="[object Object]" -> JS: (ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit1: expr="[object Object]" -> JS: (ctx.unit1.transElevator.outPieceColor === ctx.PieceColor.None) | LHS =', ctx.unit1.transElevator.outPieceColor, '| RHS =', ctx.PieceColor.None); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_GrabPiece_T_Unit1:', e.message); return false; }
   }
@@ -2236,7 +2236,7 @@ class SCN_SPEArrival_Unit1 extends Scene {
   validatePostConditions(ctx) {
     try {
       const _condRes = (ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit1: expr="[object Object]" -> JS: (ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None) | LHS =', ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None, '| RHS =', ); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_SPEArrival_Unit1:', e.message); return false; }
   }
@@ -2263,7 +2263,7 @@ class SCN_Priority_Route_Target_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_Priority_Route_Target_Unit1: LHS(ctx.unit1.navPad.outColor) =', ctx.unit1.navPad.outColor, '| RHS(ctx.NavColor.Green) =', ctx.NavColor.Green); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_Priority_Route_Target_Unit1:', e.message); }
       const _condRes = (ctx.unit1.navPad.outColor === ctx.NavColor.Green);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit1: expr="[object Object]" -> JS: (ctx.unit1.navPad.outColor === ctx.NavColor.Green)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit1: expr="[object Object]" -> JS: (ctx.unit1.navPad.outColor === ctx.NavColor.Green) | LHS =', ctx.unit1.navPad.outColor, '| RHS =', ctx.NavColor.Green); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_Priority_Route_Target_Unit1:', e.message); return false; }
   }
@@ -2314,7 +2314,7 @@ class SCN_ReleasePiece_SA_Unit1 extends Scene {
   validatePostConditions(ctx) {
     try {
       const _condRes = (ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None) | LHS =', ctx.unit1.arrivalStock.outPieceColor != ctx.PieceColor.None, '| RHS =', ); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReleasePiece_SA_Unit1:', e.message); return false; }
   }
@@ -2341,7 +2341,7 @@ class SCN_ReturnJourney_From_Target_to_PA_Unit1 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit1: LHS(ctx.unit1.standbyPos.outColor) =', ctx.unit1.standbyPos.outColor, '| RHS(ctx.NavColor.Black) =', ctx.NavColor.Black); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReturnJourney_From_Target_to_PA_Unit1:', e.message); }
       const _condRes = (ctx.unit1.standbyPos.outColor === ctx.NavColor.Black);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.standbyPos.outColor === ctx.NavColor.Black)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit1: expr="[object Object]" -> JS: (ctx.unit1.standbyPos.outColor === ctx.NavColor.Black) | LHS =', ctx.unit1.standbyPos.outColor, '| RHS =', ctx.NavColor.Black); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReturnJourney_From_Target_to_PA_Unit1:', e.message); return false; }
   }
@@ -2371,7 +2371,7 @@ class SCN_ObstacleStop_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleStop_Unit2: LHS(ctx.unit2.obstacle.outObstacle) =', ctx.unit2.obstacle.outObstacle, '| RHS(true) =', true); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleStop_Unit2:', e.message); }
       const _condRes = (ctx.unit2.obstacle.outObstacle === true);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === true)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleStop_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === true) | LHS =', ctx.unit2.obstacle.outObstacle, '| RHS =', true); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleStop_Unit2:', e.message); return false; }
   }
@@ -2398,7 +2398,7 @@ class SCN_ObstacleResume_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ObstacleResume_Unit2: LHS(ctx.unit2.obstacle.outObstacle) =', ctx.unit2.obstacle.outObstacle, '| RHS(false) =', false); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ObstacleResume_Unit2:', e.message); }
       const _condRes = (ctx.unit2.obstacle.outObstacle === false);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === false)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ObstacleResume_Unit2: expr="[object Object]" -> JS: (ctx.unit2.obstacle.outObstacle === false) | LHS =', ctx.unit2.obstacle.outObstacle, '| RHS =', false); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ObstacleResume_Unit2:', e.message); return false; }
   }
@@ -2425,7 +2425,7 @@ class SCN_ReadParam_P0_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P0_Unit2: LHS(ctx.unit2.unit_pInput.inParam) =', ctx.unit2.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P0) =', ctx.MissionParameter.P0); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P0_Unit2:', e.message); }
       const _condRes = (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P0_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P0) | LHS =', ctx.unit2.unit_pInput.inParam, '| RHS =', ctx.MissionParameter.P0); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P0_Unit2:', e.message); return false; }
   }
@@ -2452,7 +2452,7 @@ class SCN_ReadParam_P1_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReadParam_P1_Unit2: LHS(ctx.unit2.unit_pInput.inParam) =', ctx.unit2.unit_pInput.inParam, '| RHS(ctx.MissionParameter.P1) =', ctx.MissionParameter.P1); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReadParam_P1_Unit2:', e.message); }
       const _condRes = (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReadParam_P1_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_pInput.inParam === ctx.MissionParameter.P1) | LHS =', ctx.unit2.unit_pInput.inParam, '| RHS =', ctx.MissionParameter.P1); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReadParam_P1_Unit2:', e.message); return false; }
   }
@@ -2482,7 +2482,7 @@ class SCN_IdentifyPiece_T_Blue_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Blue_Unit2: LHS(ctx.unit2.unit_camera.inPieceColor) =', ctx.unit2.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Blue) =', ctx.PieceColor.Blue); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Blue_Unit2:', e.message); }
       const _condRes = (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Blue_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Blue) | LHS =', ctx.unit2.unit_camera.inPieceColor, '| RHS =', ctx.PieceColor.Blue); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Blue_Unit2:', e.message); return false; }
   }
@@ -2512,7 +2512,7 @@ class SCN_IdentifyPiece_T_Red_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_IdentifyPiece_T_Red_Unit2: LHS(ctx.unit2.unit_camera.inPieceColor) =', ctx.unit2.unit_camera.inPieceColor, '| RHS(ctx.PieceColor.Red) =', ctx.PieceColor.Red); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_IdentifyPiece_T_Red_Unit2:', e.message); }
       const _condRes = (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_IdentifyPiece_T_Red_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inPieceColor === ctx.PieceColor.Red) | LHS =', ctx.unit2.unit_camera.inPieceColor, '| RHS =', ctx.PieceColor.Red); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_IdentifyPiece_T_Red_Unit2:', e.message); return false; }
   }
@@ -2542,7 +2542,7 @@ class SCN_GrabPiece_T_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_GrabPiece_T_Unit2: LHS(ctx.unit2.transElevator.outPieceColor) =', ctx.unit2.transElevator.outPieceColor, '| RHS(ctx.PieceColor.None) =', ctx.PieceColor.None); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_GrabPiece_T_Unit2:', e.message); }
       const _condRes = (ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit2: expr="[object Object]" -> JS: (ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_GrabPiece_T_Unit2: expr="[object Object]" -> JS: (ctx.unit2.transElevator.outPieceColor === ctx.PieceColor.None) | LHS =', ctx.unit2.transElevator.outPieceColor, '| RHS =', ctx.PieceColor.None); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_GrabPiece_T_Unit2:', e.message); return false; }
   }
@@ -2671,7 +2671,7 @@ class SCN_SPEArrival_Unit2 extends Scene {
   validatePostConditions(ctx) {
     try {
       const _condRes = (ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_SPEArrival_Unit2: expr="[object Object]" -> JS: (ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None) | LHS =', ctx.unit2.unit_camera.inSpePieceColor != ctx.PieceColor.None, '| RHS =', ); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_SPEArrival_Unit2:', e.message); return false; }
   }
@@ -2698,7 +2698,7 @@ class SCN_Priority_Route_Target_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_Priority_Route_Target_Unit2: LHS(ctx.unit2.navPad.outColor) =', ctx.unit2.navPad.outColor, '| RHS(ctx.NavColor.Green) =', ctx.NavColor.Green); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_Priority_Route_Target_Unit2:', e.message); }
       const _condRes = (ctx.unit2.navPad.outColor === ctx.NavColor.Green);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit2: expr="[object Object]" -> JS: (ctx.unit2.navPad.outColor === ctx.NavColor.Green)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_Priority_Route_Target_Unit2: expr="[object Object]" -> JS: (ctx.unit2.navPad.outColor === ctx.NavColor.Green) | LHS =', ctx.unit2.navPad.outColor, '| RHS =', ctx.NavColor.Green); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_Priority_Route_Target_Unit2:', e.message); return false; }
   }
@@ -2749,7 +2749,7 @@ class SCN_ReleasePiece_SA_Unit2 extends Scene {
   validatePostConditions(ctx) {
     try {
       const _condRes = (ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReleasePiece_SA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None) | LHS =', ctx.unit2.arrivalStock.outPieceColor != ctx.PieceColor.None, '| RHS =', ); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReleasePiece_SA_Unit2:', e.message); return false; }
   }
@@ -2776,7 +2776,7 @@ class SCN_ReturnJourney_From_Target_to_PA_Unit2 extends Scene {
     try {
       try { console.log('[DEBUG EXACT EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit2: LHS(ctx.unit2.standbyPos.outColor) =', ctx.unit2.standbyPos.outColor, '| RHS(ctx.NavColor.Black) =', ctx.NavColor.Black); } catch(e) { console.log('[DEBUG EVAL ERR] SCN_ReturnJourney_From_Target_to_PA_Unit2:', e.message); }
       const _condRes = (ctx.unit2.standbyPos.outColor === ctx.NavColor.Black);
-      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.standbyPos.outColor === ctx.NavColor.Black)'); return false; }
+      if (!_condRes) { console.log('[POSTCOND FAIL EVAL] SCN_ReturnJourney_From_Target_to_PA_Unit2: expr="[object Object]" -> JS: (ctx.unit2.standbyPos.outColor === ctx.NavColor.Black) | LHS =', ctx.unit2.standbyPos.outColor, '| RHS =', ctx.NavColor.Black); return false; }
       return true;
     } catch(e) { console.error('Postcondition error in SCN_ReturnJourney_From_Target_to_PA_Unit2:', e.message); return false; }
   }
@@ -3734,7 +3734,7 @@ class Scenario_PriorityResolution_P1_Red_SPE_Occupied extends Scenario {
       ...opts,
       scenarioType: 'scenario'
     });
-    this.sceneSequence = ["SCN_ReadParam_P1_Unit2","SCN_SPEArrival_Unit2","SCN_Priority_Route_Target_Unit2","SCN_ReleasePiece_SA_Unit2","SCN_ReturnJourney_From_Target_to_PA_Unit2"];
+    this.sceneSequence = ["SCN_ReadParam_P1_Unit2","SCN_SPEArrival_Unit2","SCN_Priority_Route_Target_Unit2"];
   }
 
   async execute(context) {
@@ -3810,52 +3810,6 @@ class Scenario_PriorityResolution_P1_Red_SPE_Occupied extends Scenario {
     }
     if (context.eventScheduler?.notifyScenarioCompleted) {
       context.eventScheduler.notifyScenarioCompleted('SCN_Priority_Route_Target_Unit2');
-    }
-    // Execute scene with logging
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.started',
-        name: 'SCN_ReleasePiece_SA_Unit2',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReleasePiece_SA_Unit2' }
-      });
-    }
-    const sceneStartTime_SCN_ReleasePiece_SA_Unit2 = Date.now();
-    await this.executeScene('SCN_ReleasePiece_SA_Unit2', context);
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.completed',
-        name: 'SCN_ReleasePiece_SA_Unit2',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReleasePiece_SA_Unit2' },
-        metrics: { duration: Date.now() - sceneStartTime_SCN_ReleasePiece_SA_Unit2 }
-      });
-    }
-    if (context.eventScheduler?.notifyScenarioCompleted) {
-      context.eventScheduler.notifyScenarioCompleted('SCN_ReleasePiece_SA_Unit2');
-    }
-    // Execute scene with logging
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.started',
-        name: 'SCN_ReturnJourney_From_Target_to_PA_Unit2',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReturnJourney_From_Target_to_PA_Unit2' }
-      });
-    }
-    const sceneStartTime_SCN_ReturnJourney_From_Target_to_PA_Unit2 = Date.now();
-    await this.executeScene('SCN_ReturnJourney_From_Target_to_PA_Unit2', context);
-    if (context.model?.logger) {
-      context.model.logger.logExecution({
-        type: 'scene.execution.completed',
-        name: 'SCN_ReturnJourney_From_Target_to_PA_Unit2',
-        context: { scenario: this.name },
-        trace: { scenario: this.name, sceneName: 'SCN_ReturnJourney_From_Target_to_PA_Unit2' },
-        metrics: { duration: Date.now() - sceneStartTime_SCN_ReturnJourney_From_Target_to_PA_Unit2 }
-      });
-    }
-    if (context.eventScheduler?.notifyScenarioCompleted) {
-      context.eventScheduler.notifyScenarioCompleted('SCN_ReturnJourney_From_Target_to_PA_Unit2');
     }
 
     return { success: true, message: 'Scenario completed successfully' };
@@ -3995,6 +3949,167 @@ class ScenarioExecution_P0_T_First_Obstacle extends ScenarioExecution {
   }
 }
 
+// ScenarioExecution: ScenarioExecution_P0_Nominal_SPE_Empty → ValidationPlan_RobAFIS (mode: once)
+class ScenarioExecution_P0_Nominal_SPE_Empty extends ScenarioExecution {
+  constructor(name = 'ScenarioExecution_P0_Nominal_SPE_Empty', opts = {}) {
+    super(name, {
+      ...opts,
+      targetScenarios: 'ValidationPlan_RobAFIS',
+      mode: 'once'
+    });
+  }
+
+  initializeState(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.None;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.None;
+  }
+
+  async executeAsync(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.None;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Blue;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.None;
+    // inject StartSimulationSig immediate
+    {
+      const injectData = {};
+      injectData.mission = ctx.MissionParameter.P0;
+      injectData.strategy = ctx.StrategyParameter.T_First;
+      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
+    }
+    // Parallel scenarios execution
+    {
+      const pResults = await Promise.all([
+        (async () => {
+          const res = await this.executeScenario('Scenario_Mission_P0_Blue_Nominal_SPE_Empty', ctx);
+          return { scenario: 'Scenario_Mission_P0_Blue_Nominal_SPE_Empty', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2', ctx);
+          return { scenario: 'Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2', result: res };
+        })()
+      ]);
+      ctx.parallelResults.push(...pResults);
+    }
+    return { success: true, execution: 'ScenarioExecution_P0_Nominal_SPE_Empty' };
+  }
+}
+
+// ScenarioExecution: ScenarioExecution_P1_Nominal_SPE_Empty → ValidationPlan_RobAFIS (mode: once)
+class ScenarioExecution_P1_Nominal_SPE_Empty extends ScenarioExecution {
+  constructor(name = 'ScenarioExecution_P1_Nominal_SPE_Empty', opts = {}) {
+    super(name, {
+      ...opts,
+      targetScenarios: 'ValidationPlan_RobAFIS',
+      mode: 'once'
+    });
+  }
+
+  initializeState(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.None;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.None;
+  }
+
+  async executeAsync(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.None;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.None;
+    // inject StartSimulationSig immediate
+    {
+      const injectData = {};
+      injectData.mission = ctx.MissionParameter.P1;
+      injectData.strategy = ctx.StrategyParameter.T_First;
+      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
+    }
+    // Parallel scenarios execution
+    {
+      const pResults = await Promise.all([
+        (async () => {
+          const res = await this.executeScenario('Scenario_Mission_P1_Red_Nominal_SPE_Empty', ctx);
+          return { scenario: 'Scenario_Mission_P1_Red_Nominal_SPE_Empty', result: res };
+        })(),
+        (async () => {
+          const res = await this.executeScenario('Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2', ctx);
+          return { scenario: 'Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2', result: res };
+        })()
+      ]);
+      ctx.parallelResults.push(...pResults);
+    }
+    return { success: true, execution: 'ScenarioExecution_P1_Nominal_SPE_Empty' };
+  }
+}
+
+// ScenarioExecution: ScenarioExecution_P1_SPE_Occupied → ValidationPlan_RobAFIS (mode: once)
+class ScenarioExecution_P1_SPE_Occupied extends ScenarioExecution {
+  constructor(name = 'ScenarioExecution_P1_SPE_Occupied', opts = {}) {
+    super(name, {
+      ...opts,
+      targetScenarios: 'ValidationPlan_RobAFIS',
+      mode: 'once'
+    });
+  }
+
+  initializeState(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.Red;
+  }
+
+  async executeAsync(ctx) {
+    // Initial assignment
+    ctx.unit1.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spe1_spd2.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.unit2.transElevator.outPieceColor = ctx.PieceColor.Red;
+    // Initial assignment
+    ctx.spd1_spe2.outPieceColor = ctx.PieceColor.Red;
+    // inject StartSimulationSig immediate
+    {
+      const injectData = {};
+      injectData.mission = ctx.MissionParameter.P1;
+      injectData.strategy = ctx.StrategyParameter.T_First;
+      if (ctx.envActivities) ctx.envActivities.handleSignal('StartSimulationSig', injectData, ctx);
+    }
+    // Parallel scenarios execution
+    {
+      const pResults = await Promise.all([
+        (async () => {
+          const res = await this.executeScenario('Scenario_PriorityResolution_P1_Red_SPE_Occupied', ctx);
+          return { scenario: 'Scenario_PriorityResolution_P1_Red_SPE_Occupied', result: res };
+        })()
+      ]);
+      ctx.parallelResults.push(...pResults);
+    }
+    return { success: true, execution: 'ScenarioExecution_P1_SPE_Occupied' };
+  }
+}
+
 // EnvActivity Allocations
 const ENV_ACTIVITY_ALLOCATIONS = [
   { activity: 'OperatorEA', component: 'HumanOperatorEnvCP' },
@@ -4107,8 +4222,14 @@ function createEnvironmentModel() {
   model.scenarioExecutions = {};
   model.scenarioExecutions['ScenarioExecution_P0_T_First_Obstacle'] = new ScenarioExecution_P0_T_First_Obstacle();
   model.registerScenarioExecution(model.scenarioExecutions['ScenarioExecution_P0_T_First_Obstacle']);
+  model.scenarioExecutions['ScenarioExecution_P0_Nominal_SPE_Empty'] = new ScenarioExecution_P0_Nominal_SPE_Empty();
+  model.registerScenarioExecution(model.scenarioExecutions['ScenarioExecution_P0_Nominal_SPE_Empty']);
+  model.scenarioExecutions['ScenarioExecution_P1_Nominal_SPE_Empty'] = new ScenarioExecution_P1_Nominal_SPE_Empty();
+  model.registerScenarioExecution(model.scenarioExecutions['ScenarioExecution_P1_Nominal_SPE_Empty']);
+  model.scenarioExecutions['ScenarioExecution_P1_SPE_Occupied'] = new ScenarioExecution_P1_SPE_Occupied();
+  model.registerScenarioExecution(model.scenarioExecutions['ScenarioExecution_P1_SPE_Occupied']);
   model.envActivityAllocations = ENV_ACTIVITY_ALLOCATIONS;
   return model;
 }
 
-module.exports = { createEnvironmentModel, EP_InPieceColor, EP_OutPieceColor, EP_InNavColor, EP_OutNavColor, EP_InBoolean, EP_OutBoolean, EP_InParameter, EP_OutParameter, EP_InStrategy, EP_OutStrategy, EP_InMotorCommand, EP_OutMotorCommand, EP_InInt, EP_OutInt, ECN_PieceColorEnvCN, ECN_NavColorEnvCN, ECN_ParamEnvCN, ECN_StrategyEnvCN, ECN_MotorCommandEnvCN, ECN_OffsetEnvCN, ECN_ObstacleEnvCN, ECP_PieceEnvCP, ECP_NavigationLineEnvCP, ECP_NavigationPadEnvCP, ECP_MachineZoneEnvCP, ECP_StandbyPositionEnvCP, ECP_ObstacleEnvCP, ECP_HumanOperatorEnvCP, ECP_TransElevatorEnvCP, ECP_ArrivalStockEnvCP, ECP_SharedStockEnvCP, ECP_ProductionUnitEnvCP, ECP_AtelierEnvCP, BEX_SysADL_Components_ParameterInputCP, BEX_SysADL_Components_CameraSensorCP, BEX_SysADL_Components_ObstacleSensorCP, BEX_SysADL_Components_GrabberCP, ENVACT_RobAFISEnvironmentActivities, SCN_ObstacleStop_Unit1, SCN_ObstacleResume_Unit1, SCN_ReadParam_P0_Unit1, SCN_ReadParam_P1_Unit1, SCN_IdentifyPiece_T_Blue_Unit1, SCN_IdentifyPiece_T_Red_Unit1, SCN_GrabPiece_T_Unit1, SCN_DecideRoute_SA_P0_Blue_Unit1, SCN_DecideRoute_SPD_P0_Red_Unit1, SCN_DecideRoute_SA_P1_Red_Unit1, SCN_DecideRoute_SPD_P1_Blue_Unit1, SCN_SPEArrival_Unit1, SCN_Priority_Route_Target_Unit1, SCN_SkipSPE_Empty_To_Target_Unit1, SCN_ReleasePiece_SA_Unit1, SCN_ReturnJourney_From_Target_to_PA_Unit1, SCN_ObstacleStop_Unit2, SCN_ObstacleResume_Unit2, SCN_ReadParam_P0_Unit2, SCN_ReadParam_P1_Unit2, SCN_IdentifyPiece_T_Blue_Unit2, SCN_IdentifyPiece_T_Red_Unit2, SCN_GrabPiece_T_Unit2, SCN_DecideRoute_SA_P0_Blue_Unit2, SCN_DecideRoute_SPD_P0_Red_Unit2, SCN_DecideRoute_SA_P1_Red_Unit2, SCN_DecideRoute_SPD_P1_Blue_Unit2, SCN_SPEArrival_Unit2, SCN_Priority_Route_Target_Unit2, SCN_SkipSPE_Empty_To_Target_Unit2, SCN_ReleasePiece_SA_Unit2, SCN_ReturnJourney_From_Target_to_PA_Unit2, Scenario_Obstacle_Encounter_During_Transit, Scenario_Mission_P0_Blue_Nominal_SPE_Empty, Scenario_Mission_P1_Red_Nominal_SPE_Empty, Scenario_PriorityResolution_P0_Blue_SPE_Occupied, Scenario_Obstacle_Encounter_Unit2, Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2, Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2, Scenario_PriorityResolution_P1_Red_SPE_Occupied, Scenario_Destination_Full_Standby, ScenarioExecution_P0_T_First_Obstacle };
+module.exports = { createEnvironmentModel, EP_InPieceColor, EP_OutPieceColor, EP_InNavColor, EP_OutNavColor, EP_InBoolean, EP_OutBoolean, EP_InParameter, EP_OutParameter, EP_InStrategy, EP_OutStrategy, EP_InMotorCommand, EP_OutMotorCommand, EP_InInt, EP_OutInt, ECN_PieceColorEnvCN, ECN_NavColorEnvCN, ECN_ParamEnvCN, ECN_StrategyEnvCN, ECN_MotorCommandEnvCN, ECN_OffsetEnvCN, ECN_ObstacleEnvCN, ECP_PieceEnvCP, ECP_NavigationLineEnvCP, ECP_NavigationPadEnvCP, ECP_MachineZoneEnvCP, ECP_StandbyPositionEnvCP, ECP_ObstacleEnvCP, ECP_HumanOperatorEnvCP, ECP_TransElevatorEnvCP, ECP_ArrivalStockEnvCP, ECP_SharedStockEnvCP, ECP_ProductionUnitEnvCP, ECP_AtelierEnvCP, BEX_SysADL_Components_ParameterInputCP, BEX_SysADL_Components_CameraSensorCP, BEX_SysADL_Components_ObstacleSensorCP, BEX_SysADL_Components_GrabberCP, ENVACT_RobAFISEnvironmentActivities, SCN_ObstacleStop_Unit1, SCN_ObstacleResume_Unit1, SCN_ReadParam_P0_Unit1, SCN_ReadParam_P1_Unit1, SCN_IdentifyPiece_T_Blue_Unit1, SCN_IdentifyPiece_T_Red_Unit1, SCN_GrabPiece_T_Unit1, SCN_DecideRoute_SA_P0_Blue_Unit1, SCN_DecideRoute_SPD_P0_Red_Unit1, SCN_DecideRoute_SA_P1_Red_Unit1, SCN_DecideRoute_SPD_P1_Blue_Unit1, SCN_SPEArrival_Unit1, SCN_Priority_Route_Target_Unit1, SCN_SkipSPE_Empty_To_Target_Unit1, SCN_ReleasePiece_SA_Unit1, SCN_ReturnJourney_From_Target_to_PA_Unit1, SCN_ObstacleStop_Unit2, SCN_ObstacleResume_Unit2, SCN_ReadParam_P0_Unit2, SCN_ReadParam_P1_Unit2, SCN_IdentifyPiece_T_Blue_Unit2, SCN_IdentifyPiece_T_Red_Unit2, SCN_GrabPiece_T_Unit2, SCN_DecideRoute_SA_P0_Blue_Unit2, SCN_DecideRoute_SPD_P0_Red_Unit2, SCN_DecideRoute_SA_P1_Red_Unit2, SCN_DecideRoute_SPD_P1_Blue_Unit2, SCN_SPEArrival_Unit2, SCN_Priority_Route_Target_Unit2, SCN_SkipSPE_Empty_To_Target_Unit2, SCN_ReleasePiece_SA_Unit2, SCN_ReturnJourney_From_Target_to_PA_Unit2, Scenario_Obstacle_Encounter_During_Transit, Scenario_Mission_P0_Blue_Nominal_SPE_Empty, Scenario_Mission_P1_Red_Nominal_SPE_Empty, Scenario_PriorityResolution_P0_Blue_SPE_Occupied, Scenario_Obstacle_Encounter_Unit2, Scenario_Mission_P0_Blue_Nominal_SPE_Empty_Unit2, Scenario_Mission_P1_Red_Nominal_SPE_Empty_Unit2, Scenario_PriorityResolution_P1_Red_SPE_Occupied, Scenario_Destination_Full_Standby, ScenarioExecution_P0_T_First_Obstacle, ScenarioExecution_P0_Nominal_SPE_Empty, ScenarioExecution_P1_Nominal_SPE_Empty, ScenarioExecution_P1_SPE_Occupied };
