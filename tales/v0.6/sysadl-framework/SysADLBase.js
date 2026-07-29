@@ -5969,6 +5969,8 @@
       this.constraints = opts.constraints || [];
       this.startEvent = opts.startEvent;
       this.finishEvent = opts.finishEvent;
+      this.preconditionExprs = opts.preconditionExprs || [];
+      this.postconditionExprs = opts.postconditionExprs || [];
       this.active = false;
     }
 
