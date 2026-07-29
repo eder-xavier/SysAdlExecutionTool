@@ -1,0 +1,664 @@
+{
+  "simulation": {
+    "model": "RobAFIS",
+    "execution": "ScenarioExecution_P0_T_First_Obstacle",
+    "timestamp": "2026-07-29T02:17:03.818Z",
+    "mode": "once",
+    "duration_ms": 228
+  },
+  "scenarios": [
+    {
+      "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+      "status": "PASS",
+      "scenes": [
+        {
+          "name": "SCN_ReadParam_P0_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.unit_pInput.inParam === ctx.MissionParameter.P0)",
+                "result": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "SCN_SPEArrival_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.spe1_spd2.outPieceColor != ctx.PieceColor.None)",
+                "result": true
+              }
+            ]
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.unit_camera.inSpePieceColor != ctx.PieceColor.None)",
+                "result": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "SCN_Priority_Route_Target_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.navPad.outColor === ctx.NavColor.Green)",
+                "result": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenario_Obstacle_Encounter_During_Transit",
+      "status": "PASS",
+      "scenes": [
+        {
+          "name": "SCN_ObstacleStop_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.navLine.outColor === ctx.NavColor.Black)",
+                "result": true
+              }
+            ]
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.obstacle.outObstacle === true)",
+                "result": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "SCN_ObstacleResume_Unit1",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit1.obstacle.outObstacle === false)",
+                "result": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenario_Obstacle_Encounter_Unit2",
+      "status": "PASS",
+      "scenes": [
+        {
+          "name": "SCN_ObstacleStop_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit2.navLine.outColor === ctx.NavColor.Black)",
+                "result": true
+              }
+            ]
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit2.obstacle.outObstacle === true)",
+                "result": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "SCN_ObstacleResume_Unit2",
+          "status": "PASS",
+          "preconditions": {
+            "status": "PASS",
+            "conditions": []
+          },
+          "execution": {
+            "status": "PASS",
+            "start_event": "",
+            "finish_event": ""
+          },
+          "postconditions": {
+            "status": "PASS",
+            "conditions": [
+              {
+                "expression": "(ctx.unit2.obstacle.outObstacle === false)",
+                "result": true
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_scenarios": 3,
+    "passed": 3,
+    "failed": 0,
+    "total_scenes": 7,
+    "scenes_passed": 7,
+    "scenes_failed": 0,
+    "scenes_skipped": 0
+  },
+  "requirements_validation": {
+    "summary": {
+      "total_requirements": 24,
+      "validated_requirements": 4,
+      "unverified_requirements": 15
+    },
+    "requirements": [
+      {
+        "id": "1.0",
+        "name": "SortAndTransportFR",
+        "text": "The RobAFIS system must autonomously retrieve, sort, transport, and store pieces of type P1 (blue spheres) and P2 (red spheres) of 52mm diameter in the production atelier.",
+        "status": "DERIVED_OR_UNCONTAINED",
+        "satisfying_components": []
+      },
+      {
+        "id": "1.1",
+        "name": "ConfigureMissionFR",
+        "text": "Must be able to read and configure the mission parameter p (P0 or P1) at the beginning of the mission.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::ParameterInputCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.2",
+        "name": "SelectStrategyFR",
+        "text": "Must be able to read and configure the initial production strategy (T_First or SPE_First) at startup to determine whether to prioritize clearing the shared entry stock SPE or the nominal trans-elevator T.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::ParameterInputCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.3",
+        "name": "IdentifyPieceColorFR",
+        "text": "Must be able to identify the physical color of the 52mm spheres (Blue or Red) or detect their absence using the camera.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CameraSensorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.4",
+        "name": "DetectObstacleFR",
+        "text": "Must be able to detect the presence or absence of physical obstacles or obstructions in the path to prevent collisions.",
+        "status": "VALIDATED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::ObstacleSensorCP",
+            "status": "VALIDATED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Obstacle_Encounter_During_Transit",
+                "status": "PASS"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.5",
+        "name": "DecideRouteFR",
+        "text": "Must be able to logically decide the correct route and trajectory to the target stock (SA or SPD) based on the piece color, active mission parameter, and configured production strategy.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::NavigatorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.6",
+        "name": "ExecutePriorityLogicFR",
+        "text": "Must be able to logically override the nominal routing to prioritize grabbing a piece in the SPE buffer within 2 minutes of its appearance to prevent locking the neighboring unit.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CargoHandlerCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.7",
+        "name": "ManipulatePieceFR",
+        "text": "Must be able to physically retrieve and release a 52mm sphere from/to the storage calhas using the grabber mechanism without loss.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::GrabberCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.8",
+        "name": "NavigateAutonomouslyFR",
+        "text": "Must be able to autonomously follow mat black lines of 20mm width and detect green or red color pads of 50mm diameter to control stops and turns.",
+        "status": "DERIVED_OR_UNCONTAINED",
+        "satisfying_components": []
+      },
+      {
+        "id": "1.8.1",
+        "name": "CorrectTrajectoryFR",
+        "text": "Must be able to measure lateral line offset relative to the robot's center and apply proportional steering corrections to ensure stable line-following.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CameraSensorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          },
+          {
+            "name": "SysADL.Components::DriveSystemCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.8.2",
+        "name": "DetectNavigationPadsFR",
+        "text": "Must be able to detect green or red color pads of 50mm diameter on the floor to trigger routing and parking maneuvers.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CameraSensorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.9",
+        "name": "ReturnToStandbyFR",
+        "text": "Must be able to automatically return to the standby position PA and halt when the trans-elevator T and the SPE are both empty.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::NavigatorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1.10",
+        "name": "HaltOnFullStockFR",
+        "text": "Must autonomously halt and enter a synchronous standby waiting state when the target destination stock (SA or SPD) is fully occupied (3 pieces), resuming operations only when a position is freed.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::NavigatorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Destination_Full_Standby",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.0",
+        "name": "SystemConstraintsNFR",
+        "text": "The system must comply with all operational, performance, and safety constraints of the atelier.",
+        "status": "DERIVED_OR_UNCONTAINED",
+        "satisfying_components": []
+      },
+      {
+        "id": "2.1",
+        "name": "MaintenanceNFR",
+        "text": "Must execute the entire mission without requiring any preventive or curative maintenance during operation.",
+        "status": "VALIDATED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::RobAFISSystemCP",
+            "status": "VALIDATED",
+            "verifying_scenarios": []
+          }
+        ]
+      },
+      {
+        "id": "2.2",
+        "name": "SafetyZoneNFR",
+        "text": "The RobAFIS system must maintain complete safety boundaries and avoid entering Forbidden machine zones.",
+        "status": "DERIVED_OR_UNCONTAINED",
+        "satisfying_components": []
+      },
+      {
+        "id": "2.2.1",
+        "name": "DetectZoneLimitNFR",
+        "text": "Must detect the boundaries of the forbidden mat black machine zones by identifying when the detected black area width significantly exceeds the 20mm line threshold.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CameraSensorCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.2.2",
+        "name": "AvoidZoneNFR",
+        "text": "Must prevent the robot's wheels or tracks from entering the forbidden machine zones by initiating an immediate emergency stop upon boundary detection.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::DriveSystemCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_Mission_P0_Blue_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              },
+              {
+                "name": "Scenario_Mission_P1_Red_Nominal_SPE_Empty",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.3",
+        "name": "MissionTimeNFR",
+        "text": "Must be able to complete the nominal sorting and transport mission within a maximum time of 4 minutes.",
+        "status": "VALIDATED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::RobAFISSystemCP",
+            "status": "VALIDATED",
+            "verifying_scenarios": []
+          }
+        ]
+      },
+      {
+        "id": "2.4",
+        "name": "PriorityTimeNFR",
+        "text": "The RobAFIS system must meet strict execution and travel time budgets for priority SPE operations.",
+        "status": "DERIVED_OR_UNCONTAINED",
+        "satisfying_components": []
+      },
+      {
+        "id": "2.4.1",
+        "name": "PriorityRoutingTimeNFR",
+        "text": "Must be able to process the SPE priority interrupt and calculate the new route within the allocated time budget.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::CargoHandlerCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.4.2",
+        "name": "PriorityTravelTimeNFR",
+        "text": "Must be able to transit to the SPE location within the overall priority time budget.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::DriveSystemCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.4.3",
+        "name": "PriorityExtractionTimeNFR",
+        "text": "Must be able to physically extract the priority piece from the SPE buffer within the overall priority time budget.",
+        "status": "UNVERIFIED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::GrabberCP",
+            "status": "UNVERIFIED",
+            "verifying_scenarios": [
+              {
+                "name": "Scenario_PriorityResolution_P0_Blue_SPE_Occupied",
+                "status": "PASS"
+              },
+              {
+                "name": "Scenario_PriorityResolution_P1_Red_SPE_Occupied",
+                "status": "NOT_EXECUTED"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2.5",
+        "name": "AutonomyNFR",
+        "text": "Must operate completely autonomously without remote control or human intervention after the initial start signal.",
+        "status": "VALIDATED",
+        "satisfying_components": [
+          {
+            "name": "SysADL.Components::RobAFISControllerCP",
+            "status": "VALIDATED",
+            "verifying_scenarios": []
+          }
+        ]
+      }
+    ]
+  }
+}

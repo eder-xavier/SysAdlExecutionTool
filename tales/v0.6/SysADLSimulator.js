@@ -2092,7 +2092,169 @@ function printExecutionSummary(executionName, ctxProxy) {
   return { totalScenarios, passedScenarios };
 }
 
-function writeJsonLog(executionName, durationMs, ctxProxy, envModel) {
+function parseRequirements(sysadlContent) {
+  const reqs = [];
+  const reqRegex = /Requirement\s+([A-Za-z0-9_]+)\s*\(\s*([^)]+)\s*\)\s*\{([\s\S]*?)\n\}/g;
+  let match;
+  
+  while ((match = reqRegex.exec(sysadlContent)) !== null) {
+    const name = match[1];
+    const id = match[2].trim();
+    const body = match[3];
+    
+    const textMatch = body.match(/text\s*=\s*"([^"]*)"/);
+    const text = textMatch ? textMatch[1] : '';
+    
+    const deriveMatch = body.match(/derive\s+([A-Za-z0-9_.]+)/);
+    const derive = deriveMatch ? deriveMatch[1] : null;
+    
+    const satisfies = [];
+    const satisfiedByMatch = body.match(/satisfied\s+by\s+([\s\S]*?);/);
+    if (satisfiedByMatch) {
+      const satisfiedStr = satisfiedByMatch[1];
+      const compRegex = /([A-Za-z0-9_.:]+)(?:\s*\[\s*verified\s+by\s+([\s\S]*?)\])?/g;
+      let cMatch;
+      while ((cMatch = compRegex.exec(satisfiedStr)) !== null) {
+        const compName = cMatch[1].trim();
+        if (!compName || compName === 'verified' || compName === 'by') continue;
+        
+        const verifiersStr = cMatch[2] || '';
+        const verifyingScenarios = verifiersStr
+          .split(',')
+          .map(s => s.trim().replace(/^.*::/, '').replace(/^.*\./, ''))
+          .filter(s => s.length > 0);
+          
+        satisfies.push({
+          component: compName,
+          verifyingScenarios
+        });
+      }
+    }
+    
+    reqs.push({
+      id,
+      name,
+      text,
+      derive,
+      satisfies
+    });
+  }
+  return reqs;
+}
+
+function evaluateRequirementsValidation(requirements, scenarioStatusMap) {
+  const reqResults = [];
+  let totalReqs = 0;
+  let validatedReqs = 0;
+  let unverifiedReqs = 0;
+
+  for (const req of requirements) {
+    totalReqs++;
+    let reqValidated = true;
+    const satisfyingComponents = [];
+
+    for (const sat of req.satisfies) {
+      let compValidated = true;
+      const verifyingScenarios = [];
+
+      if (sat.verifyingScenarios.length > 0) {
+        for (const scenName of sat.verifyingScenarios) {
+          const status = scenarioStatusMap[scenName] || 'NOT_EXECUTED';
+          if (status !== 'PASS') {
+            compValidated = false;
+          }
+          verifyingScenarios.push({
+            name: scenName,
+            status
+          });
+        }
+      }
+
+      if (!compValidated) {
+        reqValidated = false;
+      }
+
+      satisfyingComponents.push({
+        name: sat.component,
+        status: compValidated ? 'VALIDATED' : 'UNVERIFIED',
+        verifying_scenarios: verifyingScenarios
+      });
+    }
+
+    const isLeafReq = req.satisfies.length > 0;
+    const reqStatus = isLeafReq
+      ? (reqValidated ? 'VALIDATED' : 'UNVERIFIED')
+      : 'DERIVED_OR_UNCONTAINED';
+
+    if (reqStatus === 'VALIDATED') {
+      validatedReqs++;
+    } else if (reqStatus === 'UNVERIFIED') {
+      unverifiedReqs++;
+    }
+
+    reqResults.push({
+      id: req.id,
+      name: req.name,
+      text: req.text,
+      status: reqStatus,
+      satisfying_components: satisfyingComponents
+    });
+  }
+
+  return {
+    summary: {
+      total_requirements: totalReqs,
+      validated_requirements: validatedReqs,
+      unverified_requirements: unverifiedReqs
+    },
+    requirements: reqResults
+  };
+}
+
+function printRequirementsValidation(reqEval) {
+  console.log('\n' + '='.repeat(60));
+  console.log(`║              REQUIREMENTS VALIDATION MATRIX              ║`);
+  console.log('='.repeat(60));
+
+  for (const r of reqEval.requirements) {
+    const isVal = r.status === 'VALIDATED';
+    const isDerived = r.status === 'DERIVED_OR_UNCONTAINED';
+    const statusTag = isVal ? '[✅ VALIDATED]' : (isDerived ? '[ℹ️ DERIVED]' : '[❌ UNVERIFIED]');
+    
+    console.log(`\n📌 Requirement: [${r.id}] ${r.name}`);
+    if (r.text) {
+      console.log(`   Text: "${r.text}"`);
+    }
+    console.log(`   Status: ${statusTag}`);
+
+    if (r.satisfying_components.length > 0) {
+      console.log(`   ├── Satisfied by Components:`);
+      r.satisfying_components.forEach((c, cIdx) => {
+        const isLastC = cIdx === r.satisfying_components.length - 1;
+        const cPrefix = isLastC ? '   │   └──' : '   │   ├──';
+        const cStatusTag = c.status === 'VALIDATED' ? '[✅ VALIDATED]' : '[❌ UNVERIFIED]';
+        console.log(`${cPrefix} Component: ${c.name} ${cStatusTag}`);
+
+        if (c.verifying_scenarios.length > 0) {
+          const vIndent = isLastC ? '   │       ' : '   │   │   ';
+          console.log(`${vIndent}└── Verified by Scenarios:`);
+          c.verifying_scenarios.forEach((s, sIdx) => {
+            const isLastS = sIdx === c.verifying_scenarios.length - 1;
+            const sPrefix = isLastS ? `${vIndent}    └──` : `${vIndent}    ├──`;
+            const sStatusTag = s.status === 'PASS' ? '[✅ PASS]' : (s.status === 'FAIL' ? '[❌ FAIL]' : '[⚠️ NOT EXECUTED]');
+            console.log(`${sPrefix} Scenario: ${s.name} ${sStatusTag}`);
+          });
+        }
+      });
+    }
+  }
+
+  console.log('\n' + '='.repeat(60));
+  console.log(`Requirements Summary: ${reqEval.summary.validated_requirements}/${reqEval.summary.total_requirements} Validated`);
+  console.log('='.repeat(60));
+}
+
+function writeJsonLog(executionName, durationMs, ctxProxy, envModel, reqEval = null) {
   const logDir = './logs';
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
@@ -2157,6 +2319,10 @@ function writeJsonLog(executionName, durationMs, ctxProxy, envModel) {
     }
   };
   
+  if (reqEval) {
+    logData.requirements_validation = reqEval;
+  }
+  
   fs.writeFileSync(filename, JSON.stringify(logData, null, 2));
   console.log(`💾 JSON log saved to: ${filename}`);
 }
@@ -2183,6 +2349,10 @@ class SysADLSimulator {
         console.log('='.repeat(50));
 
         try {
+            // 0. Parse model requirements
+            const sysadlContent = fs.readFileSync(sysadlFile, 'utf8');
+            const requirements = parseRequirements(sysadlContent);
+
             // 1. Validate and Transform
             this.validateInput(sysadlFile);
             const generatedFiles = await this.transform(sysadlFile);
@@ -2205,7 +2375,7 @@ class SysADLSimulator {
             if (!this.config.verbose) {
                 console.log = function(...args) {
                     const msg = args.join(' ');
-                    if (msg.includes('===') || msg.includes('║') || msg.includes('▶') || msg.includes('Result: [') || msg.includes('Summary:') || msg.includes('passed') || msg.includes('failed') || msg.includes('[INFO]') || msg.includes('[ERROR]') || msg.includes('Starting execution:') || msg.includes('├──') || msg.includes('│')) {
+                    if (msg.includes('===') || msg.includes('║') || msg.includes('▶') || msg.includes('Result: [') || msg.includes('Summary:') || msg.includes('passed') || msg.includes('failed') || msg.includes('[INFO]') || msg.includes('[ERROR]') || msg.includes('Starting execution:') || msg.includes('├──') || msg.includes('│') || msg.includes('📌') || msg.includes('Requirement:') || msg.includes('Component:') || msg.includes('Scenario:') || msg.includes('Status:') || msg.includes('Text:')) {
                         origLog.apply(console, args);
                     }
                 };
@@ -2214,6 +2384,7 @@ class SysADLSimulator {
 
             let grandTotalScenarios = 0;
             let grandPassedScenarios = 0;
+            const scenarioStatusMap = {};
 
             try {
                 const executionNames = Object.keys(envModel.scenarioExecutions);
@@ -2261,10 +2432,28 @@ class SysADLSimulator {
                     const res = printExecutionSummary(execName, ctxProxy);
                     grandTotalScenarios += res.totalScenarios;
                     grandPassedScenarios += res.passedScenarios;
+
+                    // Collect scenario statuses for requirements matrix
+                    for (const pRes of ctxProxy.parallelResults) {
+                        const scenarioName = pRes.scenario;
+                        const scenPassed = pRes.result.every(r => r.status === 'PASS');
+                        if (scenPassed && scenarioStatusMap[scenarioName] !== 'FAIL') {
+                            scenarioStatusMap[scenarioName] = 'PASS';
+                        } else if (!scenPassed) {
+                            scenarioStatusMap[scenarioName] = 'FAIL';
+                        }
+                    }
                     
+                    // Evaluate requirements validation
+                    const reqEval = evaluateRequirementsValidation(requirements, scenarioStatusMap);
+
                     // 6. Write JSON log
-                    writeJsonLog(execName, durationMs, ctxProxy, freshEnvModel);
+                    writeJsonLog(execName, durationMs, ctxProxy, freshEnvModel, reqEval);
                 }
+
+                // Evaluate final global requirements matrix across all executions
+                const finalReqEval = evaluateRequirementsValidation(requirements, scenarioStatusMap);
+                printRequirementsValidation(finalReqEval);
 
                 console.log('\n' + '='.repeat(60));
                 console.log(`Summary: ${grandPassedScenarios} passed, ${grandTotalScenarios - grandPassedScenarios} failed (${grandTotalScenarios} total scenarios)`);
