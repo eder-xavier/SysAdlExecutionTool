@@ -431,15 +431,16 @@ function extractArchitectureData(model, logElement) {
           id: compPortEdgeId,
           from: componentId,
           to: portId,
-          color: { color: palette.portLink },
-          dashes: true,
+          color: { color: 'rgba(180,194,217,0.55)' },
+          dashes: [4, 4],
           arrows: 'none',
-          width: 1,
+          width: 0.8,
           smooth: false,
           physics: false,
-          length: 28,
+          length: 32,
           selectionWidth: 0,
-          hoverWidth: 0
+          hoverWidth: 0,
+          hidden: false
         });
         registerEdgeLookup(componentId, portId, compPortEdgeId);
       });
@@ -589,27 +590,23 @@ function extractArchitectureData(model, logElement) {
 
           if (fromPortId && toPortId && nodes.has(fromPortId) && nodes.has(toPortId)) {
             const edgeId = `conn:${connName}:${edges.length}`;
+            const edgeCount = edges.filter(e => e.from === fromPortId || e.to === toPortId).length;
             edges.push({
               id: edgeId,
               from: fromPortId,
               to: toPortId,
-              label: connName,
-              arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
-              color: { color: palette.connectorEdge },
-              width: 2.6,
+              label: '',
+              connLabel: connName,
+              isConnector: true,
+              channelIndex: edgeCount,
+              arrows: 'none',
+              color: { color: 'rgba(0,0,0,0)', highlight: palette.connectorHighlight, hover: palette.connectorHighlight },
+              width: 0,
               smooth: false,
-              shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
-              font: {
-                size: 12,
-                face: 'Inter, "Segoe UI", sans-serif',
-                color: '#0f172a',
-                background: palette.connectorLabelBg,
-                strokeWidth: 0,
-                vadjust: -4
-              },
-              selectionWidth: 2,
-              hoverWidth: 2,
-              title: `Connector: ${connName}\nFlow: ${flow.from} → ${flow.to}\nData type: ${flow.dataType || conn.activityName || conn.props?.activityName || 'unknown'}`
+              selectionWidth: 8,
+              hoverWidth: 8,
+              chosen: false,
+              title: `Connector: ${connName}\nFlow: ${flow.from} → ${flow.to}`
             });
             registerEdgeLookup(fromPortId, toPortId, edgeId);
           } else {
@@ -640,24 +637,22 @@ function extractArchitectureData(model, logElement) {
 
         if (fromPortId && toPortId && nodes.has(fromPortId) && nodes.has(toPortId)) {
           const edgeId = `conn:${connName}:${edges.length}`;
+          const edgeCount2 = edges.filter(e => e.from === fromPortId || e.to === toPortId).length;
           edges.push({
             id: edgeId,
             from: fromPortId,
             to: toPortId,
-            label: connName,
-            arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
-            color: { color: palette.connectorEdge },
-            width: 2.6,
+            label: '',
+            connLabel: connName,
+            isConnector: true,
+            channelIndex: edgeCount2,
+            arrows: 'none',
+            color: { color: 'rgba(0,0,0,0)', highlight: palette.connectorHighlight, hover: palette.connectorHighlight },
+            width: 0,
             smooth: false,
-            shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
-            font: {
-              size: 12,
-              face: 'Inter, "Segoe UI", sans-serif',
-              color: '#0f172a',
-              background: palette.connectorLabelBg,
-              strokeWidth: 0,
-              vadjust: -4
-            },
+            selectionWidth: 8,
+            hoverWidth: 8,
+            chosen: false,
             title: `Connector: ${connName}\nDirect link: ${conn.from} → ${conn.to}`
           });
           registerEdgeLookup(fromPortId, toPortId, edgeId);
@@ -716,12 +711,13 @@ function extractArchitectureData(model, logElement) {
   });
 
   // 2. Bottom-up sizing
-  const PADDING_TOP = 65;
-  const PADDING_BOTTOM = 40;
-  const PADDING_SIDE = 50;
-  const GAP_X = 140; // Horizontal gap between sibling subcomponents
-  const MIN_WIDTH = 220;
-  const MIN_HEIGHT = 80;
+  const PADDING_TOP = 80;    // Space for the label pill at top
+  const PADDING_BOTTOM = 55; // Space for bottom ports
+  const PADDING_SIDE = 95;   // Generous horizontal padding for port labels
+  const GAP_X = 220;         // Wider horizontal gap to completely prevent overlaps
+  const GAP_Y = 180;         // Vertical gap between wrapped rows of subcomponents
+  const MIN_WIDTH = 240;
+  const MIN_HEIGHT = 90;
 
   function getNodeObj(id) {
     return nodes.get(id) || compositeBoxes.get(id);
@@ -743,21 +739,45 @@ function extractArchitectureData(model, logElement) {
     }
 
     // Recursive case
-    let totalChildrenWidth = 0;
-    let maxChildHeight = 0;
-    
     childrenList.forEach(childId => calculateLayout(childId));
-    
-    childrenList.forEach((childId, index) => {
-      const childNode = getNodeObj(childId);
-      if (!childNode) return;
-      totalChildrenWidth += childNode.calcWidth || MIN_WIDTH;
-      if (index > 0) totalChildrenWidth += GAP_X;
-      if ((childNode.calcHeight || MIN_HEIGHT) > maxChildHeight) maxChildHeight = childNode.calcHeight || MIN_HEIGHT;
+
+    // Wrap children in rows of max 3 elements
+    const maxCols = 3;
+    const rows = [];
+    for (let i = 0; i < childrenList.length; i += maxCols) {
+      rows.push(childrenList.slice(i, i + maxCols));
+    }
+
+    // Width of parent is the maximum row width
+    let maxRowWidth = 0;
+    rows.forEach(row => {
+      let rowWidth = 0;
+      row.forEach((childId, idx) => {
+        const childNode = getNodeObj(childId);
+        if (childNode) {
+          rowWidth += childNode.calcWidth || MIN_WIDTH;
+          if (idx > 0) rowWidth += GAP_X;
+        }
+      });
+      if (rowWidth > maxRowWidth) maxRowWidth = rowWidth;
     });
 
-    node.calcWidth = totalChildrenWidth + (PADDING_SIDE * 2);
-    node.calcHeight = maxChildHeight + PADDING_TOP + PADDING_BOTTOM;
+    // Height of parent is sum of row heights + gaps
+    let totalRowsHeight = 0;
+    rows.forEach((row, idx) => {
+      let maxChildHeight = 0;
+      row.forEach(childId => {
+        const childNode = getNodeObj(childId);
+        if (childNode && childNode.calcHeight > maxChildHeight) {
+          maxChildHeight = childNode.calcHeight;
+        }
+      });
+      totalRowsHeight += maxChildHeight;
+      if (idx > 0) totalRowsHeight += GAP_Y;
+    });
+
+    node.calcWidth = maxRowWidth + (PADDING_SIDE * 2);
+    node.calcHeight = totalRowsHeight + PADDING_TOP + PADDING_BOTTOM;
 
     // Expand bounding box for vis.js drawing plane only for real nodes
     if (nodes.has(nodeId)) {
@@ -838,28 +858,41 @@ function extractArchitectureData(model, logElement) {
       childrenList.forEach(c => { if (!sorted.includes(c)) sorted.push(c); });
       childrenList = sorted;
 
-      let currentX = startX + PADDING_SIDE;
-      
-      childrenList.forEach(childId => {
-        const childNode = getNodeObj(childId);
-        const childStartY = startY + PADDING_TOP + ((maxChildHeightForLevel(childrenList) - childNode.calcHeight) / 2);
-        assignPosition(childId, currentX, childStartY);
-        currentX += childNode.calcWidth + GAP_X;
+      // Group children into rows of max 3 elements
+      const maxCols = 3;
+      const rows = [];
+      for (let i = 0; i < childrenList.length; i += maxCols) {
+        rows.push(childrenList.slice(i, i + maxCols));
+      }
+
+      let currentY = startY + PADDING_TOP;
+      rows.forEach(row => {
+        // Find max height of this row
+        let rowMaxHeight = 0;
+        row.forEach(childId => {
+          const childNode = getNodeObj(childId);
+          if (childNode && childNode.calcHeight > rowMaxHeight) {
+            rowMaxHeight = childNode.calcHeight;
+          }
+        });
+
+        // Distribute elements in the row horizontally
+        let currentX = startX + PADDING_SIDE;
+        row.forEach(childId => {
+          const childNode = getNodeObj(childId);
+          if (childNode) {
+            // Align child vertically centered inside the row's height bounds
+            const childStartY = currentY + (rowMaxHeight - childNode.calcHeight) / 2;
+            assignPosition(childId, currentX, childStartY);
+            currentX += childNode.calcWidth + GAP_X;
+          }
+        });
+
+        currentY += rowMaxHeight + GAP_Y;
       });
     }
   }
 
-  function maxChildHeightForLevel(childIds) {
-    let max = 0;
-    childIds.forEach(id => {
-      const h = getNodeObj(id)?.calcHeight || 0;
-      if (h > max) max = h;
-    });
-    return max;
-  }
-
-  let currentRootX = 0;
-  
   // Sort the root configurations functionally left-to-right as well
   let rootList = rootNodes.map(r => r.id);
   const rootAdj = {};
@@ -890,11 +923,35 @@ function extractArchitectureData(model, logElement) {
   rootList.forEach(c => { if (!rootSorted.includes(c)) rootSorted.push(c); });
   rootList = rootSorted;
 
-  rootList.forEach(rootId => {
-    const rootNode = getNodeObj(rootId);
-    if (!rootNode) return;
-    assignPosition(rootId, currentRootX, 0);
-    currentRootX += rootNode.calcWidth + 240;
+  // Wrap root components into rows of max 2 elements to structure vertically
+  const maxRootCols = 2;
+  const rootRows = [];
+  for (let i = 0; i < rootList.length; i += maxRootCols) {
+    rootRows.push(rootList.slice(i, i + maxRootCols));
+  }
+
+  let currentRootY = 0;
+  const ROOT_GAP_Y = 240; // Vertical gap between rows of root components
+
+  rootRows.forEach(row => {
+    let rowMaxHeight = 0;
+    row.forEach(rootId => {
+      const rootNode = getNodeObj(rootId);
+      if (rootNode && rootNode.calcHeight > rowMaxHeight) {
+        rowMaxHeight = rootNode.calcHeight;
+      }
+    });
+
+    let currentRootX = 0;
+    row.forEach(rootId => {
+      const rootNode = getNodeObj(rootId);
+      if (rootNode) {
+        assignPosition(rootId, currentRootX, currentRootY);
+        currentRootX += rootNode.calcWidth + 400; // Generous horizontal spacing between root components
+      }
+    });
+
+    currentRootY += rowMaxHeight + ROOT_GAP_Y;
   });
 
   // 4. Distribute Ports geometrically mapping to container size
@@ -991,13 +1048,13 @@ function renderVisualization(containerId, generatedCode, logElement) {
     }
     const data = { nodes, edges };
     container.style.background = palette.canvas;
-    container.style.backgroundImage = `${palette.canvasAccent}, repeating-linear-gradient(90deg, transparent, transparent 360px, ${palette.swimlaneStroke} 360px, ${palette.swimlaneStroke} 364px)`;
+    container.style.backgroundImage = 'none'; // Lisa (flat, smooth clean background)
     container.style.border = '1px solid rgba(99, 102, 241, 0.35)';
     container.style.borderRadius = '20px';
     container.style.boxShadow = '0 26px 52px rgba(15, 23, 42, 0.14)';
     container.style.padding = '0';
-    container.style.minHeight = '450px';
-    container.style.height = '450px';
+    container.style.minHeight = '600px';
+    container.style.height = '600px';
     container.style.width = '100%';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
@@ -1016,7 +1073,17 @@ function renderVisualization(containerId, generatedCode, logElement) {
           bold: { size: 18, color: '#0f172a' }
         },
         borderWidth: 0,
-        shadow: { enabled: true, size: 12, x: 0, y: 6, color: 'rgba(15, 23, 42, 0.18)' }
+        shadow: { enabled: true, size: 12, x: 0, y: 6, color: 'rgba(15, 23, 42, 0.18)' },
+        // Keep labels readable at any zoom level
+        scaling: {
+          label: {
+            enabled: true,
+            min: 10,
+            max: 30,
+            drawThreshold: 2,
+            maxVisible: 30
+          }
+        }
       },
       groups: {
         component: {
@@ -1035,45 +1102,45 @@ function renderVisualization(containerId, generatedCode, logElement) {
         },
         port_out: {
           shape: 'square',
-          color: {
-            background: palette.portOut,
-            border: '#0b5675'
-          },
+          color: { background: palette.portOut, border: '#0b5675' },
           size: 10,
-          borderWidth: 1.5
+          borderWidth: 1.5,
+          font: { size: 11, color: '#0c4a6e', strokeWidth: 2, strokeColor: 'rgba(255,255,255,0.85)', face: 'Inter, "Segoe UI", sans-serif' },
+          scaling: { label: { enabled: true, min: 9, max: 18, drawThreshold: 1 } }
         },
         port_in: {
           shape: 'square',
-          color: {
-            background: palette.portIn,
-            border: '#c2410c'
-          },
+          color: { background: palette.portIn, border: '#c2410c' },
           size: 10,
-          borderWidth: 1.5
+          borderWidth: 1.5,
+          font: { size: 11, color: '#7c1d04', strokeWidth: 2, strokeColor: 'rgba(255,255,255,0.85)', face: 'Inter, "Segoe UI", sans-serif' },
+          scaling: { label: { enabled: true, min: 9, max: 18, drawThreshold: 1 } }
         },
         port_unknown: {
           shape: 'square',
-          color: {
-            background: palette.portUnknown,
-            border: '#64748b'
-          },
+          color: { background: palette.portUnknown, border: '#64748b' },
           size: 10,
-          borderWidth: 1.5
+          borderWidth: 1.5,
+          font: { size: 11, color: '#334155', strokeWidth: 2, strokeColor: 'rgba(255,255,255,0.85)', face: 'Inter, "Segoe UI", sans-serif' },
+          scaling: { label: { enabled: true, min: 9, max: 18, drawThreshold: 1 } }
         }
       },
       edges: {
-        arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.82 } },
+        arrows: { to: { enabled: true, type: 'triangle', scaleFactor: 0.9 } },
         color: { color: palette.connectorEdge, highlight: palette.connectorHighlight },
-        width: 2.6,
-        smooth: false,
-        shadow: { enabled: true, size: 6, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.18)' },
+        width: 2,
+        // CAD-style horizontal-first orthogonal routing
+        smooth: { enabled: true, type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 },
+        shadow: { enabled: true, size: 4, x: 0, y: 2, color: 'rgba(15, 23, 42, 0.10)' },
         font: {
           size: 12,
           face: 'Inter, "Segoe UI", sans-serif',
-          color: '#0f172a',
+          color: '#1e1b4b',
           background: palette.connectorLabelBg,
-          strokeWidth: 0,
-          vadjust: -4
+          strokeWidth: 2,
+          strokeColor: 'rgba(255,255,255,0.9)',
+          vadjust: -5,
+          bold: false
         },
         chosen: false
       },
@@ -1100,34 +1167,117 @@ function renderVisualization(containerId, generatedCode, logElement) {
 
     const network = new Network(container, data, options);
 
+    // Reconstruct childrenMap (parent -> list of child component/subcomponent/composite IDs)
+    const childrenMap = new Map();
+    nodes.forEach(node => {
+      if (node.parentId && (node.group === 'component' || node.group === 'subcomponent')) {
+        if (!childrenMap.has(node.parentId)) childrenMap.set(node.parentId, []);
+        childrenMap.get(node.parentId).push(node.id);
+      }
+    });
+    compositeBoxes.forEach(box => {
+      if (box.parentId) {
+        if (!childrenMap.has(box.parentId)) childrenMap.set(box.parentId, []);
+        childrenMap.get(box.parentId).push(box.id);
+      }
+    });
+
+    const compositeBoxesMap = new Map(compositeBoxes.map(b => [b.id, b]));
+
+    // Function to recursively recalculate bounds of composite boxes based on child positions
+    const recalculateCompositeBoxes = () => {
+      const computedBounds = new Map();
+
+      const getBounds = (id) => {
+        if (computedBounds.has(id)) {
+          return computedBounds.get(id);
+        }
+
+        const children = childrenMap.get(id) || [];
+        if (children.length === 0) return null;
+
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        children.forEach(childId => {
+          if (compositeBoxesMap.has(childId)) {
+            const bounds = getBounds(childId);
+            if (bounds) {
+              minX = Math.min(minX, bounds.left);
+              maxX = Math.max(maxX, bounds.right);
+              minY = Math.min(minY, bounds.top);
+              maxY = Math.max(maxY, bounds.bottom);
+            }
+          } else {
+            const box = network.getBoundingBox(childId);
+            if (box && isFinite(box.top) && isFinite(box.bottom) && isFinite(box.left) && isFinite(box.right)) {
+              minX = Math.min(minX, box.left);
+              maxX = Math.max(maxX, box.right);
+              minY = Math.min(minY, box.top);
+              maxY = Math.max(maxY, box.bottom);
+            }
+          }
+        });
+
+        if (minX === Infinity) return null;
+
+        const left = minX - 50;
+        const right = maxX + 50;
+        const top = minY - 65;
+        const bottom = maxY + 40;
+
+        const bounds = { left, right, top, bottom, w: right - left, h: bottom - top };
+        computedBounds.set(id, bounds);
+        return bounds;
+      };
+
+      compositeBoxes.forEach(box => {
+        const bounds = getBounds(box.id);
+        if (bounds) {
+          box.x = bounds.left;
+          box.y = bounds.top;
+          box.w = bounds.w;
+          box.h = bounds.h;
+        }
+      });
+    };
+
     // --- Draw composite container boxes BEHIND all nodes + edges ---
     // vis-network always draws nodes on top of edges; we bypass this by painting
     // composite containers manually via the beforeDrawing canvas hook.
     if (compositeBoxes && compositeBoxes.length > 0) {
       network.on('beforeDrawing', (ctx) => {
-        compositeBoxes.forEach(box => {
+        // Always recalculate so the box follows nodes during drag
+        recalculateCompositeBoxes();
+
+        // Sort so outermost (lowest nesting level) boxes are drawn first (behind children)
+        const sorted = [...compositeBoxes].sort((a, b) => (a.level || 0) - (b.level || 0));
+
+        sorted.forEach(box => {
           if (!box.w || !box.h) return;
-          // Convert model coords to canvas coords
+
+          const scale = network.getScale();
           const topLeft = network.canvasToDOM({ x: box.x, y: box.y });
           const bottomRight = network.canvasToDOM({ x: box.x + box.w, y: box.y + box.h });
-          const scale = network.getScale();
-
-          const cx = topLeft.x;
-          const cy = topLeft.y;
-          const cw = bottomRight.x - topLeft.x;
-          const ch = bottomRight.y - topLeft.y;
-
-          // Convert back to canvas space (beforeDrawing ctx is in canvas space, not DOM)
           const canvasTopLeft = network.DOMtoCanvas(topLeft);
           const canvasBottomRight = network.DOMtoCanvas(bottomRight);
           const rx = canvasTopLeft.x;
           const ry = canvasTopLeft.y;
           const rw = canvasBottomRight.x - canvasTopLeft.x;
           const rh = canvasBottomRight.y - canvasTopLeft.y;
-          const radius = 14;
+          const radius = Math.max(8, Math.min(18, rw * 0.04));
 
-          // Filled rounded rect (very subtle tint)
+          const isNested = (box.level || 0) > 0;
+          const fillColor = isNested ? 'rgba(238, 242, 255, 0.45)' : 'rgba(219, 234, 254, 0.30)';
+          const borderColor = isNested ? '#4f46e5' : '#312e81';
+          const dashPattern = isNested ? [6, 4] : [10, 6];
+          const lineW = isNested ? 1.5 : 2.5;
+
           ctx.save();
+
+          // Draw rounded rect
           ctx.beginPath();
           ctx.moveTo(rx + radius, ry);
           ctx.lineTo(rx + rw - radius, ry);
@@ -1139,24 +1289,303 @@ function renderVisualization(containerId, generatedCode, logElement) {
           ctx.lineTo(rx, ry + radius);
           ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
           ctx.closePath();
-          ctx.fillStyle = 'rgba(219, 234, 254, 0.35)';
+
+          // Fill
+          ctx.fillStyle = fillColor;
           ctx.fill();
 
           // Dashed border
-          ctx.setLineDash([8, 5]);
-          ctx.strokeStyle = palette.componentBorder;
-          ctx.lineWidth = 2;
+          ctx.setLineDash(dashPattern);
+          ctx.strokeStyle = borderColor;
+          ctx.lineWidth = lineW;
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Label at top-left
-          ctx.font = `bold ${Math.max(12, 14 * scale)}px Inter, "Segoe UI", sans-serif`;
-          ctx.fillStyle = '#312e81';
-          ctx.fillText(box.label, rx + 12, ry + 20 * scale);
+          // Label pill
+          const labelFontSize = Math.max(11, Math.round(13 * scale));
+          ctx.font = `600 ${labelFontSize}px Inter, "Segoe UI", sans-serif`;
+          const labelText = box.label || '';
+          const textW = ctx.measureText(labelText).width;
+          const pillPadX = 8 * scale;
+          const pillH = (labelFontSize + 8) * scale;
+          const pillX = rx + 10;
+          const pillY = ry + 8;
+          const pillW = textW + pillPadX * 2;
+          const pr = pillH / 2;
+
+          ctx.beginPath();
+          ctx.moveTo(pillX + pr, pillY);
+          ctx.lineTo(pillX + pillW - pr, pillY);
+          ctx.quadraticCurveTo(pillX + pillW, pillY, pillX + pillW, pillY + pr);
+          ctx.lineTo(pillX + pillW, pillY + pillH - pr);
+          ctx.quadraticCurveTo(pillX + pillW, pillY + pillH, pillX + pillW - pr, pillY + pillH);
+          ctx.lineTo(pillX + pr, pillY + pillH);
+          ctx.quadraticCurveTo(pillX, pillY + pillH, pillX, pillY + pillH - pr);
+          ctx.lineTo(pillX, pillY + pr);
+          ctx.quadraticCurveTo(pillX, pillY, pillX + pr, pillY);
+          ctx.closePath();
+          ctx.fillStyle = isNested ? 'rgba(99,102,241,0.18)' : 'rgba(49,46,129,0.12)';
+          ctx.fill();
+
+          ctx.fillStyle = borderColor;
+          ctx.fillText(labelText, pillX + pillPadX, pillY + pillH * 0.72);
+
           ctx.restore();
         });
       });
     }
+
+    // ─── Intelligent Orthogonal (90-degree) Corridor Router ───────────────────
+    const connectorEdgeData = edges.filter(e => e.isConnector);
+
+    const drawArrow = (ctx, px, py, dx, dy, size) => {
+      const angle = Math.atan2(dy, dx);
+      const a1 = angle + Math.PI * 0.82;
+      const a2 = angle - Math.PI * 0.82;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(a1) * size, py + Math.sin(a1) * size);
+      ctx.lineTo(px + Math.cos(a2) * size, py + Math.sin(a2) * size);
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    const drawEdgeLabel = (ctx, text, cx, cy, fontSize) => {
+      ctx.font = `600 ${fontSize}px Inter, "Segoe UI", sans-serif`;
+      const tw = ctx.measureText(text).width;
+      const pw = tw + 10, ph = fontSize + 8;
+      const rx2 = cx - pw / 2, ry2 = cy - ph / 2, rr = ph / 2;
+      ctx.beginPath();
+      ctx.moveTo(rx2 + rr, ry2);
+      ctx.lineTo(rx2 + pw - rr, ry2);
+      ctx.quadraticCurveTo(rx2 + pw, ry2, rx2 + pw, ry2 + rr);
+      ctx.lineTo(rx2 + pw, ry2 + ph - rr);
+      ctx.quadraticCurveTo(rx2 + pw, ry2 + ph, rx2 + pw - rr, ry2 + ph);
+      ctx.lineTo(rx2 + rr, ry2 + ph);
+      ctx.quadraticCurveTo(rx2, ry2 + ph, rx2, ry2 + ph - rr);
+      ctx.lineTo(rx2, ry2 + rr);
+      ctx.quadraticCurveTo(rx2, ry2, rx2 + rr, ry2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,0.94)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(99,102,241,0.45)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      ctx.fillStyle = '#1e1b4b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, cx, cy);
+    };
+
+    const drawRoundedPath = (ctx, pts, radius) => {
+      if (pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+
+        const dx1 = p1.x - p0.x, dy1 = p1.y - p0.y;
+        const len1 = Math.sqrt(dx1*dx1 + dy1*dy1) || 1;
+        const dx2 = p2.x - p1.x, dy2 = p2.y - p1.y;
+        const len2 = Math.sqrt(dx2*dx2 + dy2*dy2) || 1;
+
+        const actualR = Math.min(radius, len1 / 2, len2 / 2);
+        const startX = p1.x - (dx1 / len1) * actualR;
+        const startY = p1.y - (dy1 / len1) * actualR;
+        const endX = p1.x + (dx2 / len2) * actualR;
+        const endY = p1.y + (dy2 / len2) * actualR;
+
+        ctx.lineTo(startX, startY);
+        ctx.quadraticCurveTo(p1.x, p1.y, endX, endY);
+      }
+      ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    };
+
+    const CHANNEL_SPACING = 14; 
+    const EXIT_MARGIN     = 20; 
+
+    network.on('afterDrawing', (ctx) => {
+      if (!connectorEdgeData.length) return;
+      const positions = network.getPositions();
+      const scale = network.getScale();
+
+      const edgeColor  = '#64748b'; // clean slate grey for thin visual edges
+      const lineWidth  = Math.max(0.6, 1.25 / scale); // thin 1.2px visual thickness
+      const arrowSize  = Math.max(4, 8 / scale);
+      const fontSize   = Math.max(8.5, 11 / scale);
+      const showLabels = scale > 0.15;
+
+      const getLocalNodeObj = (id) => {
+        const foundNode = nodes.find(n => n.id === id);
+        if (foundNode) return foundNode;
+        const foundBox = compositeBoxes.find(b => b.id === id);
+        if (foundBox) return foundBox;
+        return null;
+      };
+
+      const pairChannels = new Map();
+
+      connectorEdgeData.forEach(edge => {
+        const fromPos = positions[edge.from];
+        const toPos   = positions[edge.to];
+        if (!fromPos || !toPos) return;
+
+        const pairKey = `${edge.from}::${edge.to}`;
+        if (!pairChannels.has(pairKey)) pairChannels.set(pairKey, 0);
+        const chIdx = pairChannels.get(pairKey);
+        pairChannels.set(pairKey, chIdx + 1);
+
+        const chOff = (chIdx % 2 === 0 ? 1 : -1) * Math.ceil(chIdx / 2) * CHANNEL_SPACING;
+
+        const fx = fromPos.x, fy = fromPos.y;
+        const tx = toPos.x,   ty = toPos.y;
+
+        const exitX  = fx + EXIT_MARGIN + Math.abs(chOff) * 0.4;
+        const entryX = tx - EXIT_MARGIN - Math.abs(chOff) * 0.4;
+        
+        let midX = (exitX + entryX) / 2 + chOff * 0.3;
+
+        // Find parent composite ID of source and target to locate local vertical corridors
+        const fromCompId = portOwnerMap.get(edge.from);
+        const toCompId   = portOwnerMap.get(edge.to);
+        
+        let parentId = null;
+        if (fromCompId && toCompId) {
+          const nodeObjFrom = getLocalNodeObj(fromCompId);
+          const nodeObjTo   = getLocalNodeObj(toCompId);
+          if (nodeObjFrom && nodeObjTo && nodeObjFrom.parentId === nodeObjTo.parentId) {
+            parentId = nodeObjFrom.parentId;
+          }
+        }
+
+        // Get sibling horizontal bounds to find vertical corridors
+        let siblings = [];
+        if (parentId) {
+          siblings = childrenMap.get(parentId) || [];
+        } else {
+          nodes.forEach(n => {
+            if (!n.parentId && (n.group === 'component' || n.group === 'subcomponent')) {
+              siblings.push(n.id);
+            }
+          });
+          compositeBoxes.forEach(b => {
+            if (!b.parentId) {
+              siblings.push(b.id);
+            }
+          });
+        }
+
+        const siblingBounds = [];
+        siblings.forEach(sibId => {
+          if (compositeBoxesMap.has(sibId)) {
+            const cb = compositeBoxesMap.get(sibId);
+            siblingBounds.push({ left: cb.x, right: cb.x + cb.w });
+          } else {
+            const pos = positions[sibId];
+            const nodeObj = getLocalNodeObj(sibId);
+            if (pos && nodeObj) {
+              const w = nodeObj.calcWidth || MIN_WIDTH;
+              siblingBounds.push({ left: pos.x - w/2, right: pos.x + w/2 });
+            }
+          }
+        });
+
+        // Group into vertical columns
+        const cols = [];
+        siblingBounds.forEach(b => {
+          let found = false;
+          for (let col of cols) {
+            if (!(b.right < col.left + 5 || b.left > col.right - 5)) {
+              col.left = Math.min(col.left, b.left);
+              col.right = Math.max(col.right, b.right);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            cols.push({ left: b.left, right: b.right });
+          }
+        });
+        cols.sort((a, b) => a.left - b.left);
+
+        // Vertical corridors: left, center gaps, right
+        const corridors = [];
+        if (cols.length > 0) {
+          corridors.push(cols[0].left - 30);
+          for (let i = 0; i < cols.length - 1; i++) {
+            corridors.push((cols[i].right + cols[i+1].left) / 2);
+          }
+          corridors.push(cols[cols.length - 1].right + 30);
+        }
+
+        // Snap midX to the nearest corridor X coordinate
+        if (corridors.length > 0) {
+          let minD = Infinity;
+          let bestX = midX;
+          corridors.forEach(cx => {
+            const d = Math.abs(cx - midX);
+            if (d < minD) {
+              minD = d;
+              bestX = cx;
+            }
+          });
+          midX = bestX + chOff * 0.35; // Apply minor stagger inside corridor
+        }
+
+        const pts = [
+          { x: fx,     y: fy },
+          { x: exitX,  y: fy },
+          { x: midX,   y: fy },
+          { x: midX,   y: ty },
+          { x: entryX, y: ty },
+          { x: tx,     y: ty }
+        ];
+
+        const cleanPts = [];
+        pts.forEach(pt => {
+          if (cleanPts.length === 0) {
+            cleanPts.push(pt);
+          } else {
+            const last = cleanPts[cleanPts.length - 1];
+            if (Math.abs(pt.x - last.x) > 1 || Math.abs(pt.y - last.y) > 1) {
+              cleanPts.push(pt);
+            }
+          }
+        });
+
+        const isSelected = network.getSelectedEdges().includes(edge.id);
+        const drawColor  = isSelected ? (palette.connectorHighlight || '#f59e0b') : edgeColor;
+
+        ctx.save();
+        ctx.strokeStyle = drawColor;
+        ctx.lineWidth   = isSelected ? lineWidth * 1.8 : lineWidth;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+
+        ctx.shadowColor   = 'rgba(15,23,42,0.06)';
+        ctx.shadowBlur    = 2;
+        ctx.shadowOffsetY = 1;
+
+        // Draw orthogonal lines with small rounded corners (6px radius)
+        drawRoundedPath(ctx, cleanPts, 6);
+        ctx.stroke();
+        ctx.shadowColor = 'transparent';
+
+        // Filled arrowhead
+        ctx.fillStyle = drawColor;
+        const lastDx = tx - entryX;
+        const dLen = Math.abs(lastDx) || 1;
+        drawArrow(ctx, tx, ty, lastDx / dLen, 0, arrowSize);
+
+        if (showLabels && edge.connLabel) {
+          drawEdgeLabel(ctx, edge.connLabel, midX, (fy + ty) / 2, fontSize);
+        }
+
+        ctx.restore();
+      });
+    });
 
     Array.from(container.querySelectorAll('.flow-overlay')).forEach(el => el.remove());
     const overlay = document.createElement('div');
@@ -1520,17 +1949,34 @@ function renderVisualization(containerId, generatedCode, logElement) {
 
     const pinPortsToComponents = () => {
       if (!componentPortMap || !network?.body?.data?.nodes) return;
+      
+      // Composite boundaries are recalculated in beforeDrawing every frame;
+      // here we just re-use the latest values for port positioning.
+
       const updates = [];
       const nodesDataset = network.body.data.nodes;
 
       Object.entries(componentPortMap).forEach(([componentId, groups]) => {
-        const box = network.getBoundingBox(componentId);
+        let box;
+        if (compositeBoxesMap.has(componentId)) {
+          const cb = compositeBoxesMap.get(componentId);
+          box = {
+            left: cb.x,
+            top: cb.y,
+            right: cb.x + cb.w,
+            bottom: cb.y + cb.h
+          };
+        } else {
+          box = network.getBoundingBox(componentId);
+        }
+
         if (!box || !isFinite(box.top) || !isFinite(box.bottom)) return;
 
-        const height = Math.max(box.bottom - box.top, 60);
+        const height = Math.max(box.bottom - box.top, 80);
         const width = Math.max(box.right - box.left, 120);
-        const leftX = box.left - 12;
-        const rightX = box.right + 12;
+        // Wider offset so ports don't sit on the box border
+        const leftX = box.left - 22;
+        const rightX = box.right + 22;
         const topY = box.top;
         const bottomY = box.bottom;
 
